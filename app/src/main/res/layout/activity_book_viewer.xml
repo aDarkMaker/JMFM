@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/book_appbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/book_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/card_background"
+            app:titleTextAppearance="@style/PDFToolbarTitleText"
+            app:titleTextColor="@color/text_primary"
+            app:popupTheme="@style/ThemeOverlay.Material3.Light.ActionBar">
+
+            <!-- 顶部标题：改为左对齐，保留项目字体 -->
+            <TextView
+                android:id="@+id/book_center_title"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="start|center_vertical"
+                android:gravity="center_vertical|start"
+                android:includeFontPadding="false"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textAppearance="@style/PDFToolbarTitleText"
+                android:fontFamily="@font/aaguxilazhangguankeaideshen_2"
+                android:textColor="@color/text_primary"
+                android:text="@string/pdf_list_title"
+                android:textAlignment="viewStart"
+                android:paddingStart="12dp" />
+
+            <!-- 页码显示（右侧） -->
+            <TextView
+                android:id="@+id/book_page_number"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:gravity="center_vertical|end"
+                android:paddingEnd="12dp"
+                android:text="0/0"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- 右侧占位，隐藏但保留宽度用于视觉中心对齐 -->
+            <ImageView
+                android:id="@+id/book_right_placeholder"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:contentDescription="@string/open_desc"
+                android:src="@drawable/ic_arrow_back"
+                android:visibility="invisible"
+                app:tint="@color/text_primary" />
+
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize">
+
+        <!-- 给 PDFView 留白、白色背景以提升阅读体验 -->
+        <com.github.barteksc.pdfviewer.PDFView
+            android:id="@+id/book_pdfView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="12dp"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+
+        <!-- 加载指示器，默认隐藏，加载时由 Activity 控制显示 -->
+        <ProgressBar
+            android:id="@+id/book_progress"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/accent_primary"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

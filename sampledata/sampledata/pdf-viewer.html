@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 预览器</title>
+    <link rel="stylesheet" href="styles/index.css">
+    <link rel="stylesheet" href="styles/pdf-viewer.css">
+    <script src="preload.js"></script>
+    <script src="scripts/font-loader.js"></script>
+</head>
+<body class="custom-font">
+    <!-- 标题栏 -->
+    <div class="titlebar">
+      <div class="left">
+        <img src="assets/icon/icon.png" width="20" height="20" alt="icon" />
+        <span class="title">PDF 阅读器</span>
+      </div>
+      <div class="right">
+        <div id="pdfBtnMin" class="window-btn" title="最小化">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <div id="pdfBtnMax" class="window-btn" title="最大化">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
+          </svg>
+        </div>
+        <div id="pdfBtnClose" class="window-btn close" title="关闭">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="pdf-viewer-container">
+        <!-- 侧边栏 - PDF文件列表 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">📚 PDF 文件库</div>
+                <div class="sidebar-subtitle">选择要预览的文件</div>
+            </div>
+            <div class="pdf-list" id="pdfList">
+                <!-- PDF文件列表将在这里动态加载 -->
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <button id="prevPage" disabled>◀ 上一页</button>
+                    <input type="number" id="pageNum" class="page-input" value="1" min="1">
+                    <span>/</span>
+                    <span id="totalPages">0</span>
+                    <button id="nextPage" disabled>下一页 ▶</button>
+                </div>
+                
+                <div class="toolbar-separator"></div>
+                
+                <div class="toolbar-group">
+                    <button id="zoomOut">🔍-</button>
+                    <span class="zoom-info" id="zoomLevel">100%</span>
+                    <button id="zoomIn">🔍+</button>
+                </div>
+                
+                <div class="toolbar-separator"></div>
+                
+                <div class="toolbar-group">
+                    <button id="fitWidth">适应宽度</button>
+                    <button id="fitPage">适应页面</button>
+                </div>
+                
+                <div style="flex: 1;"></div>
+                
+                <div class="toolbar-group">
+                    <button id="openExternal">外部打开</button>
+                </div>
+            </div>
+
+            <!-- PDF查看器区域 -->
+            <div class="pdf-viewer-area" id="pdfViewerArea">
+                <div class="placeholder">
+                    <div class="placeholder-icon">📄</div>
+                    <div class="placeholder-title">欢迎使用 PDF 预览器</div>
+                    <div class="placeholder-subtitle">从左侧列表中选择一个PDF文件开始预览</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/viewer.js"></script>
+    <script>
+        // 标题栏控制按钮事件处理 - 使用PDF专用窗口控制函数
+        document.getElementById('pdfBtnMin').addEventListener('click', () => {
+            window.jmf.pdfWin.minimize();
+        });
+        
+        document.getElementById('pdfBtnMax').addEventListener('click', () => {
+            window.jmf.pdfWin.toggleMaximize();
+        });
+        
+        document.getElementById('pdfBtnClose').addEventListener('click', () => {
+            window.jmf.pdfWin.close();
+        });
+    </script>
+</body>
+</html>

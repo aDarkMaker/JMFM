@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_choose_pdf"
+        android:title="选择PDF"
+        android:icon="@drawable/ic_menu_gallery"
+        android:showAsAction="always" />
+    <item
+        android:id="@+id/action_download_pdf"
+        android:title="下载PDF"
+        android:icon="@drawable/ic_download"
+        android:showAsAction="always" />
+</menu>
