@@ -1,21 +1,17 @@
 import React from 'react';
-import {SafeAreaView, StyleSheet, Text} from 'react-native';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {RootNavigator} from './navigation/RootNavigator';
+import {commonStyles} from './styles/common';
 
-// Placeholder only. UI will be designed separately later.
 function App(): React.JSX.Element {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text>JMFMobile</Text>
-    </SafeAreaView>
+    <GestureHandlerRootView style={commonStyles.screen}>
+      <SafeAreaProvider>
+        <RootNavigator />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 export default App;
