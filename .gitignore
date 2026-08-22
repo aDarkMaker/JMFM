@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+bun.lockb
+bun.lock
+
+# React Native
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/react-native-markup.txt
+ios/Pods/
+ios/build/
+ios/DerivedData/
+
+# Metro
+.metro-health-check*
+
+# Test
+coverage/
+
+# Env
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Misc
+*.log
+temp/

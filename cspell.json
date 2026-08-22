@@ -1,0 +1,9 @@
+{
+    "ignorePaths": [
+        "*.md",
+        "*.json"
+    ],
+    "words": [
+        "apng"
+    ]
+}
