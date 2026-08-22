@@ -5,8 +5,11 @@
   "main": "index.ts",
   "scripts": {
     "android": "react-native run-android",
+    "android:dev": "bash scripts/dev-android.sh",
+    "android:emu": "bash scripts/start-emulator.sh",
+    "android:build": "cd android && ./gradlew assembleDebug",
     "ios": "react-native run-ios",
-    "start": "react-native start",
+    "start": "react-native start --no-interactive",
     "test": "jest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -16,10 +19,14 @@
     "preset": "@react-native/jest-preset",
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
-    }
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-images-to-pdf|react-native-blob-util|react-native-svg|react-native-safe-area-context|react-native-screens|react-native-gesture-handler|@react-navigation)/)"
+    ]
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-navigation/bottom-tabs": "^7.18.17",
     "@react-navigation/native": "^7.3.17",
     "@react-navigation/native-stack": "^7.18.9",
     "@shopify/react-native-skia": "^2.11.0",
@@ -33,6 +40,7 @@
     "react-native-images-to-pdf": "^0.2.1",
     "react-native-safe-area-context": "^5.9.1",
     "react-native-screens": "^4.27.0",
+    "react-native-svg": "^15.15.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

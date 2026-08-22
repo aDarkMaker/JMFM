@@ -4,6 +4,7 @@
         "*.json"
     ],
     "words": [
-        "apng"
+        "apng",
+        "jmfmobile"
     ]
 }
