@@ -46,6 +46,7 @@ export default defineConfig({
               {text: '图片解密与重组', link: '/architecture/transcode'},
               {text: '下载编排', link: '/architecture/download'},
               {text: 'PDF 生成', link: '/architecture/pdf'},
+              {text: 'UI 架构', link: '/architecture/ui'},
             ],
           },
           {
@@ -88,6 +89,7 @@ export default defineConfig({
               {text: 'Image Decryption & Reassembly', link: '/en/architecture/transcode'},
               {text: 'Download Orchestration', link: '/en/architecture/download'},
               {text: 'PDF Generation', link: '/en/architecture/pdf'},
+              {text: 'UI Architecture', link: '/en/architecture/ui'},
             ],
           },
           {
