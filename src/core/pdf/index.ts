@@ -1,6 +1,5 @@
-import {createPdf} from 'react-native-images-to-pdf';
+import {PDFDocument} from 'pdf-lib';
 import {PDF} from '../constants';
-import {buildFileName} from './names';
 import {computeUniformWidth, PageSize, scaleSize} from './layout';
 
 export {sanitizeTitle, buildFileName} from './names';
@@ -46,12 +45,19 @@ export function buildPdfPages(
   });
 }
 
-export async function createAlbumPdf(
-  outputDir: string,
-  title: string,
-  imagePaths: string[],
-  sizes?: PageSize[],
-): Promise<string> {
-  const outputPath = `${outputDir}/${buildFileName(title)}`;
-  return createPdf({outputPath, pages: buildPdfPages(imagePaths, sizes)});
+export async function buildPdfBytes(
+  pages: PdfPage[],
+  readImage: (path: string) => Promise<Uint8Array>,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  for (const page of pages) {
+    const bytes = await readImage(page.imagePath);
+    const lower = page.imagePath.toLowerCase();
+    const img = lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+      ? await doc.embedJpg(bytes)
+      : await doc.embedPng(bytes);
+    const p = doc.addPage([page.width, page.height]);
+    p.drawImage(img, {x: 0, y: 0, width: page.width, height: page.height});
+  }
+  return doc.save();
 }

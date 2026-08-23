@@ -10,12 +10,13 @@ export interface DecodedImage {
 export interface FileSystem {
   mkdir(path: string): Promise<void>;
   writeFile(path: string, data: Uint8Array): Promise<void>;
+  readFile(path: string): Promise<Uint8Array>;
   unlink(path: string): Promise<void>;
 }
 
 export interface DownloadRuntime {
   fs: FileSystem;
-  decodeAndSave(num: number, encoded: Uint8Array, ext: string): DecodedImage;
+  decodeAndSave(num: number, encoded: Uint8Array, ext: string): Promise<DecodedImage>;
   createAlbumPdf(
     outputDir: string,
     title: string,

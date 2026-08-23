@@ -50,13 +50,14 @@ function makeRuntime(): DownloadRuntime & {
     writeFile: async (path, data) => {
       writes.set(path, data);
     },
+    readFile: async path => writes.get(path) ?? new Uint8Array(),
     unlink: async () => undefined,
   };
   return {
     fs,
     writes,
     calls,
-    decodeAndSave: (_num, encoded, ext) => {
+    decodeAndSave: async (_num, encoded, ext) => {
       calls.decode += 1;
       return {width: 100, height: 100, bytes: encoded, ext};
     },

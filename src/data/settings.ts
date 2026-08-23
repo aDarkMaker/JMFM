@@ -1,4 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Capacitor} from '@capacitor/core';
+import {Preferences} from '@capacitor/preferences';
 
 export interface Settings {
   downloadPath: string;
@@ -41,11 +42,34 @@ function normalizeInt(
   return Math.min(max, Math.max(min, Math.trunc(v)));
 }
 
-export async function loadSettings(): Promise<Settings> {
-  const raw = await AsyncStorage.getItem(KEY);
-  if (!raw) {
-    return DEFAULT_SETTINGS;
+export interface SettingsStorage {
+  load(): Promise<Settings>;
+  save(settings: Settings): Promise<void>;
+}
+
+class NativeSettingsStorage implements SettingsStorage {
+  async load(): Promise<Settings> {
+    const {value} = await Preferences.get({key: KEY});
+    return value ? parseSettings(value) : DEFAULT_SETTINGS;
   }
+
+  async save(settings: Settings): Promise<void> {
+    await Preferences.set({key: KEY, value: JSON.stringify(sanitizeSettings(settings))});
+  }
+}
+
+class WebSettingsStorage implements SettingsStorage {
+  async load(): Promise<Settings> {
+    const value = localStorage.getItem(KEY);
+    return value ? parseSettings(value) : DEFAULT_SETTINGS;
+  }
+
+  async save(settings: Settings): Promise<void> {
+    localStorage.setItem(KEY, JSON.stringify(sanitizeSettings(settings)));
+  }
+}
+
+function parseSettings(raw: string): Settings {
   try {
     return sanitizeSettings(JSON.parse(raw) as Partial<Settings>);
   } catch {
@@ -53,7 +77,21 @@ export async function loadSettings(): Promise<Settings> {
   }
 }
 
-export async function saveSettings(settings: Settings): Promise<void> {
-  const clean = sanitizeSettings(settings);
-  await AsyncStorage.setItem(KEY, JSON.stringify(clean));
+export function createSettingsStorage(): SettingsStorage {
+  return Capacitor.isNativePlatform()
+    ? new NativeSettingsStorage()
+    : new WebSettingsStorage();
+}
+
+export async function loadSettings(
+  storage: SettingsStorage = createSettingsStorage(),
+): Promise<Settings> {
+  return storage.load();
+}
+
+export async function saveSettings(
+  settings: Settings,
+  storage: SettingsStorage = createSettingsStorage(),
+): Promise<void> {
+  await storage.save(settings);
 }

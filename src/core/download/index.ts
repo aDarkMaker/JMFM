@@ -131,7 +131,11 @@ export class DownloadService {
         await runtime.fs.writeFile(`${path}.${item.suffix}`, resp.bytes);
         sizes[i] = {width: 0, height: 0};
       } else {
-        const decoded = runtime.decodeAndSave(num, resp.bytes, item.suffix);
+        const decoded = await runtime.decodeAndSave(
+          num,
+          resp.bytes,
+          item.suffix,
+        );
         ext = decoded.ext;
         await runtime.fs.writeFile(`${path}.${decoded.ext}`, decoded.bytes);
         sizes[i] = {width: decoded.width, height: decoded.height};

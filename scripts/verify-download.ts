@@ -1,4 +1,4 @@
-import {HttpClient} from '../src/core/net';
+import {AxiosHttpClient} from '../src/core/net';
 import {ApiClient} from '../src/core/api';
 import {DownloadService} from '../src/core/download';
 import {createNodeRuntime} from './node-runtime';
@@ -12,7 +12,7 @@ function log(step: string, detail: string): void {
 
 async function main(): Promise<void> {
   log('start', `album=${ALBUM_ID} full pdf`);
-  const http = new HttpClient({
+  const http = new AxiosHttpClient({
     ...(process.env.JMF_PROXY ? {proxy: process.env.JMF_PROXY} : {}),
     timeoutMs: 15000,
     maxRetries: 2,

@@ -117,13 +117,17 @@ export function createNodeRuntime(): DownloadRuntime {
     writeFile: async (path, data) => {
       writeFileSync(path, data);
     },
+    readFile: async path => {
+      return new Uint8Array(readFileSync(path));
+    },
     unlink: async path => {
       rmSync(path, {recursive: true, force: true});
     },
   };
   return {
     fs,
-    decodeAndSave: decodeWithMagick,
+    decodeAndSave: async (num, encoded, ext) =>
+      decodeWithMagick(num, encoded, ext),
     createAlbumPdf: createPdfWithMagick,
   };
 }

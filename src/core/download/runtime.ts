@@ -1,38 +1,104 @@
 /* eslint-disable no-bitwise */
-import ReactNativeBlobUtil from 'react-native-blob-util';
-import {decodeAndSave as realDecodeAndSave} from '../transcode/decode';
-import {createAlbumPdf as realCreateAlbumPdf} from '../pdf';
+import {Capacitor} from '@capacitor/core';
+import {Directory, Filesystem} from '@capacitor/filesystem';
+import {decodeAndSave} from '../transcode/decode';
+import {buildFileName} from '../pdf/names';
+import {buildPdfBytes, buildPdfPages, PageSize} from '../pdf';
+import {base64ToBytes, bytesToBase64} from '../util/base64';
 import {DownloadRuntime, FileSystem} from './types';
 
 export type {DecodedImage, DownloadRuntime, FileSystem} from './types';
 
-const B64_CHARS =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let out = '';
-  for (let i = 0; i < bytes.length; i += 3) {
-    const b0 = bytes[i];
-    const b1 = bytes[i + 1];
-    const b2 = bytes[i + 2];
-    out += B64_CHARS[b0 >> 2];
-    out += B64_CHARS[((b0 & 0x03) << 4) | (b1 >> 4)];
-    out += b1 !== undefined ? B64_CHARS[((b1 & 0x0f) << 2) | (b2 >> 6)] : '=';
-    out += b2 !== undefined ? B64_CHARS[b2 & 0x3f] : '=';
-  }
-  return out;
+export function createAlbumPdf(
+  fs: FileSystem,
+  outputDir: string,
+  title: string,
+  imagePaths: string[],
+  sizes?: PageSize[],
+): Promise<string> {
+  return (async () => {
+    const pages = buildPdfPages(imagePaths, sizes);
+    const bytes = await buildPdfBytes(pages, fs.readFile);
+    const outputPath = `${outputDir}/${buildFileName(title)}`;
+    await fs.writeFile(outputPath, bytes);
+    return outputPath;
+  })();
 }
 
-export function createRuntime(): DownloadRuntime {
+export function createNativeRuntime(): DownloadRuntime {
   const fs: FileSystem = {
-    mkdir: path => ReactNativeBlobUtil.fs.mkdir(path),
-    writeFile: (path, data) =>
-      ReactNativeBlobUtil.fs.writeFile(path, bytesToBase64(data), 'base64'),
-    unlink: path => ReactNativeBlobUtil.fs.unlink(path),
+    mkdir: path =>
+      Filesystem.mkdir({
+        path,
+        directory: Directory.Documents,
+        recursive: true,
+      }),
+    writeFile: async (path, data) => {
+      await Filesystem.writeFile({
+        path,
+        data: bytesToBase64(data),
+        directory: Directory.Documents,
+        recursive: true,
+      });
+    },
+    readFile: async path => {
+      const r = await Filesystem.readFile({
+        path,
+        directory: Directory.Documents,
+      });
+      if (typeof r.data !== 'string') {
+        return new Uint8Array(await r.data.arrayBuffer());
+      }
+      return base64ToBytes(r.data);
+    },
+    unlink: async path => {
+      try {
+        await Filesystem.deleteFile({path, directory: Directory.Documents});
+      } catch {
+        await Filesystem.rmdir({
+          path,
+          directory: Directory.Documents,
+          recursive: true,
+        });
+      }
+    },
   };
   return {
     fs,
-    decodeAndSave: realDecodeAndSave,
-    createAlbumPdf: realCreateAlbumPdf,
+    decodeAndSave,
+    createAlbumPdf: (dir, title, paths, sizes) =>
+      createAlbumPdf(fs, dir, title, paths, sizes),
   };
+}
+
+export function createWebRuntime(): DownloadRuntime {
+  const mem = new Map<string, Uint8Array>();
+  const fs: FileSystem = {
+    mkdir: async () => undefined,
+    writeFile: async (path, data) => {
+      mem.set(path, data);
+    },
+    readFile: async path => {
+      const data = mem.get(path);
+      if (!data) {
+        throw new Error(`file not found: ${path}`);
+      }
+      return data;
+    },
+    unlink: async path => {
+      mem.delete(path);
+    },
+  };
+  return {
+    fs,
+    decodeAndSave,
+    createAlbumPdf: (dir, title, paths, sizes) =>
+      createAlbumPdf(fs, dir, title, paths, sizes),
+  };
+}
+
+export function createRuntime(): DownloadRuntime {
+  return Capacitor.isNativePlatform()
+    ? createNativeRuntime()
+    : createWebRuntime();
 }

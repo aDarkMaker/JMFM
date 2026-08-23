@@ -1,10 +1,5 @@
 import {DEFAULT_SETTINGS, sanitizeSettings} from '@/data/settings';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-}));
-
 describe('settings sanitizeSettings', () => {
   it('uses defaults for empty input', () => {
     expect(sanitizeSettings({})).toEqual(DEFAULT_SETTINGS);
