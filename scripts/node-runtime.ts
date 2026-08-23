@@ -1,5 +1,5 @@
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync} from 'node:fs';
+import {existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {computeStrips} from '../src/core/transcode';
@@ -123,6 +123,7 @@ export function createNodeRuntime(): DownloadRuntime {
     unlink: async path => {
       rmSync(path, {recursive: true, force: true});
     },
+    exists: async path => existsSync(path),
   };
   return {
     fs,

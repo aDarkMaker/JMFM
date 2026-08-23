@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "bun build ./src/web/index.html --outdir=dist --target=browser --define:process.env.NODE_ENV='\"production\"'",
-    "build:dev": "bun build ./src/web/index.html --outdir=dist --target=browser",
+    "build": "rm -rf dist && bun build ./src/web/index.html --outdir=dist --target=browser --define:process.env.NODE_ENV='\"production\"' && bun build ./src/core/pdf/worker-entry.ts --outfile=dist/pdf-worker.js --target=browser",
+    "build:dev": "rm -rf dist && bun build ./src/web/index.html --outdir=dist --target=browser && bun build ./src/core/pdf/worker-entry.ts --outfile=dist/pdf-worker.js --target=browser",
     "cap:sync": "cap sync android",
     "cap:run": "cap run android",
     "dev": "bash scripts/dev-android.sh",
@@ -20,9 +20,10 @@
     "@capacitor/preferences": "^8.0.1",
     "axios": "^1.19.0",
     "crypto-js": "^4.2.0",
+    "gsap": "^3.15.0",
     "node-html-parser": "^9.0.1",
     "pdf-lib": "^1.17.1",
-    "react": "^19.2.3",
+    "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "zustand": "^5.0.15"
   },

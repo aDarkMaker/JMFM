@@ -1,5 +1,5 @@
 import {HttpClient} from '@/core/net';
-import {DownloadService, DownloadEvent, ContentSource} from '@/core/download';
+import {DownloadService, DownloadEvent, ContentSource, isCanceledError} from '@/core/download';
 import {DownloadRuntime, FileSystem} from '@/core/download/types';
 import {AlbumDetail, PhotoDetail, createImageItem} from '@/core/model';
 
@@ -52,6 +52,7 @@ function makeRuntime(): DownloadRuntime & {
     },
     readFile: async path => writes.get(path) ?? new Uint8Array(),
     unlink: async () => undefined,
+    exists: async path => writes.has(path),
   };
   return {
     fs,
@@ -91,7 +92,7 @@ describe('DownloadService end-to-end', () => {
     const events: DownloadEvent[] = [];
     const pdfPath = await service.downloadAlbum(123, e => events.push(e));
 
-    expect(pdfPath).toBe('/downloads/123/测试本子.pdf');
+    expect(pdfPath).toBe('/downloads/测试本子/测试本子.pdf');
     expect(events.map(e => e.type)).toEqual([
       'album-parsed',
       'chapter',
@@ -103,6 +104,9 @@ describe('DownloadService end-to-end', () => {
       'pdf-start',
       'done',
     ]);
+    const albumParsed = events.find(e => e.type === 'album-parsed');
+    expect(albumParsed?.title).toBe('测试本子');
+    expect(albumParsed?.chapters).toBe(2);
     expect(runtime.writes.size).toBe(4);
     expect(runtime.calls.decode).toBe(4);
     expect(http.getBytes).toHaveBeenCalledTimes(4);
@@ -130,5 +134,83 @@ describe('DownloadService end-to-end', () => {
       service.downloadAlbum(123, e => events.push(e)),
     ).rejects.toThrow('failed to fetch album');
     expect(events.some(e => e.type === 'error')).toBe(true);
+  });
+
+  it('skips existing files on resume', async () => {
+    const runtime = makeRuntime();
+    const http = makeHttp();
+    const service = new DownloadService({
+      http,
+      source: makeSource(),
+      runtime,
+      downloadPath: '/downloads',
+      concurrency: 4,
+      cpuCount: 4,
+    });
+
+    // 预先写入第一章的图片
+    runtime.writes.set('/downloads/测试本子/.tmp/0_0000.webp', new Uint8Array([9, 9, 9]));
+    runtime.writes.set('/downloads/测试本子/.tmp/0_0001.webp', new Uint8Array([9, 9, 9]));
+
+    const events: DownloadEvent[] = [];
+    await service.downloadAlbum(123, e => events.push(e));
+
+    // 第一章 2 张已存在，只下载第二章 2 张
+    expect(http.getBytes).toHaveBeenCalledTimes(2);
+    expect(runtime.calls.decode).toBe(2);
+    expect(runtime.writes.size).toBe(4);
+    expect(events.filter(e => e.type === 'image').length).toBe(4);
+    expect(events.filter(e => e.type === 'done').length).toBe(1);
+  });
+
+  it('cancels when controller is set', async () => {
+    const runtime = makeRuntime();
+    const http = makeHttp();
+    const service = new DownloadService({
+      http,
+      source: makeSource(),
+      runtime,
+      downloadPath: '/downloads',
+      concurrency: 1,
+      cpuCount: 4,
+    });
+
+    const controller = {paused: false, cancel() { this.paused = true; }};
+    const events: DownloadEvent[] = [];
+
+    // 在第一章第一张图片完成后取消
+    let cancelled = false;
+    const origGetBytes = http.getBytes;
+    http.getBytes = jest.fn(async (url, headers) => {
+      const r = await origGetBytes(url, headers);
+      if (!cancelled) {
+        controller.cancel();
+        cancelled = true;
+      }
+      return r;
+    });
+
+    await expect(
+      service.downloadAlbum(123, e => events.push(e), {controller}),
+    ).rejects.toThrow('canceled');
+
+    expect(events.some(e => e.type === 'canceled')).toBe(true);
+    expect(events.some(e => e.type === 'done')).toBe(false);
+  });
+
+  it('isCanceledError detects cancellation', () => {
+    const controller = {paused: true, cancel() {}};
+    const service = new DownloadService({
+      http: makeHttp(),
+      source: makeSource(),
+      runtime: makeRuntime(),
+      downloadPath: '/downloads',
+    });
+
+    return service
+      .downloadAlbum(123, () => {}, {controller})
+      .catch(e => {
+        expect(isCanceledError(e)).toBe(true);
+      });
   });
 });
