@@ -9,7 +9,7 @@ export function HomeScreen() {
         <span className="home-hero-title">JMFM</span>
         <span className="home-hero-subtitle">每日推荐 · 精选漫画</span>
       </div>
-      <SectionHeader title="今日推荐" actionLabel="换一批" />
+      <SectionHeader title="今日推荐" actionLabel="换一批" actionIcon="refresh" />
       <div className="home-grid">
         {dailyRecommendations.map(album => (
           <AlbumCard key={album.albumId} album={album} />

@@ -7,6 +7,9 @@ export interface Settings {
   imageThreads: number;
   imageFormat: string;
   proxy: string;
+  proxyEnabled: boolean;
+  domains: string[];
+  theme: 'light' | 'dark';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -15,6 +18,15 @@ export const DEFAULT_SETTINGS: Settings = {
   imageThreads: 0,
   imageFormat: 'webp',
   proxy: '',
+  proxyEnabled: false,
+  domains: [
+    '18comic.vip',
+    '18comic.org',
+    'jmcomic.me',
+    'jmcomic1.me',
+    'jmcomic2.me',
+  ],
+  theme: 'light',
 };
 
 const KEY = 'jmf.settings';
@@ -26,7 +38,17 @@ export function sanitizeSettings(raw: Partial<Settings>): Settings {
     imageThreads: normalizeInt(raw.imageThreads, 0, 64, DEFAULT_SETTINGS.imageThreads),
     imageFormat: raw.imageFormat || DEFAULT_SETTINGS.imageFormat,
     proxy: raw.proxy?.trim() || '',
+    proxyEnabled: raw.proxyEnabled === true,
+    domains: sanitizeDomains(raw.domains),
+    theme: raw.theme === 'dark' ? 'dark' : 'light',
   };
+}
+
+function sanitizeDomains(raw: string[] | undefined): string[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [...DEFAULT_SETTINGS.domains];
+  }
+  return raw.map(d => String(d).trim()).filter(Boolean);
 }
 
 function normalizeInt(

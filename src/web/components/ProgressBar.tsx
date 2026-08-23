@@ -1,6 +1,6 @@
 export interface ProgressBarProps {
   progress: number;
-  status?: 'pending' | 'running' | 'done' | 'error';
+  status?: 'pending' | 'running' | 'paused' | 'done' | 'error';
 }
 
 export function ProgressBar({progress, status}: ProgressBarProps) {

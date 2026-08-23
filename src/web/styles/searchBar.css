@@ -11,6 +11,10 @@
 .search-bar-icon {
   color: var(--ink-tertiary);
   font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .search-bar-input {

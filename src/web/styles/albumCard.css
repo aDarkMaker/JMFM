@@ -5,6 +5,7 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-1);
+  min-width: 0;
   transition:
     transform var(--dur-base) var(--ease-spring),
     box-shadow var(--dur-base) ease;

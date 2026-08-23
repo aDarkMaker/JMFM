@@ -10,7 +10,8 @@ export function LibraryScreen() {
   const [query, setQuery] = useState('');
 
   const filtered = items.filter(it =>
-    it.title.toLowerCase().includes(query.trim().toLowerCase()),
+    it.title.toLowerCase().includes(query.trim().toLowerCase()) ||
+    String(it.albumId).includes(query.trim()),
   );
 
   return (
@@ -19,18 +20,18 @@ export function LibraryScreen() {
       <SearchBar value={query} onChange={setQuery} placeholder="搜索本地漫画" />
       {filtered.length === 0 ? (
         <EmptyState
-          icon="folder"
+          icon="photo-library"
           title={query ? '未找到匹配的漫画' : '漫画库还是空的'}
-          hint={query ? '换个关键词试试' : '从首页推荐开始下载吧'}
+          hint={query ? '换个关键词试试' : '下载一本漫画开始阅读'}
         />
       ) : (
         <div className="library-stack">
           {filtered.map(item => (
             <ListTile
               key={item.albumId}
-              icon="auto-stories"
+              icon="description"
               title={item.title}
-              subtitle={`${item.chapterCount}话`}
+              subtitle={`${item.chapterCount}话 · ${item.albumId}`}
               trailing="chevron-right"
             />
           ))}

@@ -19,7 +19,7 @@ export function SearchBar({value, onChange, placeholder}: SearchBarProps) {
       </span>
       <input
         className="search-bar-input"
-        type="search"
+        type="text"
         value={value}
         placeholder={placeholder ?? '搜索'}
         onChange={e => onChange(e.target.value)}

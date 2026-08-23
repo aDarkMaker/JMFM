@@ -1,7 +1,8 @@
+import {icons} from '../generated/icons';
 import {Icon} from './Icon';
 
 export interface EmptyStateProps {
-  icon?: 'folder' | 'download' | 'search' | 'info';
+  icon?: keyof typeof icons;
   title: string;
   hint?: string;
 }

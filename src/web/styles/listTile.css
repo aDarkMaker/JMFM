@@ -6,11 +6,8 @@
   background: var(--surface-card);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
-  transition: transform var(--dur-fast) var(--ease-spring);
-}
-
-.list-tile:active {
-  transform: scale(0.98);
+  min-width: 0;
+  width: 100%;
 }
 
 .list-tile-icon {
@@ -32,6 +29,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  text-align: left;
 }
 
 .list-tile-title {
@@ -48,4 +46,75 @@
   color: var(--ink-tertiary);
   font-size: 20px;
   flex-shrink: 0;
+}
+
+.list-tile--input {
+  cursor: default;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.list-tile--input:active {
+  transform: none;
+}
+
+.list-tile--input .list-tile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.list-tile--input .list-tile-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+
+.list-tile--input .list-tile-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.list-tile--input .list-tile-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+
+.list-tile--input .list-tile-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.list-tile-input {
+  font-size: var(--text-base);
+  color: var(--ink-primary);
+  background: var(--surface-sunken);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+  min-width: 0;
+  transition: box-shadow var(--dur-fast) ease;
+}
+
+.list-tile-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+.list-tile-input::placeholder {
+  color: var(--ink-tertiary);
+}
+
+.list-tile-input--readonly {
+  cursor: pointer;
+  caret-color: transparent;
+}
+
+.list-tile-input--readonly:hover {
+  box-shadow: 0 0 0 1px var(--accent-primary);
 }
