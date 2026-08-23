@@ -1,11 +1,23 @@
 {
     "ignorePaths": [
         "*.md",
-        "*.json"
+        "*.json",
+        "*.pro"
     ],
     "words": [
+        "aapt",
+        "allprojects",
+        "androidx",
         "apng",
+        "appcompat",
+        "buildscript",
+        "coordinatorlayout",
+        "cordova",
         "getcapacitor",
-        "jmfmobile"
+        "jmfmobile",
+        "npmkeep",
+        "picasa",
+        "Proguard",
+        "splashscreen"
     ]
 }
