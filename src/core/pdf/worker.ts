@@ -78,10 +78,14 @@ export async function createWorkerPdf(
     if (resp.type !== 'result') {
       throw new Error('unexpected worker response');
     }
+    console.log(`[pdf] worker built ${resp.pdf.byteLength} bytes`);
     const pdf = new Uint8Array(resp.pdf);
     const outputPath = `${outputDir}/${buildFileName(title)}`;
     await fs.writeFile(outputPath, pdf);
     return outputPath;
+  } catch (err) {
+    console.warn('[pdf] worker failed, fallback', err);
+    throw err;
   } finally {
     worker?.terminate();
   }
