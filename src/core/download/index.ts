@@ -15,17 +15,23 @@ import {PageSize} from '../pdf/layout';
 export type {DownloadRuntime, FileSystem, DecodedImage} from './types';
 
 export type DownloadEvent =
-  | {type: 'album-parsed'}
-  | {type: 'chapter'; index: number; total: number}
-  | {type: 'image'; downloaded: number; total: number}
+  | {type: 'album-parsed'; title: string; chapters: number}
+  | {type: 'chapter'; index: number; total: number; images: number}
+  | {type: 'image'; downloaded: number; total: number; albumDone: number; albumTotal: number}
   | {type: 'pdf-start'}
   | {type: 'done'; pdfPath: string}
+  | {type: 'canceled'}
   | {type: 'error'; message: string};
 
 export interface ContentSource {
   getAlbum(albumId: number): Promise<AlbumDetail>;
   getPhoto(photoId: number): Promise<PhotoDetail>;
   buildImageItems(photo: PhotoDetail): ImageItem[];
+}
+
+export interface DownloadController {
+  cancel(): void;
+  paused: boolean;
 }
 
 export interface DownloadDeps {
@@ -37,6 +43,19 @@ export interface DownloadDeps {
   cpuCount?: number;
 }
 
+class CanceledError extends Error {
+  constructor() {
+    super('canceled');
+    this.name = 'CanceledError';
+  }
+}
+
+export function isCanceledError(e: unknown): boolean {
+  return e instanceof CanceledError;
+}
+
+const SUPPORTED_EXTS = ['webp', 'jpg', 'jpeg', 'png', 'gif'];
+
 export class DownloadService {
   private deps: DownloadDeps;
 
@@ -47,37 +66,52 @@ export class DownloadService {
   async downloadAlbum(
     albumId: number,
     onEvent: (e: DownloadEvent) => void,
+    opts?: {controller?: DownloadController},
   ): Promise<string> {
     const {runtime, source} = this.deps;
-    const albumDir = `${this.deps.downloadPath}/${albumId}`;
-    const tempDir = `${albumDir}/.tmp`;
+    const controller = opts?.controller;
 
     try {
+      const album = await source.getAlbum(albumId);
+      this.checkCanceled(controller);
+      onEvent({type: 'album-parsed', title: album.name, chapters: album.episodes.length});
+
+      const safeName = album.name.replace(/[/\\:*?"<>|]/g, '_');
+      const albumDir = `${this.deps.downloadPath}/${safeName}`;
+      const tempDir = `${albumDir}/.tmp`;
+
       await runtime.fs.mkdir(albumDir).catch(() => undefined);
       await runtime.fs.mkdir(tempDir).catch(() => undefined);
-
-      const album = await source.getAlbum(albumId);
-      onEvent({type: 'album-parsed'});
 
       const totalChapters = album.episodes.length;
       const pages: string[] = [];
       const pageSizes: PageSize[] = [];
+      let albumDone = 0;
+      let albumTotal = 0;
+
       for (let i = 0; i < totalChapters; i++) {
+        this.checkCanceled(controller);
         const ep = album.episodes[i];
-        onEvent({type: 'chapter', index: i + 1, total: totalChapters});
         const photo = await source.getPhoto(ep.photoId);
+        this.checkCanceled(controller);
         if (!photo.scrambleId && album.scrambleId) {
           photo.scrambleId = album.scrambleId;
         }
         const imageItems = source.buildImageItems(photo);
+        albumTotal += imageItems.length;
+        onEvent({type: 'chapter', index: i + 1, total: totalChapters, images: imageItems.length});
         const chapter = await this.downloadChapter(
           imageItems,
           tempDir,
           i,
           onEvent,
+          controller,
+          albumDone,
+          albumTotal,
         );
         pages.push(...chapter.paths);
         pageSizes.push(...chapter.sizes);
+        albumDone += chapter.done;
       }
 
       onEvent({type: 'pdf-start'});
@@ -87,15 +121,26 @@ export class DownloadService {
         pages,
         pageSizes,
       );
+      this.checkCanceled(controller);
       await runtime.fs.unlink(tempDir).catch(() => undefined);
       onEvent({type: 'done', pdfPath});
       return pdfPath;
     } catch (e) {
-      onEvent({
-        type: 'error',
-        message: e instanceof Error ? e.message : String(e),
-      });
+      if (isCanceledError(e)) {
+        onEvent({type: 'canceled'});
+      } else {
+        onEvent({
+          type: 'error',
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
       throw e;
+    }
+  }
+
+  private checkCanceled(controller?: DownloadController): void {
+    if (controller?.paused) {
+      throw new CanceledError();
     }
   }
 
@@ -104,7 +149,10 @@ export class DownloadService {
     tempDir: string,
     chapterIndex: number,
     onEvent: (e: DownloadEvent) => void,
-  ): Promise<{paths: string[]; sizes: PageSize[]}> {
+    controller: DownloadController | undefined,
+    albumDoneOffset: number,
+    albumTotal: number,
+  ): Promise<{paths: string[]; sizes: PageSize[]; done: number}> {
     const {http, runtime} = this.deps;
     const limit = calcConcurrency(
       items.length,
@@ -116,11 +164,27 @@ export class DownloadService {
     let done = 0;
 
     await mapWithConcurrency(items, limit, async (item, i) => {
-      const path = `${tempDir}/${chapterIndex}_${String(i).padStart(4, '0')}`;
+      this.checkCanceled(controller);
+      const base = `${tempDir}/${chapterIndex}_${String(i).padStart(4, '0')}`;
+      const existing = await this.findExisting(base);
+      if (existing) {
+        pages[i] = existing;
+        sizes[i] = {width: 0, height: 0};
+        done += 1;
+        onEvent({
+          type: 'image',
+          downloaded: done,
+          total: items.length,
+          albumDone: albumDoneOffset + done,
+          albumTotal,
+        });
+        return;
+      }
       const resp = await http.getBytes(item.url, {
         Referer: REQUEST.REFERER,
         Accept: REQUEST.ACCEPT_IMAGE,
       });
+      this.checkCanceled(controller);
       if (!resp.ok || !resp.bytes) {
         throw new Error(`failed to download ${item.url}`);
       }
@@ -128,7 +192,7 @@ export class DownloadService {
       const strategy = decideImageStrategy(num, item.suffix);
       let ext = item.suffix;
       if (strategy === 'raw') {
-        await runtime.fs.writeFile(`${path}.${item.suffix}`, resp.bytes);
+        await runtime.fs.writeFile(`${base}.${item.suffix}`, resp.bytes);
         sizes[i] = {width: 0, height: 0};
       } else {
         const decoded = await runtime.decodeAndSave(
@@ -137,15 +201,35 @@ export class DownloadService {
           item.suffix,
         );
         ext = decoded.ext;
-        await runtime.fs.writeFile(`${path}.${decoded.ext}`, decoded.bytes);
+        await runtime.fs.writeFile(`${base}.${decoded.ext}`, decoded.bytes);
         sizes[i] = {width: decoded.width, height: decoded.height};
       }
-      pages[i] = `${path}.${ext}`;
+      pages[i] = `${base}.${ext}`;
       done += 1;
-      onEvent({type: 'image', downloaded: done, total: items.length});
+      onEvent({
+        type: 'image',
+        downloaded: done,
+        total: items.length,
+        albumDone: albumDoneOffset + done,
+        albumTotal,
+      });
     });
 
-    return {paths: pages, sizes};
+    return {paths: pages, sizes, done};
+  }
+
+  private async findExisting(base: string): Promise<string | null> {
+    for (const ext of SUPPORTED_EXTS) {
+      const p = `${base}.${ext}`;
+      try {
+        if (await this.deps.runtime.fs.exists(p)) {
+          return p;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return null;
   }
 }
 

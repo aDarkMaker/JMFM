@@ -12,6 +12,9 @@ export interface FileSystem {
   writeFile(path: string, data: Uint8Array): Promise<void>;
   readFile(path: string): Promise<Uint8Array>;
   unlink(path: string): Promise<void>;
+  exists(path: string): Promise<boolean>;
+  pickDirectory?(): Promise<string | null>;
+  createDirectory?(path: string): Promise<void>;
 }
 
 export interface DownloadRuntime {
