@@ -15,7 +15,7 @@ import {PageSize} from '../pdf/layout';
 export type {DownloadRuntime, FileSystem, DecodedImage} from './types';
 
 export type DownloadEvent =
-  | {type: 'album-parsed'; title: string; chapters: number}
+  | {type: 'album-parsed'; title: string; chapters: number; author: string; tags: string[]}
   | {type: 'chapter'; index: number; total: number; images: number}
   | {type: 'image'; downloaded: number; total: number; albumDone: number; albumTotal: number}
   | {type: 'pdf-start'}
@@ -74,7 +74,7 @@ export class DownloadService {
     try {
       const album = await source.getAlbum(albumId);
       this.checkCanceled(controller);
-      onEvent({type: 'album-parsed', title: album.name, chapters: album.episodes.length});
+      onEvent({type: 'album-parsed', title: album.name, chapters: album.episodes.length, author: album.author, tags: album.tags});
 
       const safeName = album.name.replace(/[/\\:*?"<>|]/g, '_');
       const albumDir = `${this.deps.downloadPath}/${safeName}`;

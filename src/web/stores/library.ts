@@ -6,6 +6,10 @@ export interface LibraryItem {
   chapterCount: number;
   filePath: string;
   coverPath?: string;
+  author?: string;
+  tags?: string[];
+  pageCount?: number;
+  favorite?: boolean;
   downloadedAt: number;
 }
 
@@ -34,6 +38,7 @@ interface LibraryState {
   items: LibraryItem[];
   add(item: Omit<LibraryItem, 'downloadedAt'>): void;
   remove(albumId: number): void;
+  toggleFavorite(albumId: number): void;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
@@ -45,6 +50,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
   remove(albumId) {
     const items = get().items.filter(i => i.albumId !== albumId);
+    set({items});
+    save(items);
+  },
+  toggleFavorite(albumId) {
+    const items = get().items.map(i =>
+      i.albumId === albumId ? {...i, favorite: !i.favorite} : i,
+    );
     set({items});
     save(items);
   },
