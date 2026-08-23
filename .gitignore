@@ -6,20 +6,17 @@ node_modules/
 npm-debug.log
 yarn-error.log
 bun.lockb
-bun.lock
 
-# React Native
+# Web build
+dist/
+
+# Android (Capacitor)
 android/app/build/
 android/build/
 android/.gradle/
 android/local.properties
-android/app/src/main/assets/react-native-markup.txt
-ios/Pods/
-ios/build/
-ios/DerivedData/
-
-# Metro
-.metro-health-check*
+android/.kotlin/
+android/app/src/main/assets/public/
 
 # Test
 coverage/
