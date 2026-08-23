@@ -41,18 +41,20 @@ export class NativeHttpClient implements HttpClient {
     binary: boolean,
   ): Promise<FetchResult> {
     const maxRetries = this.opts.maxRetries ?? REQUEST.MAX_RETRIES;
+    let lastError = '';
     for (const url of urls) {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         const result = await this.tryOnce(url, headers, binary);
         if (result.ok) {
           return result;
         }
+        lastError = result.error || `status ${result.status}`;
         if (attempt < maxRetries - 1) {
           await sleep(REQUEST.RETRY_INTERVAL_MS);
         }
       }
     }
-    return {ok: false, status: 0};
+    return {ok: false, status: 0, error: lastError};
   }
 
   private async tryOnce(
@@ -60,6 +62,7 @@ export class NativeHttpClient implements HttpClient {
     headers: Record<string, string> | undefined,
     binary: boolean,
   ): Promise<FetchResult> {
+    const host = this.hostOf(url);
     try {
       const resp = await CapacitorHttp.get({
         url,
@@ -70,7 +73,7 @@ export class NativeHttpClient implements HttpClient {
       });
       const ok = resp.status >= 200 && resp.status < 300;
       if (!ok) {
-        return {ok: false, status: resp.status};
+        return {ok: false, status: resp.status, error: `HTTP ${resp.status}`};
       }
       if (binary) {
         return {
@@ -80,8 +83,36 @@ export class NativeHttpClient implements HttpClient {
         };
       }
       return {ok: true, status: resp.status, text: String(resp.data)};
+    } catch (e) {
+      const nativeMsg = e instanceof Error ? e.message : String(e);
+      // 原生栈失败时降级到 WebView fetch（与电脑同 Chromium 栈）
+      try {
+        const resp = await fetch(url, {headers: headers as HeadersInit});
+        const ok = resp.status >= 200 && resp.status < 300;
+        if (!ok) {
+          return {ok: false, status: resp.status, error: `HTTP ${resp.status}`};
+        }
+        if (binary) {
+          const buf = await resp.arrayBuffer();
+          return {ok: true, status: resp.status, bytes: new Uint8Array(buf)};
+        }
+        return {ok: true, status: resp.status, text: await resp.text()};
+      } catch (e2) {
+        const webMsg = e2 instanceof Error ? e2.message : String(e2);
+        return {
+          ok: false,
+          status: 0,
+          error: `${host}: native=${nativeMsg}; web=${webMsg}`,
+        };
+      }
+    }
+  }
+
+  private hostOf(url: string): string {
+    try {
+      return new URL(url).host;
     } catch {
-      return {ok: false, status: 0};
+      return url;
     }
   }
 }

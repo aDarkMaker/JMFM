@@ -142,17 +142,14 @@ export class ApiClient {
       .map(([k, v]) => `${k}=${v}`)
       .join('&');
     const headers = {
-      'user-agent': config.request.userAgentMobile,
-      Accept: config.request.acceptApi,
-      'Accept-Encoding': config.request.acceptEncoding,
-      Referer: config.request.referer,
-      token,
-      tokenparam: `${ts},${config.app.version}`,
+      Token: token,
+      Tokenparam: `${ts},${config.app.version}`,
     };
     const urls = domains.map(d => `https://${d}${path}?${query}`);
     const resp = await this.http.getBytesWithUrls(urls, headers);
     if (!resp.ok || !resp.bytes) {
-      throw new Error(`api request failed: ${path}`);
+      const detail = resp.error ? `; ${resp.error}` : '';
+      throw new Error(`api request failed: ${path} (status ${resp.status}${detail})`);
     }
     const text = utf8Decode(resp.bytes);
     const body = JSON.parse(text) as {code: number; data: string};

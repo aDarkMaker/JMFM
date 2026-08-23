@@ -13,6 +13,7 @@ export interface FetchResult {
   status: number;
   text?: string;
   bytes?: Uint8Array;
+  error?: string;
 }
 
 export interface HttpClient {
@@ -91,18 +92,20 @@ export class AxiosHttpClient implements HttpClient {
   ): Promise<FetchResult> {
     const client = buildClient(this.opts);
     const maxRetries = this.opts.maxRetries ?? REQUEST.MAX_RETRIES;
+    let lastError = '';
     for (const url of urls) {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         const result = await this.tryOnce(client, url, headers, binary);
         if (result.ok) {
           return result;
         }
+        lastError = result.error || `status ${result.status}`;
         if (attempt < maxRetries - 1) {
           await sleep(REQUEST.RETRY_INTERVAL_MS);
         }
       }
     }
-    return {ok: false, status: 0};
+    return {ok: false, status: 0, error: lastError};
   }
 
   private async tryOnce(
@@ -125,8 +128,8 @@ export class AxiosHttpClient implements HttpClient {
         return {ok: true, status: resp.status, bytes: new Uint8Array(buf)};
       }
       return {ok: true, status: resp.status, text: String(resp.data)};
-    } catch {
-      return {ok: false, status: 0};
+    } catch (e) {
+      return {ok: false, status: 0, error: e instanceof Error ? e.message : String(e)};
     }
   }
 }
