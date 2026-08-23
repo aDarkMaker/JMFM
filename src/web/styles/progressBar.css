@@ -1,0 +1,21 @@
+.progress-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent-primary);
+  transition: width var(--dur-base) var(--ease-spring);
+}
+
+.progress-fill.is-done {
+  background: var(--accent-success);
+}
+
+.progress-fill.is-error {
+  background: var(--accent-danger);
+}

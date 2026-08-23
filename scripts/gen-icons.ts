@@ -5,8 +5,8 @@
 import {readdirSync, readFileSync, writeFileSync, mkdirSync} from 'node:fs';
 import {join} from 'node:path';
 
-const iconsDir = join(__dirname, '../src/app/assets/icons');
-const outDir = join(__dirname, '../src/app/generated');
+const iconsDir = join(__dirname, '../src/web/assets/icons');
+const outDir = join(__dirname, '../src/web/generated');
 const outFile = join(outDir, 'icons.ts');
 
 const names = readdirSync(iconsDir)

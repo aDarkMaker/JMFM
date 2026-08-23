@@ -1,0 +1,92 @@
+:root {
+  /* surfaces */
+  --surface-canvas: #f6f6f4;
+  --surface-card: #ffffff;
+  --surface-sunken: #efefeb;
+
+  /* ink */
+  --ink-primary: #1a1a18;
+  --ink-secondary: #6b6a63;
+  --ink-tertiary: #9c9b92;
+  --ink-inverse: #ffffff;
+
+  /* accent */
+  --accent-primary: #0a84ff;
+  --accent-primary-soft: #e4f0ff;
+  --accent-success: #34c759;
+  --accent-success-soft: #e6f7ea;
+  --accent-danger: #ff3b30;
+  --accent-danger-soft: #ffebea;
+
+  /* radii */
+  --radius-pill: 999px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+
+  /* elevation */
+  --shadow-1: 0 1px 2px rgba(20, 20, 16, 0.05), 0 4px 16px rgba(20, 20, 16, 0.06);
+  --shadow-2: 0 2px 4px rgba(20, 20, 16, 0.06), 0 12px 32px rgba(20, 20, 16, 0.1);
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* typography */
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Alimama ShuHeiTi', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 26px;
+
+  /* motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--ink-primary);
+  background: var(--surface-canvas);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+input {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  background: none;
+  color: inherit;
+}

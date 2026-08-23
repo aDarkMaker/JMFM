@@ -1,0 +1,17 @@
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-1);
+}
+
+.section-header-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.section-header-action {
+  font-size: var(--text-sm);
+  color: var(--accent-primary);
+  font-weight: 500;
+}
