@@ -20,6 +20,13 @@
   color: var(--ink-tertiary);
 }
 
+.settings-hint {
+  padding: 0 var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  line-height: 1.5;
+}
+
 /* toggle switch */
 .toggle {
   display: inline-flex;

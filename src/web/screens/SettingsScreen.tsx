@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react';
+import {FilePicker} from '@capawesome/capacitor-file-picker';
 import {useSettingsStore} from '../stores/settings';
 import {ListTile} from '../components/ListTile';
 import {SectionHeader} from '../components/SectionHeader';
-import {createRuntime} from '../../core/download/runtime';
 
 const JMF_DIR = 'JMFDownloads';
 
@@ -21,21 +21,14 @@ export function SettingsScreen() {
   }, [loaded, load]);
 
   const handlePickDirectory = async () => {
-    const runtime = createRuntime();
-    if (!runtime.fs.pickDirectory) {
-      console.warn('Directory picker not available');
-      return;
-    }
     try {
-      const dirName = await runtime.fs.pickDirectory();
-      if (!dirName) {
+      const result = await FilePicker.pickDirectory();
+      if (!result?.path) {
         return;
       }
-      const fullPath = `${dirName}/${JMF_DIR}`;
-      if (runtime.fs.createDirectory) {
-        await runtime.fs.createDirectory(JMF_DIR).catch(() => undefined);
-      }
-      void update({downloadPath: fullPath});
+      const name =
+        result.path.split('/').filter(Boolean).pop()?.split(':').pop() || '已选目录';
+      void update({downloadPath: `${name}/${JMF_DIR}`});
     } catch (err) {
       console.error('Failed to pick directory:', err);
     }
@@ -94,6 +87,7 @@ export function SettingsScreen() {
             onClick={() => void handlePickDirectory()}
             onInputChange={v => void update({downloadPath: v})}
           />
+          <p className="settings-hint">漫画保存在应用存储中，可通过资源页卡片分享导出（Android 沙箱限制）。</p>
         </div>
         <div className="settings-group">
           <span className="settings-group-title">网络</span>
