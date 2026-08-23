@@ -1,12 +1,12 @@
 # JMFM
 
-> 禁漫天堂（JMComic）漫画下载器 — 一个 ID，一键直出高质量 PDF。
+> JMcomic Fetcher Mobile 随时随地，想飞就飞
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/built%20with-TypeScript-3178c6.svg)](https://www.typescriptlang.org)
 [![Capacitor](https://img.shields.io/badge/Capacitor-8-119eff.svg)](https://capacitorjs.com)
 
-JMFM 是一款面向漫画爱好者的专属下载工具。输入禁漫天堂的专辑 ID，即可自动完成数据解析、图片解密重组，并输出**页面等宽、无白边、以标题命名**的高质量 PDF，离线也能畅快阅读。
+每日推荐，精准下载，保存到本地，随时取用，永不炸膛！
 
 ## 特性
 
@@ -20,7 +20,7 @@ JMFM 是一款面向漫画爱好者的专属下载工具。输入禁漫天堂的
 
 ```bash
 bun install
-bun run verify 1327951
+bun run verify this_some_magic_number
 ```
 
 输出：`temp/1327951/[五月雨汉化组]实际上只是、想在一起.pdf`
@@ -29,7 +29,7 @@ bun run verify 1327951
 
 ## 文档
 
-完整的项目文档（产品介绍、架构设计、开发指南）以中英双语发布，请访问：
+完整的项目文档（产品介绍、架构设计、开发指南），请访问：
 
 - 中文 Wiki：[https://adarkmaker.github.io/JMFM/](https://adarkmaker.github.io/JMFM/)
 - English Wiki：[https://adarkmaker.github.io/JMFM/en/](https://adarkmaker.github.io/JMFM/en/)
