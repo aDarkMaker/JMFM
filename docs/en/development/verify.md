@@ -1,18 +1,18 @@
 # Verification & Testing
 
-## Unit Tests
+## Unit tests
 
-Jest covers the core modules:
+`bun test` covers the core modules:
 
 | Module | Coverage |
 |---|---|
-| `transcode` | getNum strip count, computeStrips reversed layout |
+| `transcode` | getNum strip calculation, computeStrips reverse reorder |
 | `crypto` | MD5, AES-256-ECB key derivation and decryption |
 | `parser` | Base64 decode, HTML parsing |
 | `model` | image URL construction, ImageItem creation |
 | `net` | domain rotation, URL construction |
 | `download-service` | end-to-end orchestration (mocked network and runtime) |
-| `pdf` | uniform width, proportional scaling, title cleaning |
+| `pdf` | uniform width, proportional scaling, title sanitizing |
 | `constants` / `settings` | config and settings persistence |
 
 Run:
@@ -21,36 +21,50 @@ Run:
 bun run test
 ```
 
-## Node-side Real Verification
+## Node-side real verification
 
-`scripts/verify-download.ts` runs the whole pipeline in Node (no emulator):
+`scripts/verify-download.ts` runs the full pipeline in Node (no emulator):
 
 ```bash
-bun scripts/verify-download.ts 1327951
+bun run verify 1327951
 ```
 
-It:
+It will:
 
-1. Refreshes dynamic domains.
-2. Fetches album and chapter via `ApiClient`.
-3. Downloads all images concurrently.
-4. Reassembles strips with ImageMagick.
-5. Generates a uniform-width PDF under `temp/<albumId>/`.
+1. Refresh dynamic domains.
+2. Fetch album and chapters via `ApiClient`.
+3. Download all images concurrently.
+4. Reassemble strips with ImageMagick.
+5. Generate a uniform-width PDF under `temp/<albumId>/`.
 
-Verified with album 1327951: 50 pages, all 960pt wide, no white placeholders, no tiny pages.
+Verified against album 1327951: 50 pages, all at 960pt width, no white placeholders, no tiny pages.
 
-## Inspecting the PDF
+## Checking the PDF
 
-Check the generated PDF's page structure:
+Inspect the page structure with pdf-lib:
 
 ```bash
-python3 -c "
-import re
-data = open('temp/1327951/<title>.pdf','rb').read()
-boxes = re.findall(rb'/MediaBox\s*\[([^\]]+)\]', data)
-ws = [int(x.split()[2]) for x in boxes]
-print('pages:', len(boxes), 'distinct widths:', len(set(ws)))
+node -e "
+const {PDFDocument} = require('pdf-lib');
+const fs = require('fs');
+(async () => {
+  const doc = await PDFDocument.load(fs.readFileSync('temp/1327951/<title>.pdf'));
+  const pages = doc.getPages();
+  const sizes = new Set(pages.map(p => {
+    const s = p.getSize();
+    return s.width.toFixed(0) + 'x' + s.height.toFixed(0);
+  }));
+  console.log('pages:', pages.length, 'distinct sizes:', [...sizes]);
+})();
 "
 ```
 
-Expected: `pages: 50`, `distinct widths: 1`.
+Expected: `pages: 50`, `distinct sizes: ['960x...', ...]` (all widths 960).
+
+## Static checks
+
+```bash
+bun run typecheck   # tsc --noEmit
+bun run lint        # eslint
+bun run build       # bun build output
+```

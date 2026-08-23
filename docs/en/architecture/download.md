@@ -35,16 +35,19 @@ flowchart TD
 
 The `DownloadRuntime` interface (`src/core/download/types.ts`) defines:
 
-- `fs.mkdir / writeFile / unlink`
+- `fs.mkdir / writeFile / readFile / unlink`
 - `decodeAndSave(num, encoded, ext)` → `DecodedImage`
 - `createAlbumPdf(outputDir, title, imagePaths, sizes?)`
 
-Two implementations:
+Three implementations:
 
 | Implementation | Location | Capability |
 |---|---|---|
-| RN runtime | `src/core/download/runtime.ts` | react-native-blob-util + Skia + images-to-pdf |
+| Capacitor native | `src/core/download/runtime.ts` | Filesystem + Canvas decode + pdf-lib |
+| Web in-memory | `src/core/download/runtime.ts` | Map-backed filesystem, for browser debugging |
 | Node runtime | `scripts/node-runtime.ts` | Node fs + ImageMagick |
+
+`createRuntime()` picks native or web implementation via `Capacitor.isNativePlatform()`.
 
 ## Size Propagation
 

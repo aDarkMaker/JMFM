@@ -2,7 +2,7 @@
 
 ## 单测
 
-Jest 覆盖核心模块：
+`bun test` 覆盖核心模块：
 
 | 模块 | 覆盖点 |
 |---|---|
@@ -26,7 +26,7 @@ bun run test
 `scripts/verify-download.ts` 在 Node 环境跑通完整链路（不走模拟器）：
 
 ```bash
-bun scripts/verify-download.ts 1327951
+bun run verify 1327951
 ```
 
 它会：
@@ -41,16 +41,30 @@ bun scripts/verify-download.ts 1327951
 
 ## 校验 PDF
 
-检查生成 PDF 的页面结构：
+检查生成 PDF 的页面结构（用 pdf-lib）：
 
 ```bash
-python3 -c "
-import re
-data = open('temp/1327951/<标题>.pdf','rb').read()
-boxes = re.findall(rb'/MediaBox\s*\[([^\]]+)\]', data)
-ws = [int(x.split()[2]) for x in boxes]
-print('pages:', len(boxes), 'distinct widths:', len(set(ws)))
+node -e "
+const {PDFDocument} = require('pdf-lib');
+const fs = require('fs');
+(async () => {
+  const doc = await PDFDocument.load(fs.readFileSync('temp/1327951/<标题>.pdf'));
+  const pages = doc.getPages();
+  const sizes = new Set(pages.map(p => {
+    const s = p.getSize();
+    return s.width.toFixed(0) + 'x' + s.height.toFixed(0);
+  }));
+  console.log('pages:', pages.length, 'distinct sizes:', [...sizes]);
+})();
 "
 ```
 
-期望：`pages: 50`，`distinct widths: 1`。
+期望：`pages: 50`，`distinct sizes: ['960x...', ...]`（宽度全部为 960）。
+
+## 静态检查
+
+```bash
+bun run typecheck   # tsc --noEmit
+bun run lint        # eslint
+bun run build       # bun build 产物
+```

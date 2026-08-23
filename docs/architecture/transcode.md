@@ -54,7 +54,7 @@ flowchart LR
 
 `decodeAndSave(num, encoded, ext)` 两个运行时实现：
 
-- **RN（Skia）**：`src/core/transcode/decode.ts` 用 `Skia.Surface` + `drawImageRect` 将源图条带按目标位置绘制。
+- **Capacitor / Web（Canvas）**：`src/core/transcode/decode.ts` 用 `createImageBitmap` 解码，`canvas.drawImage` 按条带目标位置绘制，`toBlob('image/png')` 输出。
 - **Node（ImageMagick）**：`scripts/node-runtime.ts` 用 `-crop` 裁剪条带、`-append +repage` 拼接。
 
 > 关键细节：ImageMagick 裁剪后需 `+repage` 重置虚拟页面，否则转 PDF 时页面尺寸错误，出现小图 + 白色占位。

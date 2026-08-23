@@ -4,7 +4,7 @@ layout: home
 hero:
   name: JMFM
   text: JMComic Comic Downloader
-  tagline: Enter an album ID, and get a high-quality PDF in one shot. Built with React Native + TypeScript.
+  tagline: Enter an album ID, and get a high-quality PDF in one shot. Built with Capacitor + React Web + TypeScript.
   actions:
     - theme: brand
       text: Quick Start
@@ -28,8 +28,8 @@ features:
     details: Domains, secrets, headers and PDF params all live in one JSON file, no code changes needed.
   - icon:
     title: Frontend/Backend Split
-    details: Business core in src/core stays UI-free, independently testable, with the UI layer designed separately.
+    details: Business core in src/core stays UI-free, independently testable, with a React Web UI in a Capacitor shell.
   - icon:
-    title: Dual Runtime
-    details: Run the whole pipeline in Node, or on device; RN and Node runtimes share one interface.
+    title: Multiple Runtimes
+    details: Run the whole pipeline in Node or on device; Capacitor / Web / Node runtimes share one interface.
 ---

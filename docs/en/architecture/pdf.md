@@ -19,7 +19,7 @@ export function computeUniformWidth(widths: number[], maxWidth: number): number 
 
 ```mermaid
 flowchart LR
-    imgs["source images"] --> sizes["identify page sizes"]
+    imgs["source images"] --> sizes["read page sizes"]
     sizes --> target["targetW = min(max(widths), 1190)"]
     target --> resize["scale to targetW"]
     resize --> pdf["PDF: uniform width, no padding"]
@@ -28,6 +28,23 @@ flowchart LR
 ## Size Calculation
 
 `scaleSize(width, height, targetWidth)` scales proportionally and rounds the result.
+
+## Page Building
+
+`buildPdfPages(imagePaths, sizes?)` in `src/core/pdf/index.ts`:
+
+- With sizes: builds each page at its actual scaled dimensions with `imageFit: 'fill'`.
+- Without sizes: falls back to fixed A4 with `contain`, staying usable.
+
+## pdf-lib Rendering
+
+`buildPdfBytes(pages, readImage)` generates the binary with `pdf-lib`:
+
+1. `PDFDocument.create()` to create the document.
+2. Per page, `embedPng` / `embedJpg` (chosen by extension).
+3. `addPage([width, height])` then `drawImage` filling the whole page, no padding.
+
+The Capacitor native runtime reads temp image bytes via `fs.readFile` and hands them to `buildPdfBytes`.
 
 ## Node Runtime (ImageMagick)
 
@@ -38,13 +55,6 @@ flowchart LR
 3. `magick imgs... +repage -resize {W}x output.pdf`.
 
 > `+repage` must come before `-resize` to clear the virtual-page metadata left by strip cropping; otherwise the MediaBox is wrong, producing tiny pages and white placeholders.
-
-## RN Runtime (images-to-pdf)
-
-`buildPdfPages(imagePaths, sizes?)` in `src/core/pdf/index.ts`:
-
-- With sizes: builds each page at its actual scaled dimensions with `imageFit: 'fill'`.
-- Without sizes: falls back to fixed A4 with `contain`, staying usable.
 
 ## File Naming
 

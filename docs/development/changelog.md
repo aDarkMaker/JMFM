@@ -1,5 +1,23 @@
 # 开发日志
 
+## 2026-08-23
+
+### Capacitor 全链路迁移
+
+- **架构切换**：弃用 React Native + Metro，迁移为 Lumina 式 Capacitor 架构（React Web + Bun build + Capacitor 壳）。
+- **依赖清理**：移除全部 RN 生态（react-native、metro、babel、@react-navigation、react-native-* 等）及 iOS 工程。
+- **新增依赖**：`@capacitor/*`（core / cli / android / filesystem / preferences）、`pdf-lib`、`react-dom`。
+- **运行时重写**：
+  - `transcode/decode.ts`：Skia → Web Canvas（`createImageBitmap` + `drawImage` 条带重组）。
+  - `pdf/index.ts`：images-to-pdf → pdf-lib（`embedPng/Jpg` + 统一宽度页面）。
+  - `download/runtime.ts`：blob-util → Capacitor Filesystem，新增 Web 内存实现。
+  - `data/settings.ts`：AsyncStorage → Capacitor Preferences（原生）+ localStorage（Web）。
+- **网络层**：`HttpClient` 抽象为接口；`AxiosHttpClient`（Web/Node）+ `NativeHttpClient`（CapacitorHttp 原生栈，绕过 CORS）。
+- **UI 层**：`src/app/`（RN）→ `src/web/`（React DOM + CSS），轻量 tab 切换替代 React Navigation，内联 SVG 替代 react-native-svg，样式全部外置 CSS。
+- **构建运行**：`bun build` → `dist/` → `cap sync/run android`，`scripts/dev-android.sh` 改为真机优先。
+- **测试**：Jest → `bun test`（50 个用例全绿），typecheck / lint / build 通过，Android APK 构建成功。
+- **冒烟**：真实下载 1327951 生成完整 PDF（50 页、统一宽度 960、无白边）。
+
 ## 2026-08-22
 
 ### PDF 拼贴修复
@@ -13,13 +31,13 @@
 
 - 新增 `src/core/pdf/layout.ts`：`computeUniformWidth`（目标宽度 = min(最大源图宽, 1190)）、`scaleSize`（等比缩放）。
 - Node 运行时：`identify` 全部宽度后统一 `-resize`。
-- RN 运行时：`buildPdfPages(imagePaths, sizes?)` 按实际尺寸生成页面，`imageFit: 'fill'`；下载编排记录每页解码后尺寸。
+- 下载编排记录每页解码后尺寸，`buildPdfPages(imagePaths, sizes?)` 按实际尺寸生成页面，`imageFit: 'fill'`。
 - 混合宽度实测：200x300 与 400x600 两图统一为 400x600，无白边。
 
 ### 链路打通
 
 - `DownloadService` 改用 `ApiClient` 作为 `ContentSource`，处理单章空 series 回退。
-- 抽离 `DownloadRuntime` 接口至 `src/core/download/types.ts`，RN 与 Node 运行时共用。
+- 抽离 `DownloadRuntime` 接口至 `src/core/download/types.ts`。
 - `scripts/node-runtime.ts`：ImageMagick 解码 + PDF 生成。
 - 真实专辑 1327951 全量验证通过（50 页 PDF）。
 
@@ -34,11 +52,11 @@
 
 - 实现 `ApiClient`：动态域名刷新（AES 解密域名列表）、token 生成、响应解密、图片 URL 构造。
 - 修正 AES-256-ECB 密钥派生：`md5(secret + ts)` 的 32 字节 ASCII 作为 key，与 Python jmcomic 对齐。
-- 用纯 TS 自实现 Base64 / UTF-8 解码，替代 Node 专用 API（RN 兼容）。
+- 用纯 TS 自实现 Base64 / UTF-8 解码，替代 Node 专用 API。
 - 结论：当前网络环境下 HTML 通道被 DNS 封锁，API 通道可用。
 
 ### 项目重写
 
-- 由 Android (Java) 全量重写为 React Native + TypeScript。
-- 清理旧 Gradle 工程，脚手架纯 TS（无 `.js` 文件）。
+- 由 Android (Java) 全量重写为 TypeScript 工程。
+- 清理旧 Gradle 工程，纯 TS（无 `.js` 文件）。
 - 移除离职遗留的 `~/.npmrc` 内网镜像配置。

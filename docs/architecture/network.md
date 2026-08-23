@@ -2,20 +2,47 @@
 
 数据获取优先走移动端 API 通道，而非 HTML 网页通道——后者域名频繁被 DNS 封锁。
 
-## HttpClient
+## HttpClient 接口
 
-`src/core/net/http.ts` 提供基础网络能力：
+`src/core/net/http.ts` 定义统一网络接口：
 
 - **协议双保险**：每个域名同时尝试 `https://` 与 `http://`。
 - **域名轮换**：传入 URL 列表，逐个尝试，直到成功。
 - **重试**：每个 URL 可重试 N 次（默认 3），间隔可配。
-- **代理支持**：构造时传 `proxy` 即可（如 `http://127.0.0.1:7890`）。
 - **二进制 / 文本**：`getBytes` 返回 `Uint8Array`，`getHtml` 返回文本。
 
 ```typescript
-const http = new HttpClient({proxy: 'http://127.0.0.1:7890'});
+export interface HttpClient {
+  getHtml(path, domains?, headers?): Promise<FetchResult>;
+  getBytes(url, headers?): Promise<FetchResult>;
+  getBytesWithUrls(urls, headers?): Promise<FetchResult>;
+}
+```
+
+### AxiosHttpClient（Web / Node）
+
+`AxiosHttpClient` 用 axios 实现，支持代理：
+
+```typescript
+const http = new AxiosHttpClient({proxy: 'http://127.0.0.1:7890'});
 const resp = await http.getBytes(url, {Referer, Accept});
 ```
+
+### NativeHttpClient（Capacitor 真机）
+
+`src/core/net/native-http.ts` 基于 `CapacitorHttp`（原生网络栈）实现同一接口，请求绕过 WebView 的 CORS 限制，适合真机下载：
+
+```typescript
+import {NativeHttpClient} from '../src/core/net';
+
+// 真机上：CapacitorHttp 原生栈
+// Web/Node 上：AxiosHttpClient
+const http = Capacitor.isNativePlatform()
+  ? new NativeHttpClient({timeoutMs: 15000, maxRetries: 2})
+  : new AxiosHttpClient({timeoutMs: 15000, maxRetries: 2});
+```
+
+二进制响应（`responseType: 'arraybuffer'`）由原生层返回 Base64 字符串，`NativeHttpClient` 内部用 `base64ToBytes` 还原为 `Uint8Array`。
 
 ## ApiClient
 

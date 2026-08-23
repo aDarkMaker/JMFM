@@ -1,6 +1,6 @@
 # 产品介绍
 
-JMFM 是一款为漫画爱好者量身打造的专属下载工具。它基于 React Native 与 TypeScript 构建，让"把心仪的漫画装进口袋"这件事，变得足够简单——输入一个专辑 ID，剩下的一切交给它。
+JMFM 是一款为漫画爱好者量身打造的专属下载工具。它基于 Capacitor + React Web 与 TypeScript 构建，让"把心仪的漫画装进口袋"这件事，变得足够简单——输入一个专辑 ID，剩下的一切交给它。
 
 ## 为什么要做 JMFM
 
@@ -24,15 +24,17 @@ JMFM 把这些"麻烦"全部收敛到后台，你只负责挑选作品，其余�
 
 | 领域 | 选型 | 一句话理由 |
 | --- | --- | --- |
-| 框架 | React Native 0.87 | 一套代码，双端运行 |
+| 框架 | Capacitor 8 + React Web | Web UI 跑在原生壳内，一套代码双端运行 |
 | 语言 | TypeScript | 类型安全，长期可维护 |
-| 网络 | axios | 域名轮换、重试、代理一站式 |
+| 构建 | Bun | 快速打包，无 Metro 依赖 |
+| 网络 | axios + CapacitorHttp | 域名轮换、重试、代理一站式；真机走原生栈 |
 | 加解密 | crypto-js | MD5 与 AES-256-ECB 的轻量实现 |
-| 图片解码（RN） | @shopify/react-native-skia | 像素级还原能力 |
-| PDF（RN） | react-native-images-to-pdf | 原生级 PDF 生成 |
+| 图片解码（真机/Web） | Web Canvas | 像素级还原能力 |
+| PDF 生成 | pdf-lib | 纯 JS 生成统一宽度 PDF |
 | 图片解码（Node） | ImageMagick | 验证链路时的高保真渲染 |
-| 测试 | Jest | 核心算法全量覆盖 |
+| 存储 | Capacitor Filesystem / Preferences | 原生文件系统与偏好存储 |
+| 测试 | bun test | 核心算法全量覆盖 |
 
 ## 当前状态
 
-业务链路已经完整跑通，并通过真实专辑（ID 1327951，共 50 页）验证。前端界面正在设计之中，敬请期待。
+业务链路已经完整跑通，并通过真实专辑（ID 1327951，共 50 页）验证。Android 原生工程已就绪，前端界面基于 Capacitor 壳运行，敬请期待。

@@ -1,14 +1,14 @@
-# Setup
+# Environment Setup
 
 ## Toolchain
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | >= 22.11 | required by RN 0.87 |
-| Bun | any recent | package manager, replaces npm/yarn |
-| ImageMagick | any | Node-side image decode and PDF generation (`magick` command) |
-| Xcode | RN-compatible | iOS builds only |
-| Android Studio | RN-compatible | Android builds only |
+| Node.js | >= 22.11 | Bun runtime dependency |
+| Bun | any recent | package manager + bundler, replaces npm/yarn |
+| ImageMagick | any | Node-side image decode and PDF generation (`magick`) |
+| JDK | 17+ (21 recommended) | Android builds |
+| Android SDK | API 36 | Android builds |
 
 ## Install ImageMagick
 
@@ -16,26 +16,27 @@
 brew install imagemagick
 ```
 
-## Install Dependencies
+## Install dependencies
 
 ```bash
 bun install
 ```
 
-## Environment Variables
+## Environment variables
 
 | Variable | Purpose |
 |---|---|
-| `JMF_PROXY` | Optional. e.g. `http://127.0.0.1:7890`, useful on restricted networks |
+| `JMF_PROXY` | optional, e.g. `http://127.0.0.1:7890`, for restricted networks |
 
-## Common Scripts
+## Common scripts
 
 ```bash
-bun start        # start Metro
-bun run ios      # iOS
-bun run android  # Android
-bun run test     # unit tests
+bun run build            # build web assets to dist/
+bunx cap sync android    # sync into the Android native project
+bunx cap run android     # build + install + launch (device/emulator)
+bash scripts/dev-android.sh   # one-shot dev: build → sync → run (device first)
+bun run test             # bun test unit tests
 bun run typecheck
 bun run lint
-bun scripts/verify-download.ts <albumId>   # Node pipeline verification
+bun run verify           # Node-side full pipeline verification (real PDF)
 ```

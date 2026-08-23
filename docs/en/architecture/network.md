@@ -2,20 +2,47 @@
 
 Data fetching favors the mobile API channel over the HTML channel, because the latter's domains are frequently blocked by DNS.
 
-## HttpClient
+## HttpClient Interface
 
-`src/core/net/http.ts` provides the base networking layer:
+`src/core/net/http.ts` defines the uniform networking interface:
 
 - **Dual protocol**: every domain is tried over both `https://` and `http://`.
 - **Domain rotation**: accepts a URL list and tries each in turn until one succeeds.
 - **Retry**: each URL can be retried N times (default 3) with a configurable interval.
-- **Proxy support**: pass `proxy` to the constructor (e.g. `http://127.0.0.1:7890`).
 - **Binary / text**: `getBytes` returns `Uint8Array`; `getHtml` returns text.
 
 ```typescript
-const http = new HttpClient({proxy: 'http://127.0.0.1:7890'});
+export interface HttpClient {
+  getHtml(path, domains?, headers?): Promise<FetchResult>;
+  getBytes(url, headers?): Promise<FetchResult>;
+  getBytesWithUrls(urls, headers?): Promise<FetchResult>;
+}
+```
+
+### AxiosHttpClient (Web / Node)
+
+`AxiosHttpClient` is the axios implementation, with proxy support:
+
+```typescript
+const http = new AxiosHttpClient({proxy: 'http://127.0.0.1:7890'});
 const resp = await http.getBytes(url, {Referer, Accept});
 ```
+
+### NativeHttpClient (Capacitor device)
+
+`src/core/net/native-http.ts` implements the same interface on `CapacitorHttp` (the native networking stack), bypassing WebView CORS for on-device downloads:
+
+```typescript
+import {NativeHttpClient} from '../src/core/net';
+
+// On device: native CapacitorHttp stack
+// Web/Node: axios stack
+const http = Capacitor.isNativePlatform()
+  ? new NativeHttpClient({timeoutMs: 15000, maxRetries: 2})
+  : new AxiosHttpClient({timeoutMs: 15000, maxRetries: 2});
+```
+
+Binary responses (`responseType: 'arraybuffer'`) are returned as Base64 strings by the native layer; `NativeHttpClient` converts them back to `Uint8Array` with `base64ToBytes`.
 
 ## ApiClient
 

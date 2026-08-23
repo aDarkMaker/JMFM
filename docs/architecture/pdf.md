@@ -19,7 +19,7 @@ export function computeUniformWidth(widths: number[], maxWidth: number): number 
 
 ```mermaid
 flowchart LR
-    imgs["源图片"] --> sizes["identify 各页尺寸"]
+    imgs["源图片"] --> sizes["识别各页尺寸"]
     sizes --> target["targetW = min(max(widths), 1190)"]
     target --> resize["等比缩放到 targetW"]
     resize --> pdf["PDF: 每页等宽等比 无白边"]
@@ -28,6 +28,23 @@ flowchart LR
 ## 尺寸计算
 
 `scaleSize(width, height, targetWidth)` 等比缩放，返回取整后的宽高。
+
+## 页面构建
+
+`buildPdfPages(imagePaths, sizes?)`（`src/core/pdf/index.ts`）：
+
+- 有尺寸信息时：按 `computeUniformWidth` + `scaleSize` 生成每页实际宽高，`imageFit: 'fill'`。
+- 无尺寸信息时：回退固定 A4 + `contain`，保证可用性。
+
+## pdf-lib 渲染
+
+`buildPdfBytes(pages, readImage)` 用 `pdf-lib` 生成二进制：
+
+1. `PDFDocument.create()` 创建文档。
+2. 对每页 `embedPng` / `embedJpg`（按扩展名判断）。
+3. `addPage([width, height])` 后 `drawImage` 铺满整页，无白边。
+
+Capacitor 原生运行时通过 `fs.readFile` 读取临时图片字节后交给 `buildPdfBytes`。
 
 ## Node 运行时（ImageMagick）
 
@@ -38,13 +55,6 @@ flowchart LR
 3. `magick imgs... +repage -resize {W}x output.pdf` 拼装。
 
 > `+repage` 必须在 `-resize` 前，清除条带裁剪遗留的虚拟页面元数据，否则 MediaBox 错误、出现小图与白色占位。
-
-## RN 运行时（images-to-pdf）
-
-`src/core/pdf/index.ts` 的 `buildPdfPages(imagePaths, sizes?)`：
-
-- 有尺寸信息时：按 `computeUniformWidth` + `scaleSize` 生成每页实际宽高，`imageFit: 'fill'`。
-- 无尺寸信息时：回退固定 A4 + `contain`，保证可用性。
 
 ## 文件命名
 

@@ -4,11 +4,11 @@
 
 | 工具 | 版本要求 | 说明 |
 |---|---|---|
-| Node.js | >= 22.11 | RN 0.87 要求 |
-| Bun | 任意近期版本 | 包管理器，替换 npm/yarn |
+| Node.js | >= 22.11 | Bun 运行时依赖 |
+| Bun | 任意近期版本 | 包管理器 + 构建器，替换 npm/yarn |
 | ImageMagick | 任意 | Node 端图片解码与 PDF 生成（`magick` 命令） |
-| Xcode | 对应 RN 版本 | 仅 iOS 构建需要 |
-| Android Studio | 对应 RN 版本 | 仅 Android 构建需要 |
+| JDK | 17+（建议 21） | Android 构建 |
+| Android SDK | API 36 | Android 构建 |
 
 ## 安装 ImageMagick
 
@@ -31,11 +31,12 @@ bun install
 ## 常用脚本
 
 ```bash
-bun start        # 启动 Metro
-bun run ios      # iOS
-bun run android  # Android
-bun run test     # Jest 单测
+bun run build            # 构建 Web 产物到 dist/
+bunx cap sync android    # 同步到 Android 原生工程
+bunx cap run android     # 构建 + 安装 + 启动（真机/模拟器）
+bash scripts/dev-android.sh   # 一键开发：build → sync → 真机优先运行
+bun run test             # bun test 单测
 bun run typecheck
 bun run lint
-bun scripts/verify-download.ts <albumId>   # Node 端链路验证
+bun run verify           # Node 端完整链路验证（生成真实 PDF）
 ```

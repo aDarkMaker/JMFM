@@ -1,19 +1,19 @@
 # UI 架构
 
-JMFM 的 UI 层位于 `src/app`，与业务核心 `src/core` 完全分离。UI 层仅通过 `ApiClient`、`DownloadService`、`Settings` 三个入口消费业务能力，不直接触碰网络、加解密与文件逻辑。
+JMFM 的 UI 层位于 `src/web`（React DOM + CSS），运行在 Capacitor 壳的 WebView 内，与业务核心 `src/core` 完全分离。UI 层仅通过 `ApiClient`、`DownloadService`、`Settings` 三个入口消费业务能力，不直接触碰网络、加解密与文件逻辑。
 
 ## 分层框架
 
 ```mermaid
 flowchart TB
-    subgraph ui [UI 层 src/app]
-        nav["Navigation"]
+    subgraph ui [UI 层 src/web]
+        app["App (tab 切换)"]
         screens["Screens"]
         stores["Stores (zustand)"]
         components["Components"]
-        styles["Styles"]
+        styles["Styles (CSS)"]
         assets["Assets"]
-        nav --> screens
+        app --> screens
         screens --> stores
         screens --> components
         screens --> styles
@@ -33,29 +33,27 @@ flowchart TB
     stores --> api
 ```
 
-- **Navigation**：`@react-navigation` 组织路由，bottom-tabs 承载 4 个主页面，native-stack 承载详情/阅读等二级页面。
+- **App**：轻量 state tab 切换，承载 4 个主页面（无路由库）。
 - **Screens**：页面级组件，只负责组合与事件分发，无业务实现。
 - **Stores**：zustand 状态库，页面通过 store 读写 UI 状态，并桥接 `core` 的服务。
 - **Components**：无业务语义的展示组件。
-- **Styles**：全部样式以独立模块置于 `src/app/styles/`，tsx 内不写 `StyleSheet`。
+- **Styles**：全部样式为独立 CSS 文件，置于 `src/web/styles/`，tsx 内不写内联样式表。
 - **Assets**：图标（Iconify SVG）与字体（Alimama / BebasNeue）统一存放。
 
 ## 导航结构
 
 ```mermaid
 flowchart LR
-    root["RootNavigator"]
-    tabs["Bottom Tabs"]
-    root --> tabs
-    tabs --> home["Home 每日推荐"]
-    tabs --> lib["漫画库"]
-    tabs --> tasks["下载"]
-    tabs --> settings["设置"]
-    root --> detail["AlbumDetail 预留"]
-    root --> reader["Reader 预留"]
+    root["App"]
+    root --> home["Home 每日推荐"]
+    root --> lib["漫画库"]
+    root --> tasks["下载"]
+    root --> settings["设置"]
+    root -.-> detail["AlbumDetail 预留"]
+    root -.-> reader["Reader 预留"]
 ```
 
-### 路由表
+### 页面表
 
 | 名称 | 组件 | 说明 |
 | --- | --- | --- |
@@ -77,49 +75,59 @@ flowchart LR
 
 | Store | 职责 |
 | --- | --- |
-| `useSettingsStore` | 包装 `data/settings` 的读取与持久化 |
-| `useDownloadStore` | 下载任务集合与进度（pending / downloading / paused / done） |
-| `useLibraryStore` | 本地已下载漫画，AsyncStorage 持久化 |
-| `useHistoryStore` | 浏览历史（预留） |
+| `useSettingsStore` | 包装 `data/settings` 的读取与持久化（Capacitor Preferences / localStorage） |
+| `useDownloadStore` | 下载任务集合与进度（pending / running / done / error） |
+| `useLibraryStore` | 本地已下载漫画（预留） |
 
 ## 样式体系
 
-基于 `src/app/theme/index.ts` 的 Cirrus 设计 token（`colors` / `radii` / `shadow` / `typography` / `spacing` / `easing`）。
+基于 `src/web/theme/index.css` 的 Cirrus 设计 token（CSS 变量：surface / ink / accent / radii / shadow / spacing / typography / easing）。
 
-- 页面与组件样式分别置于 `src/app/styles/` 下对应文件，tsx 不内联样式。
-- 主题色：`ink` 主文本、`signal` 主操作、`citrus` 强调、`meadow` 成功、`lightFill` 填充、`edge` 分隔线。
+- 页面与组件样式分别置于 `src/web/styles/` 下对应 CSS 文件，tsx 不内联样式。
+- 主题色：`ink` 主文本、`accent-primary` 主操作、`accent-success` 成功、`accent-danger` 危险、`surface` 表面、`shadow-1/2` 双层阴影、`ease-spring` 弹性动效。
 
 ## 资产规范
 
 ### 图标
 
-- 来源：[Iconify Material Symbols](https://icon-sets.iconify.design/material-symbols/)，仅存 SVG 矢量文件到 `src/app/assets/icons/`。
-- 组件 `Icon` 通过 `react-native-svg` 的 `SvgXml` 渲染，图标使用 `currentColor`，着色由外层传入 `color` 控制。
+- 来源：[Iconify Material Symbols](https://icon-sets.iconify.design/material-symbols/)，仅存 SVG 矢量文件到 `src/web/assets/icons/`。
+- `scripts/gen-icons.ts` 生成 `src/web/generated/icons.ts`（SVG 字符串映射）。
+- 组件 `Icon` 用 `dangerouslySetInnerHTML` 内联渲染 `<svg>`，图标使用 `currentColor`，颜色由外层 CSS 控制。
 - Tab 图标：`home`、`auto-stories`、`download`、`settings`。
 
 ### 字体
 
 | 文件 | fontFamily | 用途 |
 | --- | --- | --- |
-| `AlimamaShuHeiTi-Bold.ttf` | `AlimamaShuHeiTi-Bold` | 中文标题、品牌字 |
-| `BebasNeue-Regular.ttf` | `BebasNeue-Regular` | 英文与数字、装饰字 |
+| `AlimamaShuHeiTi-Bold.woff2/.ttf` | `Alimama ShuHeiTi` | 中文标题、品牌字 |
+| `BebasNeue.woff2` | `Bebas Neue` | 英文与数字、装饰字 |
 
-- 字体源文件存放 `src/app/assets/fonts/`。
-- Android 已注册到 `android/app/src/main/assets/fonts/`（自动加载）。
-- iOS 工程已就位，字体文件置于 `ios/JMFMobile/Fonts/`，`Info.plist` 注册后续补充（当前阶段仅开发 Android）。
+- 字体源文件存放 `src/web/assets/fonts/`。
+- `src/web/styles/fonts.css` 通过 `@font-face` 注册，Bun build 自动打包（小体积字体内联为 data URI）。
 
 ## 目录结构
 
 ```
-src/app/
+src/web/
   assets/
     fonts/                # Alimama / BebasNeue
     icons/                # Iconify SVG
   components/             # Icon / AlbumCard / SearchBar / ...
-  navigation/             # RootNavigator
+  generated/              # icons.ts（脚本生成）
   screens/                # Home / Library / Tasks / Settings
   stores/                 # zustand stores
-  styles/                 # 样式模块
-  theme/                  # Cirrus tokens
-  App.tsx
+  styles/                 # CSS 样式模块
+  theme/                  # Cirrus tokens（CSS 变量）
+  App.tsx                 # tab 切换
+  main.tsx                # ReactDOM.createRoot 入口
+  index.html              # WebView 宿主页
+```
+
+## 构建与运行
+
+```bash
+bun run build            # bun build → dist/
+bunx cap sync android    # 同步 web 产物到原生工程
+bunx cap run android     # 构建并运行到已连接设备
+bash scripts/dev-android.sh   # 一键：build → sync → 真机优先运行
 ```

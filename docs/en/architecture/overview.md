@@ -1,6 +1,6 @@
 # Architecture Overview
 
-JMFM follows a frontend/backend split: `src/config` holds centralized configuration, `src/core` carries all business logic, and `src/app` reserves the future UI layer.
+JMFM follows a frontend/backend split: `src/config` holds centralized configuration, `src/core` carries all business logic, and `src/web` is the React Web UI running inside the Capacitor shell.
 
 ## Directory Layout
 
@@ -14,16 +14,27 @@ src/
     constants/            # Constants (algorithm thresholds, request params, PDF sizes)
     crypto/               # MD5 / AES-256-ECB
     model/                # Domain models (Album / Photo / ImageItem)
-    net/                  # HttpClient (rotation, retry, proxy)
+    net/                  # HttpClient interface + Axios / Capacitor native impls
     parser/               # HTML parsing + Base64 (fallback channel)
     pdf/                  # PDF layout (uniform width, size calculation)
     transcode/            # Strip calculation + image reassembly
     download/             # Download orchestration (DownloadService + Runtime abstraction)
-    util/                 # UTF-8 decode and other utilities
-  app/                    # UI layer (placeholder, designed separately)
+    util/                 # UTF-8 / Base64 utilities
+  data/                   # Settings persistence (storage interface) + mock data
+  web/                    # UI layer (React DOM + CSS, runs in Capacitor shell)
+    assets/               # Icons (Iconify SVG) and fonts
+    components/           # Presentational components
+    screens/              # 4 main screens
+    stores/               # zustand stores
+    styles/               # CSS style modules
+    theme/                # Cirrus design tokens (CSS variables)
+    generated/            # icons.ts (generated from SVG)
+    App.tsx / main.tsx / index.html
 scripts/
   verify-download.ts      # Node-side full pipeline verification
   node-runtime.ts         # Node runtime (ImageMagick decode + PDF)
+capacitor.config.ts       # Capacitor config (appId / webDir / plugins)
+android/                  # Capacitor-generated Android native project
 ```
 
 ## Layer Dependencies
@@ -37,7 +48,7 @@ flowchart LR
     trans["core/transcode"]
     dl["core/download"]
     pdf["core/pdf"]
-    rnt["runtime (RN/Node)"]
+    rnt["runtime (Capacitor/Web/Node)"]
     out["PDF file"]
 
     cfg --> net
@@ -54,7 +65,7 @@ flowchart LR
 - **net / api / model**: data fetching and modeling.
 - **transcode**: pure algorithms for image restoration.
 - **download**: orchestration depending on the `DownloadRuntime` interface, never on a concrete implementation.
-- **runtime**: RN (Skia + images-to-pdf) and Node (ImageMagick) implement the same interface, so switching is seamless.
+- **runtime**: Capacitor native (Filesystem + Canvas + pdf-lib), in-memory Web, and Node (ImageMagick) implement the same interface, so switching is seamless.
 
 ## Full Data Flow
 
@@ -76,3 +87,4 @@ flowchart LR
 - **Interface isolation**: `ContentSource` abstracts the data source; `DownloadRuntime` abstracts runtime capabilities. Business logic never touches UI or a specific runtime.
 - **Pure functions first**: `getNum`, `computeStrips`, `computeUniformWidth`, `scaleSize` are pure and directly unit-testable.
 - **Config-driven**: domains, secrets, request headers and PDF params all come from `app-config.json`.
+- **Pluggable networking**: `HttpClient` is an interface; Web/Node use axios (`AxiosHttpClient`), the device uses the Capacitor native stack (`NativeHttpClient`, bypassing CORS), selected via `Capacitor.isNativePlatform()`.

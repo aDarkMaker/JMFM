@@ -5,7 +5,7 @@ const base = '/JMFM/';
 
 export default defineConfig({
   title: 'JMFM',
-  description: '禁漫天堂漫画下载器 - React Native + TypeScript',
+  description: '禁漫天堂漫画下载器 - Capacitor + React Web + TypeScript',
   base,
   cleanUrls: true,
   lastUpdated: true,

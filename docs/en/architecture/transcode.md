@@ -54,7 +54,7 @@ flowchart LR
 
 `decodeAndSave(num, encoded, ext)` has two implementations:
 
-- **RN (Skia)**: `src/core/transcode/decode.ts` draws source strips into target positions with `Skia.Surface` and `drawImageRect`.
+- **Capacitor / Web (Canvas)**: `src/core/transcode/decode.ts` decodes with `createImageBitmap`, draws each strip into its target position with `canvas.drawImage`, and outputs PNG via `toBlob`.
 - **Node (ImageMagick)**: `scripts/node-runtime.ts` crops strips with `-crop` and appends with `-append +repage`.
 
 > Key detail: after ImageMagick cropping, `+repage` is required to reset the virtual page; otherwise the PDF MediaBox is wrong and you get tiny pages with white placeholders.

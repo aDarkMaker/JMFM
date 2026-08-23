@@ -1,6 +1,6 @@
 # Product
 
-JMFM is a download tool built for comic lovers. It is powered by React Native and TypeScript, and makes "carrying your favorite comics in your pocket" delightfully simple: enter an album ID, and let the pipeline do the rest.
+JMFM is a download tool built for comic lovers. It is powered by Capacitor + React Web and TypeScript, and makes "carrying your favorite comics in your pocket" delightfully simple: enter an album ID, and let the pipeline do the rest.
 
 ## Why JMFM
 
@@ -24,15 +24,17 @@ A smooth, automated pipeline:
 
 | Area | Choice | Why |
 | --- | --- | --- |
-| Framework | React Native 0.87 | One codebase, both platforms |
+| Framework | Capacitor 8 + React Web | Web UI inside a native shell, one codebase for both platforms |
 | Language | TypeScript | Type safety, long-term maintainability |
-| Networking | axios | Domains rotation, retries, proxy out of the box |
+| Build | Bun | Fast bundling, no Metro dependency |
+| Networking | axios + CapacitorHttp | Domains rotation, retries, proxy out of the box; native stack on device |
 | Crypto | crypto-js | Lightweight MD5 and AES-256-ECB |
-| Image decode (RN) | @shopify/react-native-skia | Pixel-level restoration |
-| PDF (RN) | react-native-images-to-pdf | Native-grade PDF generation |
+| Image decode (device/Web) | Web Canvas | Pixel-level restoration |
+| PDF generation | pdf-lib | Pure-JS uniform-width PDF |
 | Image decode (Node) | ImageMagick | High-fidelity rendering for verification |
-| Testing | Jest | Full coverage of core algorithms |
+| Storage | Capacitor Filesystem / Preferences | Native filesystem and preference storage |
+| Testing | bun test | Full coverage of core algorithms |
 
 ## Status
 
-The business pipeline is fully working and verified against a real album (ID 1327951, 50 pages). The UI layer is under design — stay tuned.
+The business pipeline is fully working and verified against a real album (ID 1327951, 50 pages). The Android native project is ready, and the frontend runs inside the Capacitor shell — stay tuned.

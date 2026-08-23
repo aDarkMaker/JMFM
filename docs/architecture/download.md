@@ -35,16 +35,19 @@ flowchart TD
 
 `DownloadRuntime` 接口（`src/core/download/types.ts`）定义：
 
-- `fs.mkdir / writeFile / unlink`
+- `fs.mkdir / writeFile / readFile / unlink`
 - `decodeAndSave(num, encoded, ext)` → `DecodedImage`
 - `createAlbumPdf(outputDir, title, imagePaths, sizes?)`
 
-两个实现：
+三个实现：
 
 | 实现 | 位置 | 能力 |
 |---|---|---|
-| RN 运行时 | `src/core/download/runtime.ts` | react-native-blob-util + Skia + images-to-pdf |
+| Capacitor 原生 | `src/core/download/runtime.ts` | Filesystem + Canvas 解码 + pdf-lib |
+| Web 内存 | `src/core/download/runtime.ts` | Map 内存文件系统，浏览器调试用 |
 | Node 运行时 | `scripts/node-runtime.ts` | Node fs + ImageMagick |
+
+`createRuntime()` 根据 `Capacitor.isNativePlatform()` 选择原生或 Web 实现。
 
 ## 尺寸传递
 

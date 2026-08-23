@@ -1,6 +1,6 @@
 # 架构总览
 
-JMFM 采用前后端分离的分层结构：`src/config` 提供集中配置，`src/core` 承载全部业务逻辑，`src/app` 为后续 UI 层占位。
+JMFM 采用前后端分离的分层结构：`src/config` 提供集中配置，`src/core` 承载全部业务逻辑，`src/web` 为 Capacitor 壳内的 React Web UI 层。
 
 ## 目录结构
 
@@ -14,16 +14,27 @@ src/
     constants/            # 常量（算法阈值、请求参数、PDF 尺寸）
     crypto/               # MD5 / AES-256-ECB
     model/                # 领域模型（Album / Photo / ImageItem）
-    net/                  # HttpClient（域名轮换、重试、代理）
+    net/                  # HttpClient 接口 + Axios / Capacitor 原生实现
     parser/               # HTML 解析 + Base64（备用通道）
     pdf/                  # PDF 页面布局（统一宽度、尺寸计算）
     transcode/            # 条带计算 + 图片重组
     download/             # 下载编排（DownloadService + Runtime 抽象）
-    util/                 # UTF-8 解码等工具
-  app/                    # UI 层（占位，后续单独设计）
+    util/                 # UTF-8 / Base64 等工具
+  data/                   # 设置持久化（storage 接口）与 mock 数据
+  web/                    # UI 层（React DOM + CSS，运行于 Capacitor 壳）
+    assets/               # 图标（Iconify SVG）与字体
+    components/           # 展示组件
+    screens/              # 4 个主页面
+    stores/               # zustand 状态库
+    styles/               # CSS 样式模块
+    theme/                # Cirrus 设计 token（CSS 变量）
+    generated/            # icons.ts（由 SVG 生成）
+    App.tsx / main.tsx / index.html
 scripts/
   verify-download.ts      # Node 端完整链路验证脚本
   node-runtime.ts         # Node 运行时（ImageMagick 解码 + PDF）
+capacitor.config.ts       # Capacitor 配置（appId / webDir / 插件）
+android/                  # Capacitor 生成的 Android 原生工程
 ```
 
 ## 分层依赖
@@ -37,7 +48,7 @@ flowchart LR
     trans["core/transcode"]
     dl["core/download"]
     pdf["core/pdf"]
-    rnt["runtime (RN/Node)"]
+    rnt["runtime (Capacitor/Web/Node)"]
     out["PDF 文件"]
 
     cfg --> net
@@ -54,7 +65,7 @@ flowchart LR
 - **net / api / model**：数据获取与建模。
 - **transcode**：图片解密重组的纯算法。
 - **download**：编排层，依赖 `DownloadRuntime` 接口而非具体实现。
-- **runtime**：RN 运行时（Skia + images-to-pdf）与 Node 运行时（ImageMagick）实现同一接口，可无缝切换。
+- **runtime**：Capacitor 原生（Filesystem + Canvas + pdf-lib）、Web 内存版与 Node（ImageMagick）实现同一接口，可无缝切换。
 
 ## 完整数据流
 
@@ -76,3 +87,4 @@ flowchart LR
 - **接口隔离**：`ContentSource` 抽象数据来源，`DownloadRuntime` 抽象运行时能力，业务层不感知 UI 与具体运行时。
 - **纯函数优先**：`getNum`、`computeStrips`、`computeUniformWidth`、`scaleSize` 均为纯函数，可直接单测。
 - **配置驱动**：域名、密钥、请求头、PDF 参数全部读自 `app-config.json`。
+- **网络可插拔**：`HttpClient` 是接口，Web/Node 走 axios（`AxiosHttpClient`），真机走 Capacitor 原生栈（`NativeHttpClient`，绕过 CORS），按 `Capacitor.isNativePlatform()` 选择。

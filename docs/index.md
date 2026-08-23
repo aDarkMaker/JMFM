@@ -4,7 +4,7 @@ layout: home
 hero:
   name: JMFM
   text: 禁漫天堂漫画下载器
-  tagline: 输入专辑 ID，一键解析、解密重组并输出高质量 PDF，完整链路基于 React Native + TypeScript。
+  tagline: 输入专辑 ID，一键解析、解密重组并输出高质量 PDF，基于 Capacitor + React Web + TypeScript。
   actions:
     - theme: brand
       text: 快速开始
@@ -28,8 +28,8 @@ features:
     details: 域名、密钥、请求头、PDF 参数全部集中在 JSON 配置，修改无需改代码。
   - icon:
     title: 前后端分离
-    details: 业务层 src/core 不依赖 UI，可独立测试与验证，UI 层后续单独设计。
+    details: 业务层 src/core 不依赖 UI，可独立测试与验证，UI 层为 React Web（Capacitor 壳）。
   - icon:
-    title: 双端可测
-    details: Node 脚本可跑完整链路，49+ 单测覆盖核心算法，RN 运行时与 Node 运行时并存。
+    title: 多运行时可测
+    details: Node 脚本可跑完整链路，50+ 单测覆盖核心算法，Capacitor / Web / Node 运行时共用一套接口。
 ---
