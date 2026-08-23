@@ -4,7 +4,7 @@
 
 ### Capacitor 全链路迁移
 
-- **架构切换**：弃用 React Native + Metro，迁移为 Lumina 式 Capacitor 架构（React Web + Bun build + Capacitor 壳）。
+- **架构切换**：弃用 React Native + Metro，迁移为 Capacitor 架构（React Web + Bun build + Capacitor 壳）。
 - **依赖清理**：移除全部 RN 生态（react-native、metro、babel、@react-navigation、react-native-* 等）及 iOS 工程。
 - **新增依赖**：`@capacitor/*`（core / cli / android / filesystem / preferences）、`pdf-lib`、`react-dom`。
 - **运行时重写**：

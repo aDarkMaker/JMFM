@@ -4,7 +4,7 @@
 
 ### Capacitor Full-Pipeline Migration
 
-- **Architecture switch**: dropped React Native + Metro for a Lumina-style Capacitor architecture (React Web + Bun build + Capacitor shell).
+- **Architecture switch**: dropped React Native + Metro for a Capacitor architecture (React Web + Bun build + Capacitor shell).
 - **Dependency cleanup**: removed the whole RN ecosystem (react-native, metro, babel, @react-navigation, react-native-*, etc.) and the iOS project.
 - **New dependencies**: `@capacitor/*` (core / cli / android / filesystem / preferences), `pdf-lib`, `react-dom`.
 - **Runtime rewrites**:
