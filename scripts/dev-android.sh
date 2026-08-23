@@ -1,33 +1,19 @@
 #!/usr/bin/env bash
 # Usage: scripts/dev-android.sh [auto|device|emulator] [AVD_NAME]
+# Capacitor workflow: build web -> sync android -> run on physical device first.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=java17-env.sh
+source "$ROOT/scripts/java17-env.sh" 2>/dev/null || true
 MODE="${1:-auto}"
 AVD="${2:-${JMFM_AVD:-Medium_Phone_API_36.1}}"
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 ADB="$SDK/platform-tools/adb"
 EMU="$SDK/emulator/emulator"
-PORT=8081
 
 log()  { printf '\033[36m[dev]\033[0m %s\n' "$*"; }
 fail() { printf '\033[31m[dev]\033[0m %s\n' "$*" >&2; exit 1; }
-
-metro_up() {
-  curl -sf "http://127.0.0.1:$PORT/status" 2>/dev/null | grep -q running
-}
-
-start_metro() {
-  log "Starting Metro on :$PORT ..."
-  cd "$ROOT"
-  nohup node node_modules/react-native/cli.js start --no-interactive > /tmp/jmfm-metro.log 2>&1 &
-  for _ in $(seq 1 45); do
-    metro_up && { log "Metro ready."; return 0; }
-    sleep 2
-  done
-  tail -15 /tmp/jmfm-metro.log
-  fail "Metro failed to start. Run 'bun run start' in another terminal."
-}
 
 pick_device() {
   local mode="$1" picked="" id
@@ -46,7 +32,7 @@ pick_device() {
 
 start_emulator() {
   [[ -x "$EMU" ]] || fail "emulator not found: $EMU"
-  local lock="$HOME/.android/avd/Medium_Phone.avd"
+  local lock="$HOME/.android/avd/${AVD}.avd"
   rm -f "$lock/hardware-qemu.ini.lock" "$lock/multiinstance.lock"
   log "Starting emulator $AVD ..."
   nohup "$EMU" -avd "$AVD" -gpu host -no-boot-anim -no-snapshot-load -no-snapshot-save \
@@ -72,12 +58,15 @@ fi
 [[ -n "$TARGET" ]] || fail "No target device."
 
 log "Device: $TARGET"
-$ADB -s "$TARGET" reverse tcp:$PORT tcp:$PORT >/dev/null 2>&1 || true
 
-metro_up || start_metro
-
-log "Building & installing ..."
 cd "$ROOT"
-npx react-native run-android --device "$TARGET" --no-packager
+log "Building web assets ..."
+bun run build
 
-log "Done. Logs: tail -f /tmp/jmfm-metro.log"
+log "Syncing Capacitor android ..."
+bunx cap sync android
+
+log "Building & running on $TARGET ..."
+bunx cap run android --target "$TARGET"
+
+log "Done."
