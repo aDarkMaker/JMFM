@@ -1,3 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">JMFMobile</string>
+    <string name="app_name">JMFM</string>
+    <string name="title_activity_main">JMFM</string>
+    <string name="package_name">com.jmfmobile</string>
+    <string name="custom_url_scheme">com.jmfmobile</string>
 </resources>
