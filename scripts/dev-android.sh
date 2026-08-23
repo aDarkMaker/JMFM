@@ -4,8 +4,6 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=java17-env.sh
-source "$ROOT/scripts/java17-env.sh" 2>/dev/null || true
 MODE="${1:-auto}"
 AVD="${2:-${JMFM_AVD:-Medium_Phone_API_36.1}}"
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
@@ -14,6 +12,17 @@ EMU="$SDK/emulator/emulator"
 
 log()  { printf '\033[36m[dev]\033[0m %s\n' "$*"; }
 fail() { printf '\033[31m[dev]\033[0m %s\n' "$*" >&2; exit 1; }
+
+require_java21() {
+  if ! command -v java >/dev/null; then
+    fail "JDK not found. Capacitor 8 requires JDK 21+. Install one, e.g. brew install openjdk@21"
+  fi
+  local major
+  major="$(java -version 2>&1 | awk -F'[".]' 'NR==1 && /version/ {print $2}')"
+  if [[ -n "$major" ]] && (( major < 21 )); then
+    fail "JDK $major detected. Capacitor 8 requires JDK 21+. Set JAVA_HOME to JDK 21."
+  fi
+}
 
 pick_device() {
   local mode="$1" picked="" id
@@ -47,6 +56,7 @@ start_emulator() {
 }
 
 [[ -x "$ADB" ]] || fail "adb not found. Set ANDROID_HOME."
+require_java21
 $ADB start-server >/dev/null
 
 TARGET="$(pick_device "$MODE")"
