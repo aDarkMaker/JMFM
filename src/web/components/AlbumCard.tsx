@@ -1,7 +1,8 @@
-import {useEffect, useRef, useState} from 'react';
-import {Capacitor} from '@capacitor/core';
-import {Directory, Filesystem} from '@capacitor/filesystem';
+import {memo, useEffect, useState} from 'react';
 import {Icon} from './Icon';
+import {useCoverSrc} from '../hooks/useCoverSrc';
+import {hasJapanese} from '../hooks/useJapaneseFont';
+import {useOverflowFade} from '../hooks/useOverflowFade';
 
 export interface AlbumCardData {
   albumId: number;
@@ -28,56 +29,19 @@ function coverColorOf(albumId: number): string {
   return COVER_PALETTE[albumId % COVER_PALETTE.length];
 }
 
-function useCoverSrc(coverPath?: string): string | null {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    setSrc(null);
-    if (!coverPath) {
-      return;
-    }
-    if (/^(https?:|blob:|data:)/.test(coverPath)) {
-      setSrc(coverPath);
-      return;
-    }
-    if (!Capacitor.isNativePlatform()) {
-      return;
-    }
-    Filesystem.getUri({path: coverPath, directory: Directory.Documents})
-      .then(r => {
-        if (alive) {
-          setSrc(Capacitor.convertFileSrc(r.uri));
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [coverPath]);
-  return src;
-}
-
-export function AlbumCard({album, onPress, onFavorite, onDelete}: AlbumCardProps) {
+export const AlbumCard = memo(function AlbumCard({
+  album,
+  onPress,
+  onFavorite,
+  onDelete,
+}: AlbumCardProps) {
   const coverSrc = useCoverSrc(album.coverPath);
   const [imgFailed, setImgFailed] = useState(false);
-  const tagsRef = useRef<HTMLDivElement>(null);
-  const [tagsOverflow, setTagsOverflow] = useState(false);
+  const {ref: tagsRef, overflow: tagsOverflow} = useOverflowFade<HTMLDivElement>();
 
   useEffect(() => {
     setImgFailed(false);
   }, [album.albumId]);
-
-  useEffect(() => {
-    const el = tagsRef.current;
-    if (!el) return;
-    const check = () => {
-      setTagsOverflow(el.scrollWidth > el.clientWidth + 1);
-    };
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [album.albumId, album.tags]);
 
   const tags = album.tags ?? [];
   const showCover = coverSrc !== null && !imgFailed;
@@ -128,8 +92,10 @@ export function AlbumCard({album, onPress, onFavorite, onDelete}: AlbumCardProps
         ) : null}
       </div>
       <div className="album-info">
-        <span className="album-title">{album.title}</span>
-        {album.author ? <span className="album-meta">{album.author}</span> : null}
+        <span className={`album-title${hasJapanese(album.title) ? ' is-ja' : ''}`}>{album.title}</span>
+        {album.author ? (
+          <span className={`album-meta${hasJapanese(album.author) ? ' is-ja' : ''}`}>{album.author}</span>
+        ) : null}
         {tags.length > 0 ? (
           <div className="album-tags">
             <div
@@ -137,7 +103,7 @@ export function AlbumCard({album, onPress, onFavorite, onDelete}: AlbumCardProps
               className={`album-tags-fade${tagsOverflow ? ' is-overflow' : ''}`}
             >
               {tags.map(tag => (
-                <span className="album-tag" key={tag}>{tag}</span>
+                <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>{tag}</span>
               ))}
             </div>
             {tagsOverflow ? <span className="album-tags-more">…</span> : null}
@@ -151,4 +117,4 @@ export function AlbumCard({album, onPress, onFavorite, onDelete}: AlbumCardProps
       </div>
     </div>
   );
-}
+});

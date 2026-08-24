@@ -54,7 +54,7 @@
   justify-content: center;
   border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.35);
-  color: #fff;
+  color: var(--ink-inverse);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   transition: opacity var(--dur-fast) ease, transform var(--dur-fast) var(--ease-spring);
@@ -89,6 +89,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.album-title.is-ja,
+.album-meta.is-ja,
+.album-tag.is-ja {
+  font-family: 'Nagino', var(--font-body);
 }
 
 .album-meta {

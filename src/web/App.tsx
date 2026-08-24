@@ -1,13 +1,14 @@
 import {useEffect, useRef, useState} from 'react';
-import {Capacitor} from '@capacitor/core';
-import {Keyboard} from '@capacitor/keyboard';
 import {gsap} from 'gsap';
 import {Icon} from './components/Icon';
 import {HomeScreen} from './screens/HomeScreen';
 import {LibraryScreen} from './screens/LibraryScreen';
 import {TasksScreen} from './screens/TasksScreen';
 import {SettingsScreen} from './screens/SettingsScreen';
+import {ReaderScreen} from './screens/ReaderScreen';
 import {useSettingsStore} from './stores/settings';
+import {useKeyboardVisibility} from './hooks/useKeyboardVisibility';
+import {useReaderLifecycle} from './hooks/usePlatformBack';
 
 type TabId = 'home' | 'library' | 'tasks' | 'settings';
 
@@ -18,9 +19,8 @@ const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download
   {id: 'settings', label: '设置', icon: 'settings'},
 ];
 
-const SCREENS: Record<TabId, () => import('react').ReactElement> = {
+const SCREENS: Record<Exclude<TabId, 'library'>, () => import('react').ReactElement> = {
   home: HomeScreen,
-  library: LibraryScreen,
   tasks: TasksScreen,
   settings: SettingsScreen,
 };
@@ -33,6 +33,8 @@ export function App() {
   const theme = useSettingsStore(s => s.settings.theme);
   const loaded = useSettingsStore(s => s.loaded);
   const load = useSettingsStore(s => s.load);
+  const {reader, readerClosing, openReader, closeReader} = useReaderLifecycle();
+  useKeyboardVisibility();
 
   useEffect(() => {
     if (!loaded) {
@@ -43,50 +45,6 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
-
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      const show = Keyboard.addListener('keyboardDidShow', () => {
-        console.log('[keyboard] show');
-        document.body.classList.add('keyboard-open');
-      });
-      const hide = Keyboard.addListener('keyboardDidHide', () => {
-        console.log('[keyboard] hide');
-        document.body.classList.remove('keyboard-open');
-      });
-      const isTextInput = (el: EventTarget | null) => {
-        const node = el as HTMLElement | null;
-        return !!node && (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA');
-      };
-      const onFocusIn = (e: FocusEvent) => {
-        if (isTextInput(e.target)) {
-          document.body.classList.add('keyboard-open');
-        }
-      };
-      const onFocusOut = (e: FocusEvent) => {
-        if (isTextInput(e.target)) {
-          document.body.classList.remove('keyboard-open');
-        }
-      };
-      document.addEventListener('focusin', onFocusIn);
-      document.addEventListener('focusout', onFocusOut);
-      return () => {
-        void show.then(h => h.remove());
-        void hide.then(h => h.remove());
-        document.removeEventListener('focusin', onFocusIn);
-        document.removeEventListener('focusout', onFocusOut);
-      };
-    }
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const onResize = () => {
-      const keyboardOpen = vv.height < window.innerHeight * 0.8;
-      document.body.classList.toggle('keyboard-open', keyboardOpen);
-    };
-    vv.addEventListener('resize', onResize);
-    onResize();
-    return () => vv.removeEventListener('resize', onResize);
-  }, []);
 
   useEffect(() => {
     const activeEl = tabRefs.current[tab];
@@ -131,8 +89,14 @@ export function App() {
   return (
     <div className="app">
       <div ref={contentRef} className="app-content">
-        {Object.entries(SCREENS).map(([id, Screen]) =>
-          tab === id ? <Screen key={id} /> : null,
+        {tab === 'library' ? (
+          <LibraryScreen
+            onOpenReader={item => openReader({filePath: item.filePath, title: item.title, pageCount: item.pageCount, pagesDir: item.pagesDir})}
+          />
+        ) : (
+          Object.entries(SCREENS).map(([id, Screen]) =>
+            tab === id ? <Screen key={id} /> : null,
+          )
         )}
       </div>
       <nav className="app-tabbar">
@@ -150,6 +114,9 @@ export function App() {
           </button>
         ))}
       </nav>
+      {reader ? (
+        <ReaderScreen target={reader} closing={readerClosing} onClose={closeReader} />
+      ) : null}
     </div>
   );
 }

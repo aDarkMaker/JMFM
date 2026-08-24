@@ -1,19 +1,22 @@
+.library-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+}
+
 .category-tabs {
   display: flex;
   gap: var(--space-2);
-  overflow-x: auto;
-  padding: var(--space-3) var(--space-1) 0;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.category-tabs::-webkit-scrollbar {
-  display: none;
+  flex-shrink: 0;
+  width: 100%;
 }
 
 .category-tab {
-  flex-shrink: 0;
-  padding: 6px 16px;
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  padding: 6px 8px;
   border-radius: var(--radius-pill);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -24,7 +27,7 @@
 }
 
 .category-tab.is-active {
-  color: #fff;
+  color: var(--ink-inverse);
   background: var(--accent-primary);
 }
 
