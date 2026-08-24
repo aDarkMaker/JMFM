@@ -1,25 +1,14 @@
-import {useEffect, useRef, useState, type FormEvent} from 'react';
+import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
 import {useDownloadStore, TaskStatus} from '../stores/download';
 import {ProgressBar} from '../components/ProgressBar';
 import {EmptyState} from '../components/EmptyState';
 import {SectionHeader} from '../components/SectionHeader';
 import {Icon} from '../components/Icon';
-import {DownloadService, DownloadEvent, isCanceledError} from '../../core/download';
-import {ApiClient} from '../../core/api';
-import {createHttpClient} from '../../core/net';
-import {createRuntime} from '../../core/download/runtime';
-import {useSettingsStore} from '../stores/settings';
-import {useLibraryStore} from '../stores/library';
-import {CDN_DOMAINS, REQUEST} from '../../core/constants';
+import {useDownloadTask} from '../hooks/useDownloadTask';
+import {hasJapanese} from '../hooks/useJapaneseFont';
 
 const AUTO_REMOVE_MS = 3000;
-
-interface AlbumInfo {
-  title: string;
-  chapters: number;
-  author: string;
-  tags: string[];
-}
+const LEAVE_ANIM_MS = 240;
 
 const BADGE_TEXT: Record<TaskStatus, string> = {
   pending: '等待中',
@@ -49,148 +38,53 @@ function uid(): string {
 export function TasksScreen() {
   const tasks = useDownloadStore(s => s.tasks);
   const addBatch = useDownloadStore(s => s.addBatch);
-  const remove = useDownloadStore(s => s.remove);
-  const setStatus = useDownloadStore(s => s.setStatus);
-  const setTitle = useDownloadStore(s => s.setTitle);
-  const updateProgress = useDownloadStore(s => s.updateProgress);
-  const updateChapter = useDownloadStore(s => s.updateChapter);
-  const setController = useDownloadStore(s => s.setController);
   const pauseAll = useDownloadStore(s => s.pauseAll);
   const resumeAll = useDownloadStore(s => s.resumeAll);
-  const downloadPath = useSettingsStore(s => s.settings.downloadPath);
-  const proxyEnabled = useSettingsStore(s => s.settings.proxyEnabled);
-  const proxy = useSettingsStore(s => s.settings.proxy);
-  const retryTimes = useSettingsStore(s => s.settings.retryTimes);
+  const {startDownload, cancel} = useDownloadTask();
   const [input, setInput] = useState('');
-  const clearTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const [leaving, setLeaving] = useState<Set<string>>(new Set());
+  const leavingRef = useRef<Set<string>>(new Set());
+  const leaveTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const ids = parseIds(input);
   const isValid = ids.length > 0;
   const hasRunning = tasks.some(t => t.status === 'running');
   const hasPaused = tasks.some(t => t.status === 'paused');
 
+  const startRemove = useCallback(
+    (taskId: string) => {
+      if (leavingRef.current.has(taskId)) return;
+      leavingRef.current.add(taskId);
+      setLeaving(new Set(leavingRef.current));
+      const timer = setTimeout(() => {
+        leavingRef.current.delete(taskId);
+        leaveTimersRef.current.delete(taskId);
+        setLeaving(new Set(leavingRef.current));
+        useDownloadStore.getState().remove(taskId);
+      }, LEAVE_ANIM_MS);
+      leaveTimersRef.current.set(taskId, timer);
+    },
+    [],
+  );
+
   useEffect(() => {
-    const map = clearTimers.current;
+    const map = leaveTimersRef.current;
     return () => {
       map.forEach(timer => clearTimeout(timer));
       map.clear();
     };
   }, []);
 
-  function scheduleAutoRemove(taskId: string) {
-    const prev = clearTimers.current.get(taskId);
-    if (prev) {
-      clearTimeout(prev);
-    }
-    const timer = setTimeout(() => {
-      clearTimers.current.delete(taskId);
-      useDownloadStore.getState().remove(taskId);
-    }, AUTO_REMOVE_MS);
-    clearTimers.current.set(taskId, timer);
-  }
+  useEffect(() => {
+    const pending = new Map<string, ReturnType<typeof setTimeout>>();
+    tasks.forEach(t => {
+      if (t.status !== 'done' || leavingRef.current.has(t.id) || pending.has(t.id)) return;
+      pending.set(t.id, setTimeout(() => startRemove(t.id), AUTO_REMOVE_MS));
+    });
+    return () => pending.forEach(timer => clearTimeout(timer));
+  }, [tasks, startRemove]);
 
   function handleRemoveTask(taskId: string) {
-    const prev = clearTimers.current.get(taskId);
-    if (prev) {
-      clearTimeout(prev);
-      clearTimers.current.delete(taskId);
-    }
-    remove(taskId);
-  }
-
-  async function saveToLibrary(
-    albumId: number,
-    info: AlbumInfo,
-    pageCount: number,
-    pdfPath: string,
-    http: ReturnType<typeof createHttpClient>,
-    runtime: ReturnType<typeof createRuntime>,
-  ) {
-    const albumDir = pdfPath.slice(0, pdfPath.lastIndexOf('/'));
-    let coverPath: string | undefined;
-    try {
-      for (const domain of CDN_DOMAINS) {
-        const resp = await http.getBytes(
-          `https://${domain}/media/albums/${albumId}_3x4.jpg`,
-          {Referer: REQUEST.REFERER, Accept: REQUEST.ACCEPT_IMAGE},
-        );
-        if (!resp.ok || !resp.bytes) {
-          continue;
-        }
-        const cover = `${albumDir}/cover.jpg`;
-        await runtime.fs.writeFile(cover, resp.bytes);
-        coverPath = cover;
-        break;
-      }
-    } catch {
-      // cover download failure is non-fatal
-    }
-    useLibraryStore.getState().add({
-      albumId,
-      title: info.title,
-      author: info.author,
-      tags: info.tags,
-      chapterCount: info.chapters,
-      pageCount,
-      filePath: pdfPath,
-      coverPath,
-    });
-  }
-
-  async function startDownload(taskId: string) {
-    const prev = clearTimers.current.get(taskId);
-    if (prev) {
-      clearTimeout(prev);
-      clearTimers.current.delete(taskId);
-    }
-    const runtime = createRuntime();
-    const http = createHttpClient({
-      ...(proxyEnabled && proxy ? {proxy} : {}),
-      maxRetries: retryTimes,
-    });
-    const source = new ApiClient(http);
-    const service = new DownloadService({
-      http,
-      source,
-      runtime,
-      downloadPath,
-    });
-
-    const albumId = useDownloadStore.getState().tasks.find(t => t.id === taskId)?.albumId ?? 0;
-    let albumInfo: AlbumInfo | null = null;
-    let albumTotal = 0;
-    const controller = {paused: false, cancel() { this.paused = true; }};
-    setController(taskId, controller);
-    setStatus(taskId, 'running');
-
-    try {
-      const pdfPath = await service.downloadAlbum(
-        albumId,
-        (e: DownloadEvent) => {
-          if (e.type === 'album-parsed') {
-            albumInfo = {title: e.title, chapters: e.chapters, author: e.author, tags: e.tags};
-            setTitle(taskId, e.title);
-            updateChapter(taskId, 0, e.chapters);
-          } else if (e.type === 'chapter') {
-            updateChapter(taskId, e.index, e.total);
-          } else if (e.type === 'image') {
-            albumTotal = e.albumTotal;
-            updateProgress(taskId, e.albumDone, e.albumTotal);
-          }
-        },
-        {controller},
-      );
-      setStatus(taskId, 'done');
-      if (albumInfo) {
-        await saveToLibrary(albumId, albumInfo, albumTotal, pdfPath, http, runtime);
-      }
-      scheduleAutoRemove(taskId);
-    } catch (err) {
-      if (isCanceledError(err)) {
-        setStatus(taskId, 'paused');
-      } else {
-        setStatus(taskId, 'error', err instanceof Error ? err.message : String(err));
-      }
-    }
+    startRemove(taskId);
   }
 
   function handleSubmit(e: FormEvent) {
@@ -213,14 +107,7 @@ export function TasksScreen() {
   }
 
   function handleResume(taskId: string) {
-    const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
-    if (!task) return;
     void startDownload(taskId);
-  }
-
-  function handleCancel(taskId: string) {
-    const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
-    task?.controller?.cancel();
   }
 
   return (
@@ -248,24 +135,29 @@ export function TasksScreen() {
         </button>
       </form>
       {tasks.length === 0 ? (
-        <EmptyState
-          icon="cloud-download"
-          title="暂无下载任务"
-          hint="在上方输入漫画ID开始下载"
-        />
+        <div className="app-empty">
+          <EmptyState
+            icon="cloud-download"
+            title="暂无下载任务"
+            hint="在上方输入漫画ID开始下载"
+          />
+        </div>
       ) : (
         <div className="tasks-stack">
           {tasks.map(task => {
             const statusIcon = STATUS_ICON[task.status];
             return (
-              <div className="task-tile" key={task.id}>
-                <div className="task-head">
+              <div
+                className={`task-tile${leaving.has(task.id) ? ' is-leaving' : ''}`}
+                key={task.id}
+              >
+                <div className={`task-head${statusIcon ? ' has-icon' : ''}`}>
                   {statusIcon ? (
                     <span className={`task-status-icon is-${task.status}`}>
-                      <Icon name={statusIcon} size={18} />
+                      <Icon name={statusIcon} size={16} />
                     </span>
                   ) : null}
-                  <span className="task-title">{task.title}</span>
+                  <span className={`task-title${hasJapanese(task.title) ? ' is-ja' : ''}`}>{task.title}</span>
                   <span className={`task-badge is-${task.status}`}>
                     {BADGE_TEXT[task.status]}
                   </span>
@@ -282,7 +174,7 @@ export function TasksScreen() {
                 {task.error ? <span className="task-error">{task.error}</span> : null}
                 <div className="task-actions">
                   {task.status === 'running' ? (
-                    <button className="task-action" onClick={() => handleCancel(task.id)}>
+                    <button className="task-action" onClick={() => cancel(task.id)}>
                       <Icon name="pause" size={16} />
                       暂停
                     </button>

@@ -66,21 +66,35 @@
 }
 
 .tasks-stack {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-3);
   padding-top: var(--space-3);
 }
 
 .task-tile {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
   gap: var(--space-3);
   padding: var(--space-4);
   background: var(--surface-card);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
-  animation: task-enter 300ms ease both;
+  animation: task-enter 300ms ease backwards;
+  transition:
+    grid-template-rows 240ms ease,
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.task-tile.is-leaving {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.task-tile.is-leaving > * {
+  min-height: 0;
 }
 
 @keyframes task-enter {
@@ -95,28 +109,43 @@
 }
 
 .task-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+}
+
+.task-head.has-icon {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 6fr) minmax(0, 3fr);
 }
 
 .task-title {
+  display: block;
   font-size: var(--text-base);
   font-weight: 600;
-  flex: 1;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 22px;
+  justify-self: start;
+  text-align: left;
+}
+
+.task-title.is-ja {
+  font-family: 'Nagino', var(--font-body);
 }
 
 .task-badge {
-  padding: 2px 10px;
+  padding: 0 10px;
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 600;
-  flex-shrink: 0;
+  line-height: 22px;
+  justify-self: end;
 }
 
 .task-badge.is-pending {
@@ -146,7 +175,30 @@
 
 .task-status-icon {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+  justify-self: center;
+}
+
+.task-status-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  animation: status-icon-in 280ms var(--ease-spring) both;
+}
+
+@keyframes status-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .task-status-icon.is-done {
