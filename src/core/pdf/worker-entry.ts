@@ -1,5 +1,11 @@
-import {PDFDocument} from 'pdf-lib';
 import type {PdfPage} from './index';
+import {
+  buildFooter,
+  buildHeader,
+  buildPage,
+  createWriterState,
+  WriterState,
+} from './writer';
 
 type WorkerMessage =
   | {type: 'init'; pages: PdfPage[]}
@@ -11,8 +17,8 @@ const ctx = self as unknown as {
   onmessage: ((e: MessageEvent) => void) | null;
 };
 
-let doc: PDFDocument | null = null;
 let pages: PdfPage[] = [];
+let writerState: WriterState = createWriterState();
 let queue: Promise<void> = Promise.resolve();
 
 function supportsOffscreenCanvas(): boolean {
@@ -59,39 +65,30 @@ async function toJpegBytes(
 async function handleMsg(msg: WorkerMessage): Promise<void> {
   if (msg.type === 'init') {
     pages = msg.pages;
-    doc = await PDFDocument.create();
-    console.log('[pdf] worker ready');
-    ctx.postMessage({type: 'ready'});
+    writerState = createWriterState();
+    const header = buildHeader(writerState, pages.length);
+    ctx.postMessage({type: 'ready', header: header.buffer as ArrayBuffer}, [header.buffer]);
     return;
   }
   if (msg.type === 'image') {
     const page = pages[msg.index];
     const bytes = new Uint8Array(msg.bytes);
-    const lower = (msg.ext || '').toLowerCase();
     const jpeg = await toJpegBytes(bytes, page.width, page.height, page.backgroundColor);
-    if (jpeg) {
-      const img = await doc!.embedJpg(jpeg);
-      const p = doc!.addPage([page.width, page.height]);
-      p.drawImage(img, {x: 0, y: 0, width: page.width, height: page.height});
-    } else {
-      console.warn('[pdf] no offscreen canvas, raw embed');
-      const img =
-        lower === 'jpg' || lower === 'jpeg'
-          ? await doc!.embedJpg(bytes)
-          : await doc!.embedPng(bytes);
-      const p = doc!.addPage([page.width, page.height]);
-      p.drawImage(img, {x: 0, y: 0, width: page.width, height: page.height});
+    if (!jpeg) {
+      throw new Error('offscreen canvas unavailable');
     }
-    ctx.postMessage({type: 'page', index: msg.index});
+    const chunk = buildPage(writerState, msg.index, page, jpeg);
+    ctx.postMessage(
+      {type: 'chunk', index: msg.index, bytes: chunk.buffer as ArrayBuffer},
+      [chunk.buffer],
+    );
     return;
   }
   if (msg.type === 'save') {
-    const pdf = await doc!.save();
-    console.log('[pdf] worker saved');
-    const buf = pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength);
-    ctx.postMessage({type: 'result', pdf: buf}, [buf]);
-    doc = null;
+    const footer = buildFooter(writerState);
+    ctx.postMessage({type: 'result', pdf: footer.buffer as ArrayBuffer}, [footer.buffer]);
     pages = [];
+    writerState = createWriterState();
     return;
   }
 }

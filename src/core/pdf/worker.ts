@@ -5,10 +5,12 @@ import type {FileSystem} from '../download/types';
 
 interface ReadyMsg {
   type: 'ready';
+  header: ArrayBuffer;
 }
-interface PageMsg {
-  type: 'page';
+interface ChunkMsg {
+  type: 'chunk';
   index: number;
+  bytes: ArrayBuffer;
 }
 interface ResultMsg {
   type: 'result';
@@ -19,7 +21,7 @@ interface ErrorMsg {
   message: string;
 }
 
-type WorkerResponse = ReadyMsg | PageMsg | ResultMsg | ErrorMsg;
+type WorkerResponse = ReadyMsg | ChunkMsg | ResultMsg | ErrorMsg;
 
 function extFromPath(path: string): string {
   const m = path.toLowerCase().match(/\.([a-z0-9]+)$/);
@@ -55,22 +57,59 @@ export async function createWorkerPdf(
   sizes?: PageSize[],
 ): Promise<string> {
   const pages = buildPdfPages(imagePaths, sizes);
+  const outputPath = `${outputDir}/${buildFileName(title)}`;
+  const BATCH = 16;
   let worker: Worker | null = null;
   try {
     worker = new Worker(workerUrl(), {type: 'module'});
     const bridge = createBridge(worker);
+
     let resp = await bridge.post({type: 'init', pages});
     if (resp.type === 'error') {
       throw new Error(resp.message);
     }
+    if (resp.type !== 'ready') {
+      throw new Error('unexpected worker response');
+    }
+    await fs.writeFile(outputPath, new Uint8Array(resp.header));
+
+    let pending: Uint8Array[] = [];
+    let pendingBytes = 0;
+    const flush = async () => {
+      if (pending.length === 0) return;
+      const merged = new Uint8Array(pendingBytes);
+      let offset = 0;
+      for (const b of pending) {
+        merged.set(b, offset);
+        offset += b.length;
+      }
+      pending = [];
+      pendingBytes = 0;
+      await fs.appendFile(outputPath, merged);
+    };
+
     for (let i = 0; i < pages.length; i++) {
       const bytes = await fs.readFile(pages[i].imagePath);
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      resp = await bridge.post({type: 'image', index: i, bytes: buf, ext: extFromPath(pages[i].imagePath)}, [buf]);
+      resp = await bridge.post(
+        {type: 'image', index: i, bytes: buf, ext: extFromPath(pages[i].imagePath)},
+        [buf],
+      );
       if (resp.type === 'error') {
         throw new Error(resp.message);
       }
+      if (resp.type !== 'chunk') {
+        throw new Error('unexpected worker response');
+      }
+      const chunk = new Uint8Array(resp.bytes);
+      pending.push(chunk);
+      pendingBytes += chunk.length;
+      if (pending.length >= BATCH) {
+        await flush();
+      }
     }
+    await flush();
+
     resp = await bridge.post({type: 'save'});
     if (resp.type === 'error') {
       throw new Error(resp.message);
@@ -78,13 +117,12 @@ export async function createWorkerPdf(
     if (resp.type !== 'result') {
       throw new Error('unexpected worker response');
     }
-    console.log(`[pdf] worker built ${resp.pdf.byteLength} bytes`);
-    const pdf = new Uint8Array(resp.pdf);
-    const outputPath = `${outputDir}/${buildFileName(title)}`;
-    await fs.writeFile(outputPath, pdf);
+    await fs.appendFile(outputPath, new Uint8Array(resp.pdf));
+    console.log(`[pdf] worker streamed ${pages.length} pages to ${outputPath}`);
     return outputPath;
   } catch (err) {
     console.warn('[pdf] worker failed, fallback', err);
+    await fs.unlink(outputPath).catch(() => undefined);
     throw err;
   } finally {
     worker?.terminate();
