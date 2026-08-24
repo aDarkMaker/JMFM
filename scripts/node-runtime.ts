@@ -117,6 +117,9 @@ export function createNodeRuntime(): DownloadRuntime {
     writeFile: async (path, data) => {
       writeFileSync(path, data);
     },
+    appendFile: async (path, data) => {
+      writeFileSync(path, data, {flag: 'a'});
+    },
     readFile: async path => {
       return new Uint8Array(readFileSync(path));
     },

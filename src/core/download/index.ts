@@ -78,10 +78,13 @@ export class DownloadService {
 
       const safeName = album.name.replace(/[/\\:*?"<>|]/g, '_');
       const albumDir = `${this.deps.downloadPath}/${safeName}`;
-      const tempDir = `${albumDir}/.tmp`;
+      const pagesDir = `${albumDir}/pages`;
 
       await runtime.fs.mkdir(albumDir).catch(() => undefined);
-      await runtime.fs.mkdir(tempDir).catch(() => undefined);
+      await runtime.fs.mkdir(pagesDir).catch(() => undefined);
+      await runtime.fs
+        .writeFile(`${albumDir}/.nomedia`, new Uint8Array([0x0a]))
+        .catch(() => undefined);
 
       const totalChapters = album.episodes.length;
       const pages: string[] = [];
@@ -102,8 +105,7 @@ export class DownloadService {
         onEvent({type: 'chapter', index: i + 1, total: totalChapters, images: imageItems.length});
         const chapter = await this.downloadChapter(
           imageItems,
-          tempDir,
-          i,
+          pagesDir,
           onEvent,
           controller,
           albumDone,
@@ -122,7 +124,6 @@ export class DownloadService {
         pageSizes,
       );
       this.checkCanceled(controller);
-      await runtime.fs.unlink(tempDir).catch(() => undefined);
       onEvent({type: 'done', pdfPath});
       return pdfPath;
     } catch (e) {
@@ -146,8 +147,7 @@ export class DownloadService {
 
   private async downloadChapter(
     items: ImageItem[],
-    tempDir: string,
-    chapterIndex: number,
+    pagesDir: string,
     onEvent: (e: DownloadEvent) => void,
     controller: DownloadController | undefined,
     albumDoneOffset: number,
@@ -165,7 +165,7 @@ export class DownloadService {
 
     await mapWithConcurrency(items, limit, async (item, i) => {
       this.checkCanceled(controller);
-      const base = `${tempDir}/${chapterIndex}_${String(i).padStart(4, '0')}`;
+      const base = `${pagesDir}/${String(albumDoneOffset + i + 1).padStart(4, '0')}`;
       const existing = await this.findExisting(base);
       if (existing) {
         pages[i] = existing;

@@ -49,6 +49,13 @@ export function createNativeRuntime(): DownloadRuntime {
         recursive: true,
       });
     },
+    appendFile: async (path, data) => {
+      await Filesystem.appendFile({
+        path,
+        data: bytesToBase64(data),
+        directory: Directory.Documents,
+      });
+    },
     readFile: async path => {
       const r = await Filesystem.readFile({
         path,
@@ -105,6 +112,17 @@ export function createWebRuntime(): DownloadRuntime {
     mkdir: async () => undefined,
     writeFile: async (path, data) => {
       mem.set(path, data);
+    },
+    appendFile: async (path, data) => {
+      const prev = mem.get(path);
+      if (!prev) {
+        mem.set(path, data);
+        return;
+      }
+      const merged = new Uint8Array(prev.length + data.length);
+      merged.set(prev, 0);
+      merged.set(data, prev.length);
+      mem.set(path, merged);
     },
     readFile: async path => {
       const data = mem.get(path);

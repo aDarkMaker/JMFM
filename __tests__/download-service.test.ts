@@ -50,6 +50,17 @@ function makeRuntime(): DownloadRuntime & {
     writeFile: async (path, data) => {
       writes.set(path, data);
     },
+    appendFile: async (path, data) => {
+      const prev = writes.get(path);
+      if (!prev) {
+        writes.set(path, data);
+        return;
+      }
+      const merged = new Uint8Array(prev.length + data.length);
+      merged.set(prev, 0);
+      merged.set(data, prev.length);
+      writes.set(path, merged);
+    },
     readFile: async path => writes.get(path) ?? new Uint8Array(),
     unlink: async () => undefined,
     exists: async path => writes.has(path),
@@ -107,7 +118,7 @@ describe('DownloadService end-to-end', () => {
     const albumParsed = events.find(e => e.type === 'album-parsed');
     expect(albumParsed?.title).toBe('测试本子');
     expect(albumParsed?.chapters).toBe(2);
-    expect(runtime.writes.size).toBe(4);
+    expect(runtime.writes.size).toBe(5);
     expect(runtime.calls.decode).toBe(4);
     expect(http.getBytes).toHaveBeenCalledTimes(4);
   });
@@ -149,8 +160,8 @@ describe('DownloadService end-to-end', () => {
     });
 
     // 预先写入第一章的图片
-    runtime.writes.set('/downloads/测试本子/.tmp/0_0000.webp', new Uint8Array([9, 9, 9]));
-    runtime.writes.set('/downloads/测试本子/.tmp/0_0001.webp', new Uint8Array([9, 9, 9]));
+    runtime.writes.set('/downloads/测试本子/pages/0001.webp', new Uint8Array([9, 9, 9]));
+    runtime.writes.set('/downloads/测试本子/pages/0002.webp', new Uint8Array([9, 9, 9]));
 
     const events: DownloadEvent[] = [];
     await service.downloadAlbum(123, e => events.push(e));
@@ -158,7 +169,7 @@ describe('DownloadService end-to-end', () => {
     // 第一章 2 张已存在，只下载第二章 2 张
     expect(http.getBytes).toHaveBeenCalledTimes(2);
     expect(runtime.calls.decode).toBe(2);
-    expect(runtime.writes.size).toBe(4);
+    expect(runtime.writes.size).toBe(5);
     expect(events.filter(e => e.type === 'image').length).toBe(4);
     expect(events.filter(e => e.type === 'done').length).toBe(1);
   });
