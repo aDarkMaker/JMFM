@@ -24,7 +24,11 @@ src/
   web/                    # UI 层（React DOM + CSS，运行于 Capacitor 壳）
     assets/               # 图标（Iconify SVG）与字体
     components/           # 展示组件
-    screens/              # 4 个主页面
+    download/             # 下载串行队列
+    hooks/                # 下载 / 封面 / 键盘 / 手势等 hooks
+    library/              # 入库与封面处理
+    reader/               # 图片直读阅读器（image-doc / image-reader / pdf-doc）
+    screens/              # 5 个页面（Home / Library / Tasks / Settings / Reader）
     stores/               # zustand 状态库
     styles/               # CSS 样式模块
     theme/                # Cirrus 设计 token（CSS 变量）
@@ -78,7 +82,9 @@ flowchart LR
     svc -->|"ImageItem"| img["下载图片"]
     img --> num["getNum 计算条带"]
     num --> dec["条带重组"]
-    dec --> pdf2["PDF 生成"]
+    dec --> pages["albumDir/pages/*.jpg（保留）"]
+    pages --> read["阅读器图片直读（秒开）"]
+    dec --> pdf2["PDF 生成（归档）"]
     pdf2 --> file["标题.pdf"]
 ```
 
@@ -88,3 +94,5 @@ flowchart LR
 - **纯函数优先**：`getNum`、`computeStrips`、`computeUniformWidth`、`scaleSize` 均为纯函数，可直接单测。
 - **配置驱动**：域名、密钥、请求头、PDF 参数全部读自 `app-config.json`。
 - **网络可插拔**：`HttpClient` 是接口，Web/Node 走 axios（`AxiosHttpClient`），真机走 Capacitor 原生栈（`NativeHttpClient`，绕过 CORS），按 `Capacitor.isNativePlatform()` 选择。
+- **图片直读为主路径**：新下载保留 `pages/` 图片序列，阅读器直接渲染本地图片并渐进预取，实现秒开；PDF 定位为归档产物，仅旧文件用 pdf.js 回退渲染。
+- **下载串行队列**：`src/web/download/queue.ts` 以 `MAX_CONCURRENT = 1` 排队多本下载，暂停/失败后自动执行下一本，避免磁盘与解码竞争卡顿。

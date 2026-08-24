@@ -49,8 +49,7 @@ flowchart LR
     root --> lib["漫画库"]
     root --> tasks["下载"]
     root --> settings["设置"]
-    root -.-> detail["AlbumDetail 预留"]
-    root -.-> reader["Reader 预留"]
+    lib -.-> reader["Reader 阅读器"]
 ```
 
 ### 页面表
@@ -58,17 +57,17 @@ flowchart LR
 | 名称 | 组件 | 说明 |
 | --- | --- | --- |
 | `Home` | `HomeScreen` | 每日推荐列表 |
-| `Library` | `LibraryScreen` | 本地漫画库 + 搜索 |
-| `Tasks` | `TasksScreen` | 下载任务与进度 |
+| `Library` | `LibraryScreen` | 本地漫画库 + 搜索 + 分类筛选（全部/收藏/已下载/常看） |
+| `Tasks` | `TasksScreen` | 下载任务与进度（串行排队） |
 | `Settings` | `SettingsScreen` | 应用设置 |
-| `AlbumDetail` | 预留 | 专辑详情（后续接入） |
-| `Reader` | 预留 | 阅读器（后续接入） |
+| `Reader` | `ReaderScreen` | 阅读器：图片直读（新下载）或 pdf.js 回退（旧 PDF） |
 
 ## 页面职责
 
 - **Home**：展示每日推荐卡片（封面、标题、作者、标签、章节数），点击进入详情。当前以 mock 数据驱动，后续接入推荐 API。
-- **Library**：展示已下载漫画，支持搜索与排序。
-- **Tasks**：展示下载队列与实时进度，支持暂停/恢复/删除。
+- **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读。
+- **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本下载经 `src/web/download/queue.ts` 串行排队（`MAX_CONCURRENT = 1`），未开始的显示"等待中"。
+- **Reader**：`ReaderTarget.pagesDir` 存在且为原生平台时走图片直读（`src/web/reader/image-reader.tsx`，滚动/翻页两种模式），否则回退 pdf.js 渲染。
 - **Settings**：下载路径、重试次数、并发线程、图片格式、代理等，读写 `data/settings`。
 
 ## 状态管理
@@ -76,8 +75,8 @@ flowchart LR
 | Store | 职责 |
 | --- | --- |
 | `useSettingsStore` | 包装 `data/settings` 的读取与持久化（Capacitor Preferences / localStorage） |
-| `useDownloadStore` | 下载任务集合与进度（pending / running / done / error） |
-| `useLibraryStore` | 本地已下载漫画（预留） |
+| `useDownloadStore` | 下载任务集合与进度（pending / running / paused / done / error） |
+| `useLibraryStore` | 本地已下载漫画（`LibraryItem`，含 `pagesDir`），支持收藏 / 常看 / 删除 |
 
 ## 样式体系
 
@@ -110,15 +109,19 @@ flowchart LR
 ```
 src/web/
   assets/
-    fonts/                # Alimama / BebasNeue
+    fonts/                # Alimama / BebasNeue / Nagino
     icons/                # Iconify SVG
   components/             # Icon / AlbumCard / SearchBar / ...
+  download/               # 下载串行队列（queue.ts）
   generated/              # icons.ts（脚本生成）
-  screens/                # Home / Library / Tasks / Settings
+  hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
+  library/                # 入库与封面处理（saveToLibrary.ts）
+  reader/                 # 图片直读阅读器（image-doc / image-reader / pdf-doc / paged / scroll）
+  screens/                # Home / Library / Tasks / Settings / Reader
   stores/                 # zustand stores
   styles/                 # CSS 样式模块
   theme/                  # Cirrus tokens（CSS 变量）
-  App.tsx                 # tab 切换
+  App.tsx                 # tab 切换 + Reader 全屏挂载
   main.tsx                # ReactDOM.createRoot 入口
   index.html              # WebView 宿主页
 ```

@@ -13,6 +13,7 @@
 - **稳定获取**：移动端 API 通道 + 动态域名刷新，规避网页通道的 DNS 封锁。
 - **还原原图**：条带分割算法 `getNum` 逆序重排，恢复被拆分的完整画面。
 - **统一排版**：全部页面等比例缩放到统一宽度，动态取最优尺寸，无白色占位。
+- **图片直读秒开**：下载后保留原始图片序列，阅读器直接渲染本地图片并渐进预取，PDF.js 仅作旧文件回退。
 - **配置外置**：域名、密钥、请求参数集中在 `app-config.json`，无需改码即可维护。
 - **多运行时可测**：Node 脚本可跑通完整链路，Capacitor / Web / Node 运行时共用同一接口。
 
@@ -46,6 +47,7 @@ bun run verify this_some_magic_number
 | 加解密 | crypto-js（MD5 / AES-256-ECB） |
 | 图片解码（真机/Web） | Web Canvas |
 | PDF 生成 | pdf-lib |
+| PDF 阅读（旧文件回退） | pdfjs-dist |
 | 图片解码（Node） | ImageMagick |
 | 存储 | Capacitor Filesystem / Preferences |
 | 测试 | bun test |
@@ -56,7 +58,9 @@ bun run verify this_some_magic_number
 src/
   config/   # 集中配置（域名、密钥、PDF 参数）
   core/     # 业务核心（api / net / model / transcode / pdf / download）
+  data/     # 设置持久化与 mock 数据
   web/      # UI 层（React DOM + CSS，运行于 Capacitor 壳）
+    reader/ # 图片直读阅读器（image-doc / image-reader / pdf-doc）
 scripts/    # Node 端验证脚本与运行时
 android/    # Capacitor 生成的 Android 原生工程
 docs/       # VitePress 双语文档

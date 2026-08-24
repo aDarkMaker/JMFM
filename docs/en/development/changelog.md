@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-08-25
+
+### Reader: instant direct image reading
+
+- **Direct image reading as the primary path**: downloads keep the `albumDir/pages/` image sequence; the reader renders local images directly with progressive prefetch (`loadImageDocMeta` → on-demand `getUri` → batched background prefetch). pdf.js is only a fallback for legacy files.
+- **Instant opening**: `setMeta` no longer waits for the prefetch; the first frame renders placeholders immediately plus the first screen's srcs; `saveToLibrary` pre-warms the first 6 pages, so opening from the library shows the first screen instantly.
+- **Windowed scroll rendering** (mirroring the native RecyclerView model): scroll mode mounts only the current page ±3/+6, with spacers sized by each page's aspect ratio carrying the total height; pages leaving the window unmount. `onScroll` now uses rAF throttling plus pure arithmetic binary search instead of per-frame `querySelectorAll` and forced layout reads.
+- **Paged mode initial size fix**: fit-to-width is now width-driven instead of `transform: scale`, with a `ResizeObserver`; flipped pages fit the screen width without being cropped.
+- **Performance details**: `decoding="async"`, `PREFETCH_BATCH` reduced from 20 to 6 to avoid a bridge storm, `PREFETCH_AHEAD` narrowed to 8, and img node refs cached instead of re-querying.
+
+### Task card layout fix
+
+- `.task-head` now uses CSS Grid: icon 10% / title 60% / badge 30% (title 70% / badge 30% without an icon); the badge is right-aligned, icon and title stay on the same visual baseline, and long titles ellipsize.
+
+### Cirrus palette
+
+- `src/web/theme/index.css` maps Cirrus design tokens; hardcoded component colors were replaced with CSS variables.
+
+### Download and merge optimizations
+
+- **Serial download queue**: new `src/web/download/queue.ts` (`MAX_CONCURRENT = 1`); when one download pauses or fails the next starts automatically, avoiding disk/decode contention.
+- **Batched PDF merge**: `createWorkerPdf` batches on the main thread and appends 16 chunks per `appendFile`, cutting bridge calls roughly 15×.
+
+### Cleanup
+
+- Chinese comments translated to English, keeping English block comments; `ReaderScreen` reuses `ImageReaderHandle` instead of an inline ref type; dead CSS rules removed.
+
 ## 2026-08-23
 
 ### Capacitor Full-Pipeline Migration

@@ -24,7 +24,11 @@ src/
   web/                    # UI layer (React DOM + CSS, runs in Capacitor shell)
     assets/               # Icons (Iconify SVG) and fonts
     components/           # Presentational components
-    screens/              # 4 main screens
+    download/             # Download serial queue
+    hooks/                # download / cover / keyboard / gesture hooks
+    library/              # library insert and cover handling
+    reader/               # Direct image reading (image-doc / image-reader / pdf-doc)
+    screens/              # 5 screens (Home / Library / Tasks / Settings / Reader)
     stores/               # zustand stores
     styles/               # CSS style modules
     theme/                # Cirrus design tokens (CSS variables)
@@ -78,7 +82,9 @@ flowchart LR
     svc -->|"ImageItem"| img["download image"]
     img --> num["getNum strips"]
     num --> dec["strip reassembly"]
-    dec --> pdf2["PDF generation"]
+    dec --> pages["albumDir/pages/*.jpg (kept)"]
+    pages --> read["reader direct image reading (instant)"]
+    dec --> pdf2["PDF generation (archive)"]
     pdf2 --> file["title.pdf"]
 ```
 
@@ -88,3 +94,5 @@ flowchart LR
 - **Pure functions first**: `getNum`, `computeStrips`, `computeUniformWidth`, `scaleSize` are pure and directly unit-testable.
 - **Config-driven**: domains, secrets, request headers and PDF params all come from `app-config.json`.
 - **Pluggable networking**: `HttpClient` is an interface; Web/Node use axios (`AxiosHttpClient`), the device uses the Capacitor native stack (`NativeHttpClient`, bypassing CORS), selected via `Capacitor.isNativePlatform()`.
+- **Direct image reading is the primary path**: new downloads keep the `pages/` image sequence; the reader renders local images directly with progressive prefetch for instant opening. PDFs are treated as archive artifacts, rendered by pdf.js only as a fallback for legacy files.
+- **Serial download queue**: `src/web/download/queue.ts` serializes multiple downloads with `MAX_CONCURRENT = 1`; when one pauses or fails the next one starts automatically, avoiding disk/decode contention.

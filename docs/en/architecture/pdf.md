@@ -2,6 +2,8 @@
 
 `src/core/pdf/` assembles restored images into a uniformly readable PDF.
 
+> Note: PDFs are **archive artifacts**. New downloads also keep the `albumDir/pages/` image sequence; the reader uses direct image reading as the primary path (instant open). PDFs are rendered with pdf.js only as a fallback for legacy files without `pages/`.
+
 ## Uniform Width
 
 Original image widths can differ. The target width is derived dynamically:

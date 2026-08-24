@@ -49,8 +49,7 @@ flowchart LR
     root --> lib["Library"]
     root --> tasks["Tasks"]
     root --> settings["Settings"]
-    root -.-> detail["AlbumDetail reserved"]
-    root -.-> reader["Reader reserved"]
+    lib -.-> reader["Reader"]
 ```
 
 ### Page table
@@ -58,17 +57,17 @@ flowchart LR
 | Name | Component | Description |
 | --- | --- | --- |
 | `Home` | `HomeScreen` | daily recommendation feed |
-| `Library` | `LibraryScreen` | local library + search |
-| `Tasks` | `TasksScreen` | download queue and progress |
+| `Library` | `LibraryScreen` | local library + search + category filters (all / favorite / downloaded / recent) |
+| `Tasks` | `TasksScreen` | download queue and progress (serialized) |
 | `Settings` | `SettingsScreen` | app settings |
-| `AlbumDetail` | reserved | album detail page |
-| `Reader` | reserved | image reader page |
+| `Reader` | `ReaderScreen` | reader: direct image reading (new downloads) or pdf.js fallback (legacy PDFs) |
 
 ## Screen responsibilities
 
 - **Home**: shows daily recommendation cards (cover, title, author, tags, chapter count). Currently mock-driven; a recommendation API will be wired later.
-- **Library**: lists downloaded albums with search and sorting.
-- **Tasks**: shows the download queue with live progress, supports pause / resume / delete.
+- **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open.
+- **Tasks**: shows the download queue with live progress, supports pause / resume / delete. Multiple albums are serialized through `src/web/download/queue.ts` (`MAX_CONCURRENT = 1`); queued ones show "waiting".
+- **Reader**: when `ReaderTarget.pagesDir` exists on a native platform it uses direct image reading (`src/web/reader/image-reader.tsx`, scroll and paged modes); otherwise it falls back to pdf.js rendering.
 - **Settings**: download path, retry count, concurrency, image format, proxy; reads and writes `data/settings`.
 
 ## State management
@@ -76,8 +75,8 @@ flowchart LR
 | Store | Responsibility |
 | --- | --- |
 | `useSettingsStore` | wraps `data/settings` load and persistence (Capacitor Preferences / localStorage) |
-| `useDownloadStore` | download task set and progress (pending / running / done / error) |
-| `useLibraryStore` | locally downloaded albums (reserved) |
+| `useDownloadStore` | download task set and progress (pending / running / paused / done / error) |
+| `useLibraryStore` | locally downloaded albums (`LibraryItem`, with `pagesDir`), favorite / recent / delete |
 
 ## Style system
 
@@ -110,15 +109,19 @@ Built on the Cirrus design tokens in `src/web/theme/index.css` (CSS variables: s
 ```
 src/web/
   assets/
-    fonts/                # Alimama / BebasNeue
+    fonts/                # Alimama / BebasNeue / Nagino
     icons/                # Iconify SVG
   components/             # Icon / AlbumCard / SearchBar / ...
+  download/               # download serial queue (queue.ts)
   generated/              # icons.ts (generated)
-  screens/                # Home / Library / Tasks / Settings
+  hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
+  library/                # library insert and cover handling (saveToLibrary.ts)
+  reader/                 # direct image reading (image-doc / image-reader / pdf-doc / paged / scroll)
+  screens/                # Home / Library / Tasks / Settings / Reader
   stores/                 # zustand stores
   styles/                 # CSS style modules
   theme/                  # Cirrus tokens (CSS variables)
-  App.tsx                 # tab switching
+  App.tsx                 # tab switching + full-screen Reader mount
   main.tsx                # ReactDOM.createRoot entry
   index.html              # WebView host page
 ```
