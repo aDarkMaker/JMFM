@@ -75,6 +75,24 @@ export function SettingsScreen() {
               </div>
             }
           />
+          <ListTile
+            icon="swipe-vertical"
+            title="阅读方式"
+            trailing={
+              <div className="theme-segmented">
+                <button
+                  className={`theme-segmented-item${settings.readerMode === 'scroll' ? ' is-active' : ''}`}
+                  onClick={() => void update({readerMode: 'scroll'})}>
+                  上下滚动
+                </button>
+                <button
+                  className={`theme-segmented-item${settings.readerMode === 'paged' ? ' is-active' : ''}`}
+                  onClick={() => void update({readerMode: 'paged'})}>
+                  左右滑动
+                </button>
+              </div>
+            }
+          />
         </div>
         <div className="settings-group">
           <span className="settings-group-title">下载</span>

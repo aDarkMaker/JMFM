@@ -10,6 +10,7 @@ export interface Settings {
   proxyEnabled: boolean;
   domains: string[];
   theme: 'light' | 'dark';
+  readerMode: 'scroll' | 'paged';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
     'jmcomic2.me',
   ],
   theme: 'light',
+  readerMode: 'scroll',
 };
 
 const KEY = 'jmf.settings';
@@ -41,6 +43,7 @@ export function sanitizeSettings(raw: Partial<Settings>): Settings {
     proxyEnabled: raw.proxyEnabled === true,
     domains: sanitizeDomains(raw.domains),
     theme: raw.theme === 'dark' ? 'dark' : 'light',
+    readerMode: raw.readerMode === 'paged' ? 'paged' : 'scroll',
   };
 }
 

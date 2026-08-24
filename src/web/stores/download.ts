@@ -43,6 +43,28 @@ function newTask(
   };
 }
 
+const THROTTLE_MS = 80;
+const pendingProgress = new Map<string, {done: number; total: number}>();
+let progressTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushProgress(): void {
+  progressTimer = null;
+  if (pendingProgress.size === 0) {
+    return;
+  }
+  const snapshot = new Map(pendingProgress);
+  pendingProgress.clear();
+  const {tasks} = useDownloadStore.getState();
+  const updates = new Map(tasks.map(t => [t.id, t]));
+  snapshot.forEach((p, id) => {
+    const cur = updates.get(id);
+    if (cur) {
+      updates.set(id, {...cur, done: p.done, total: p.total});
+    }
+  });
+  useDownloadStore.setState({tasks: [...updates.values()]});
+}
+
 export const useDownloadStore = create<DownloadState>((set, get) => ({
   tasks: [],
   add(task) {
@@ -72,9 +94,11 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
     }));
   },
   updateProgress(id, done, total) {
-    set(state => ({
-      tasks: state.tasks.map(t => (t.id === id ? {...t, done, total} : t)),
-    }));
+    pendingProgress.set(id, {done, total});
+    if (progressTimer) {
+      return;
+    }
+    progressTimer = setTimeout(flushProgress, THROTTLE_MS);
   },
   updateChapter(id, chaptersDone, chaptersTotal) {
     set(state => ({

@@ -85,7 +85,7 @@ export class NativeHttpClient implements HttpClient {
       return {ok: true, status: resp.status, text: String(resp.data)};
     } catch (e) {
       const nativeMsg = e instanceof Error ? e.message : String(e);
-      // 原生栈失败时降级到 WebView fetch（与电脑同 Chromium 栈）
+      // native stack failure falls back to the WebView fetch (same Chromium stack as desktop)
       try {
         const resp = await fetch(url, {headers: headers as HeadersInit});
         const ok = resp.status >= 200 && resp.status < 300;
