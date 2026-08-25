@@ -3,8 +3,9 @@ import {AlbumCard, AlbumCardData} from '../components/AlbumCard';
 import {SearchBar} from '../components/SearchBar';
 import {EmptyState} from '../components/EmptyState';
 import {SectionHeader} from '../components/SectionHeader';
+import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useLibraryStore, LibraryItem} from '../stores/library';
-import {loadDoc} from '../reader/pdf-doc';
+import {loadImageDocMeta} from '../reader/image-doc';
 import {createRuntime} from '../../core/download/runtime';
 
 type CategoryKey = 'all' | 'favorite' | 'downloaded' | 'recent';
@@ -23,6 +24,7 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
   const markOpened = useLibraryStore(s => s.markOpened);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryKey>('all');
+  const [pendingDelete, setPendingDelete] = useState<LibraryItem | null>(null);
 
   const filtered = useMemo(() => {
     let list = items;
@@ -50,23 +52,28 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
     (album: AlbumCardData) => {
       const item = items.find(it => it.albumId === album.albumId);
       if (!item) return;
-      if (!window.confirm(`删除「${item.title}」？`)) {
-        return;
-      }
-      removeItem(item.albumId);
-      const runtime = createRuntime();
-      const albumDir = item.filePath.slice(0, item.filePath.lastIndexOf('/'));
-      void runtime.fs.unlink(albumDir).catch(() => undefined);
+      setPendingDelete(item);
     },
-    [items, removeItem],
+    [items],
   );
+
+  const confirmDelete = useCallback(() => {
+    const item = pendingDelete;
+    setPendingDelete(null);
+    if (!item) return;
+    removeItem(item.albumId);
+    const runtime = createRuntime();
+    void runtime.fs.unlink(item.filePath).catch(() => undefined);
+  }, [pendingDelete, removeItem]);
 
   const handlePress = useCallback(
     (album: AlbumCardData) => {
       const item = items.find(it => it.albumId === album.albumId);
       if (!item) return;
       markOpened(item.albumId);
-      void loadDoc(item.filePath);
+      if (item.pagesDir) {
+        void loadImageDocMeta(item.pagesDir).catch(() => undefined);
+      }
       onOpenReader(item);
     },
     [items, markOpened, onOpenReader],
@@ -115,6 +122,16 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title="删除漫画"
+        message={pendingDelete ? `删除「${pendingDelete.title}」？` : ''}
+        confirmLabel="删除"
+        danger
+        messageEllipsis
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

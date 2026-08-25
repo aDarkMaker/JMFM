@@ -14,6 +14,7 @@ import './styles/library.css';
 import './styles/tasks.css';
 import './styles/settings.css';
 import './styles/reader.css';
+import './styles/confirmDialog.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
