@@ -126,12 +126,13 @@
   display: block;
   font-size: var(--text-base);
   font-weight: 600;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 22px;
-  justify-self: start;
   text-align: left;
 }
 
@@ -146,6 +147,12 @@
   font-weight: 600;
   line-height: 22px;
   justify-self: end;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 .task-badge.is-pending {
