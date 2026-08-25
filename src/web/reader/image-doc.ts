@@ -19,6 +19,12 @@ function isImageFile(name: string): boolean {
   return IMAGE_EXTS.has((name.split('.').pop() ?? '').toLowerCase());
 }
 
+function sortByNumericName(a: string, b: string): number {
+  const na = Number.parseInt(a, 10) || 0;
+  const nb = Number.parseInt(b, 10) || 0;
+  return na - nb;
+}
+
 function cacheEntry(key: string, entry: ImageDocMeta): void {
   imageCache.delete(key);
   imageCache.set(key, entry);
@@ -70,11 +76,7 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
   ]);
   const files = dir.files
     .filter(f => f.type === 'file' && isImageFile(f.name))
-    .sort((a, b) => {
-      const na = Number.parseInt(a.name, 10) || 0;
-      const nb = Number.parseInt(b.name, 10) || 0;
-      return na - nb;
-    })
+    .sort((a, b) => sortByNumericName(a.name, b.name))
     .map(f => f.name);
   const baseSrc = Capacitor.convertFileSrc(uri.uri);
   const entry: ImageDocMeta = {

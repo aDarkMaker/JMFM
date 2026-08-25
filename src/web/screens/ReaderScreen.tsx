@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {Capacitor} from '@capacitor/core';
 import {Icon} from '../components/Icon';
 import {useSettingsStore} from '../stores/settings';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -25,7 +24,7 @@ export function ReaderScreen({
 }) {
   const readerMode = useSettingsStore(s => s.settings.readerMode);
   const isScroll = readerMode === 'scroll';
-  const isImageMode = target.pagesDir != null && Capacitor.isNativePlatform();
+  const isImageMode = target.pagesDir != null;
   const cachedEntry = useRef(getDocCache(target.filePath)).current;
   const initialPages = target.pageCount ?? cachedEntry?.numPages ?? 0;
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -55,12 +54,29 @@ export function ReaderScreen({
   const pendingFlipRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const imageReaderRef = useRef<ImageReaderHandle | null>(null);
+  const pageInputRef = useRef<HTMLInputElement>(null);
+  const prevBtnRef = useRef<HTMLButtonElement>(null);
+  const nextBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
+  }, []);
+
+  const syncImageToolbarPage = useCallback((p: number) => {
+    pageNumRef.current = p;
+    const input = pageInputRef.current;
+    if (input && document.activeElement !== input) {
+      input.value = String(p);
+    }
+    if (prevBtnRef.current) {
+      prevBtnRef.current.disabled = p <= 1;
+    }
+    if (nextBtnRef.current) {
+      nextBtnRef.current.disabled = pagesRef.current > 0 && p >= pagesRef.current;
+    }
   }, []);
 
   const pagedCtx: paged.PagedViewerCtx = {
@@ -276,10 +292,21 @@ export function ReaderScreen({
     await paged.reRenderPaged(pagedCtx);
   }, [isImageMode, isScroll, scrollCtx, pagedCtx]);
 
-  const handleImageReady = useCallback((total: number) => {
-    setPages(total);
-    pagesRef.current = total;
-  }, []);
+  const handleImageReady = useCallback(
+    (total: number) => {
+      setPages(total);
+      pagesRef.current = total;
+      syncImageToolbarPage(pageNumRef.current);
+    },
+    [syncImageToolbarPage],
+  );
+
+  const handleImagePageChange = useCallback(
+    (p: number) => {
+      syncImageToolbarPage(p);
+    },
+    [syncImageToolbarPage],
+  );
 
   const handleImageError = useCallback((e: string | null) => {
     setError(e);
@@ -307,30 +334,48 @@ export function ReaderScreen({
         <span className="reader-title">{target.title}</span>
         <div className="reader-toolbar-group">
           <button
+            ref={prevBtnRef}
             className="reader-btn"
-            onClick={() => goTo(page - 1)}
-            disabled={page <= 1}
+            onClick={() => goTo((isImageMode ? pageNumRef.current : page) - 1)}
+            disabled={(isImageMode ? pageNumRef.current : page) <= 1}
             aria-label="上一页"
           >
             <Icon name="chevron-right" size={20} style={{transform: 'rotate(180deg)'}} />
           </button>
-          <input
-            className="reader-page-input"
-            type="text"
-            inputMode="numeric"
-            value={page}
-            onChange={e => {
-              const v = Number(e.target.value.replace(/\D/g, ''));
-              if (v >= 1) {
-                goTo(v);
-              }
-            }}
-          />
+          {isImageMode ? (
+            <input
+              ref={pageInputRef}
+              className="reader-page-input"
+              type="text"
+              inputMode="numeric"
+              defaultValue={page}
+              onChange={e => {
+                const v = Number(e.target.value.replace(/\D/g, ''));
+                if (v >= 1) {
+                  goTo(v);
+                }
+              }}
+            />
+          ) : (
+            <input
+              className="reader-page-input"
+              type="text"
+              inputMode="numeric"
+              value={page}
+              onChange={e => {
+                const v = Number(e.target.value.replace(/\D/g, ''));
+                if (v >= 1) {
+                  goTo(v);
+                }
+              }}
+            />
+          )}
           <span className="reader-total">/ {pages || '-'}</span>
           <button
+            ref={nextBtnRef}
             className="reader-btn"
-            onClick={() => goTo(page + 1)}
-            disabled={page >= pages}
+            onClick={() => goTo((isImageMode ? pageNumRef.current : page) + 1)}
+            disabled={(isImageMode ? pageNumRef.current : page) >= pages}
             aria-label="下一页"
           >
             <Icon name="chevron-right" size={20} />
@@ -354,7 +399,7 @@ export function ReaderScreen({
           pagesDir={target.pagesDir!}
           pageCount={target.pageCount}
           mode={isScroll ? 'scroll' : 'paged'}
-          onPageChange={setPage}
+          onPageChange={handleImagePageChange}
           onReady={handleImageReady}
           onError={handleImageError}
         />

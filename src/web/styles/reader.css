@@ -137,6 +137,7 @@
   overflow: hidden;
   contain: layout style paint;
   flex-shrink: 0;
+  background: var(--surface-canvas);
 }
 
 .reader-paged-area {
@@ -152,18 +153,20 @@
 .reader-canvas {
   margin: auto;
   box-shadow: var(--shadow-2);
-  background: #fff;
+  background: var(--surface-canvas);
   flex-shrink: 0;
+}
+
+.reader-img.is-error {
+  background: var(--surface-sunken);
 }
 
 .reader-img {
   display: block;
-  max-width: 100%;
   box-shadow: var(--shadow-2);
-  background: #fff;
+  background: var(--surface-canvas);
   flex-shrink: 0;
   object-fit: contain;
-  aspect-ratio: 3 / 4;
 }
 
 .reader-img-area {
@@ -202,7 +205,7 @@
   max-height: 100%;
   object-fit: contain;
   box-shadow: var(--shadow-2);
-  background: #fff;
+  background: var(--surface-canvas);
 }
 
 .reader-canvas-paged {
