@@ -18,7 +18,7 @@ A smooth, automated pipeline:
 
 1. **Stable Fetching** — the mobile API channel auto-refreshes domains and bypasses web blocks.
 2. **Image Restoration** — a strip algorithm detects the slicing pattern and reassembles pages in order.
-3. **Elegant Output** — pages are aligned to a uniform width and exported as a clean, titled PDF.
+3. **Local albums** — pages are written to `albumDir/pages/` (default webp) for instant direct reading; PDF is optional archive.
 
 ## Tech Stack
 
@@ -37,4 +37,4 @@ A smooth, automated pipeline:
 
 ## Status
 
-The business pipeline is fully working and verified against a real album (ID 1327951, 50 pages). The Android native project is ready, and the frontend runs inside the Capacitor shell — stay tuned.
+The pipeline is fully working: pages download, local reader, library, task queue and library repair. Use `bun run apk` to package an Android installable.

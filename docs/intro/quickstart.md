@@ -31,11 +31,7 @@ bun install
 bun run verify 1327951
 ```
 
-几分钟后，你会在 `temp/1327951/` 看到成品 PDF：
-
-```
-temp/1327951/[五月雨汉化组]实际上只是、想在一起.pdf  （50 页）
-```
+几分钟后，你会在 `temp/1327951/` 看到下载产物（`pages/` 图片序列等）。
 
 如果网络受限导致下载失败，可以挂代理重试：
 
@@ -59,10 +55,9 @@ bun run lint       # 代码规范
 bash scripts/dev-android.sh
 ```
 
-或手动分步：
+或直接打 APK：
 
 ```bash
-bun run build            # 构建 Web 产物
-bunx cap sync android    # 同步到原生工程
-bunx cap run android     # 构建安装启动
+bun run apk            # → dist-apk/jmfmobile-debug.apk
+bun run apk:release    # → dist-apk/jmfmobile-release.apk
 ```

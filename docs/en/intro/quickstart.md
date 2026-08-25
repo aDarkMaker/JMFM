@@ -31,11 +31,7 @@ No emulator needed — download a real comic directly:
 bun run verify 1327951
 ```
 
-A few minutes later you'll see the finished PDF in `temp/1327951/`:
-
-```
-temp/1327951/[五月雨汉化组]实际上只是、想在一起.pdf  （50 pages）
-```
+A few minutes later you'll see download artifacts under `temp/1327951/` (including the `pages/` image sequence).
 
 If downloads fail on a restricted network, retry with a proxy:
 
@@ -59,10 +55,9 @@ Connect an Android device (USB debugging enabled) and run in one shot:
 bash scripts/dev-android.sh
 ```
 
-Or step by step:
+Or build an APK directly:
 
 ```bash
-bun run build            # build web assets
-bunx cap sync android    # sync into the native project
-bunx cap run android     # build, install and launch
+bun run apk            # → dist-apk/jmfmobile-debug.apk
+bun run apk:release    # → dist-apk/jmfmobile-release.apk
 ```
