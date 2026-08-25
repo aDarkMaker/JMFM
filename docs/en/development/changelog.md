@@ -2,28 +2,46 @@
 
 ## 2026-08-25
 
+### Pages-only download (default webp)
+
+- `DownloadService` no longer calls `createAlbumPdf`; `done` carries `albumDir`.
+- `imageFormat` (webp/jpg) flows into decode; `decideImageStrategy`: `num<=1` and non-webp → `raw`.
+- verify / Node runtime / tests updated.
+
+### Reader: simpler image binding
+
+- Added `image-loader.applyToImg`; scroll window ±1/+8 with page-node pooling; removed the complex decode queue.
+
+### Library repair + confirm dialog
+
+- `repairLibrary` three checks: metadata / format+count / cover; Settings deletes dirs and re-queues.
+- New `ConfirmDialog` for library delete and repair confirms.
+
+### Cover preload + task cards
+
+- `coverCache` + App subscription warm-up to stop tab-switch cover layout jump.
+- Task cards drop the check icon; leave anim uses GSAP height collapse; auto-remove timer is one-shot.
+
 ### Reader: instant direct image reading
 
-- **Direct image reading as the primary path**: downloads keep the `albumDir/pages/` image sequence; the reader renders local images directly. pdf.js is only a fallback for legacy files.
-- **One-shot directory URI resolve**: `loadImageDocMeta` runs `readdir` and directory `getUri` in parallel, then fills all `srcs` synchronously as `baseSrc + filename`, eliminating per-page bridge calls.
-- **Imperative windowed scroll**: no React state during scroll; fixed slot heights; only the current page ±1/+3 stays mounted; page nodes tracked in a Map; toolbar page updates throttled to 250ms.
-- **Throttled decode + idle prewarm**: decode queue concurrency 2 prioritizes visible pages; warms 4 ahead; after open, `requestIdleCallback` prewarms the first 12 pages without blocking first paint.
-- **Paged one-page-at-a-time**: three-slide track with gesture-driven flips (follow finger, at most one page on release); no fling skip or ghosting.
-- **Task cards**: title column is width-constrained with ellipsis so it no longer overlaps the badge.
-- **Long-album bench (1214052)**: 243 pages / ~792KB avg; images ~154s, PDF ~17s; `scripts/bench-reader-flow.ts` compared three strategies and selected the prewarm12 window model.
+- **Direct image reading as the primary path**: downloads keep `albumDir/pages/`; pdf.js is legacy-only.
+- **One-shot directory URI resolve**: `loadImageDocMeta` fills all `srcs` as `baseSrc + filename`.
+- **Imperative windowed scroll**: no React state during scroll; fixed slot heights; Map-tracked nodes.
+- **Paged one-page-at-a-time**: three-slide track; at most one page on release.
+- **Long-album bench (1214052)**: 243 pages / ~792KB avg; images ~154s.
 
 ### Cirrus palette
 
-- `src/web/theme/index.css` maps Cirrus design tokens; hardcoded component colors were replaced with CSS variables.
+- `src/web/theme/index.css` maps Cirrus design tokens; hardcoded colors replaced with CSS variables.
 
 ### Download and merge optimizations
 
-- **Serial download queue**: new `src/web/download/queue.ts` (`MAX_CONCURRENT = 1`); when one download pauses or fails the next starts automatically, avoiding disk/decode contention.
-- **Batched PDF merge**: `createWorkerPdf` batches on the main thread and appends 16 chunks per `appendFile`, cutting bridge calls roughly 15×.
+- **Serial download queue**: `src/web/download/queue.ts` (`MAX_CONCURRENT = 1`).
+- **Batched PDF merge** (optional archive path): 16 chunks per `appendFile`.
 
 ### Cleanup
 
-- Chinese comments translated to English, keeping English block comments; `ReaderScreen` reuses `ImageReaderHandle` instead of an inline ref type; dead CSS rules removed.
+- Comments kept English-only for blocks; dead CSS removed.
 
 ## 2026-08-23
 

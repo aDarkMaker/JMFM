@@ -12,11 +12,11 @@
 - **Strip reorder**: crops by source position and stitches in reverse, restoring the full picture.
 - **Format adaptation**: webp goes through reassembly, gif stays as-is, jpg handled on demand — everything is covered.
 
-## Uniform, elegant output
+## Local albums, instant direct reading
 
-- **Uniform width**: every page scales to the same width — shrink only, never upscale.
-- **Zero padding**: the page is the image; no white placeholders, just clean full-page spreads.
-- **Title naming**: files are named after the comic title with illegal characters stripped, so you can tell them apart at a glance.
+- **pages as the primary artifact**: downloads write `albumDir/pages/` only (default webp); the reader opens via direct image reading.
+- **Optional PDF archive**: runtime still exposes `createAlbumPdf` (uniform width, zero padding, title naming) without blocking the download path.
+- **Library repair**: Settings runs three checks (metadata / format+count / cover) and re-queues failing items.
 
 ## Everything configurable
 

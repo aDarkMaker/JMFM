@@ -2,7 +2,7 @@
 
 `src/core/pdf/` assembles restored images into a uniformly readable PDF.
 
-> Note: PDFs are **archive artifacts**. New downloads also keep the `albumDir/pages/` image sequence; the reader uses direct image reading as the primary path (instant open). PDFs are rendered with pdf.js only as a fallback for legacy files without `pages/`.
+> Note: PDF is an **optional archive** (`DownloadRuntime.createAlbumPdf`). The download hot path **does not** merge a PDF; it only writes `albumDir/pages/`. The reader uses direct image reading; pdf.js is only a fallback for legacy PDFs without `pages/`.
 
 ## Uniform Width
 

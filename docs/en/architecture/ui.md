@@ -65,10 +65,40 @@ flowchart LR
 ## Screen responsibilities
 
 - **Home**: shows daily recommendation cards (cover, title, author, tags, chapter count). Currently mock-driven; a recommendation API will be wired later.
-- **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open.
-- **Tasks**: shows the download queue with live progress, supports pause / resume / delete. Multiple albums are serialized through `src/web/download/queue.ts` (`MAX_CONCURRENT = 1`); queued ones show "waiting".
-- **Reader**: when `ReaderTarget.pagesDir` exists on a native platform it uses direct image reading (`src/web/reader/image-reader.tsx`): imperative windowed scroll vertically, and a three-slide gesture track for one-page horizontal flips; otherwise it falls back to pdf.js rendering.
-- **Settings**: download path, retry count, concurrency, image format, proxy; reads and writes `data/settings`.
+- **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open. Delete uses `ConfirmDialog`.
+- **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a GSAP height collapse; card is left-aligned title + status badge (no check icon).
+- **Reader**: when `ReaderTarget.pagesDir` exists on native, uses direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+8, horizontal three-slide track; otherwise pdf.js fallback.
+- **Settings**: download path, retry, concurrency, image format, proxy; **General → Repair library** scans and re-queues failing items.
+
+## Cover preload
+
+```mermaid
+flowchart LR
+    app["App mount"] --> sub["subscribe library.items"]
+    sub --> preload["preloadCovers(coverPath[])"]
+    preload --> uri["resolveCoverSrc → URI cache"]
+    uri --> decode["Image() decode"]
+    decode --> hook["useCoverSrc peek hit"]
+    hook --> card["AlbumCard img eager"]
+```
+
+- `src/web/library/coverCache.ts`: URI cache + inflight dedupe + `preloadCovers`.
+- Warmed on app start / library change and after insert, so tab switches do not jump from cover loads.
+
+## Library repair
+
+```mermaid
+flowchart TD
+    scan["scanLibraryRepair"] --> c1{"metadata: pagesDir / not PDF / pageCount"}
+    c1 -->|fail| need["needsRepair"]
+    c1 -->|pass| c2{"pages exist, count = pageCount, ext = imageFormat"}
+    c2 -->|fail| need
+    c2 -->|pass| c3{"coverPath exists on disk"}
+    c3 -->|fail| need
+    c3 -->|pass| ok["compliant"]
+    need --> del["repairLibraryItems delete dirs"]
+    del --> queue["re-queue downloads"]
+```
 
 ## State management
 
@@ -76,7 +106,7 @@ flowchart LR
 | --- | --- |
 | `useSettingsStore` | wraps `data/settings` load and persistence (Capacitor Preferences / localStorage) |
 | `useDownloadStore` | download task set and progress (pending / running / paused / done / error) |
-| `useLibraryStore` | locally downloaded albums (`LibraryItem`, with `pagesDir`), favorite / recent / delete |
+| `useLibraryStore` | locally downloaded albums (`LibraryItem`, with `pagesDir` / `coverPath`), favorite / recent / delete |
 
 ## Style system
 
@@ -111,17 +141,17 @@ src/web/
   assets/
     fonts/                # Alimama / BebasNeue / Nagino
     icons/                # Iconify SVG
-  components/             # Icon / AlbumCard / SearchBar / ...
+  components/             # Icon / AlbumCard / ConfirmDialog / SearchBar / ...
   download/               # download serial queue (queue.ts)
   generated/              # icons.ts (generated)
   hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
-  library/                # library insert and cover handling (saveToLibrary.ts)
-  reader/                 # direct image reading (image-doc / image-reader / pdf-doc / paged / scroll)
+  library/                # saveToLibrary / coverCache / repairLibrary
+  reader/                 # image-doc / image-loader / image-reader / pdf-doc
   screens/                # Home / Library / Tasks / Settings / Reader
   stores/                 # zustand stores
   styles/                 # CSS style modules
   theme/                  # Cirrus tokens (CSS variables)
-  App.tsx                 # tab switching + full-screen Reader mount
+  App.tsx                 # tab switching + cover warm + full-screen Reader
   main.tsx                # ReactDOM.createRoot entry
   index.html              # WebView host page
 ```

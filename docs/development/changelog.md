@@ -2,15 +2,33 @@
 
 ## 2026-08-25
 
+### 下载改为仅落盘 pages（默认 webp）
+
+- `DownloadService` 移除自动 `createAlbumPdf`；`done` 事件改为 `albumDir`。
+- `imageFormat`（webp/jpg）贯通 decode；`decideImageStrategy`：`num<=1` 且非 webp → `raw`。
+- verify / Node runtime / 单测同步。
+
+### 阅读器简化绑图
+
+- 新增 `image-loader.applyToImg`；滚动窗口 ±1/+8，页节点池复用；去掉复杂预解码队列。
+
+### 资源修复 + 确认框
+
+- `repairLibrary` 三检：元数据 / 格式+页数 / 封面；设置页一键删目录并重入队。
+- 新增 `ConfirmDialog`，库删除与修复确认统一。
+
+### 封面预加载 + 任务卡片
+
+- `coverCache` + App 订阅预热，消除切 Tab 封面加载高度跳变。
+- 任务卡去掉对号；完成离场改 GSAP 高度折叠；自动移除计时器不再被进度重置。
+
 ### 阅读器图片直读秒开改造
 
 - **图片直读主路径**：下载保留 `albumDir/pages/` 图片序列，阅读器直接渲染本地图片；PDF.js 仅作旧文件回退。
 - **目录级 URI 一次解析**：`loadImageDocMeta` 并行 `readdir` + 目录 `getUri`，用 `baseSrc + filename` 同步填满全部 `srcs`，消除逐页 bridge。
-- **命令式窗口化滚动**：滚动过程不走 React 状态；固定槽位高度；只挂载当前页 ±1/+3；页节点 Map 增量增删；工具栏页码 250ms 节流。
-- **限流预解码 + idle 预热**：解码队列并发 2，可见页优先；前方预热 4 页；打开后 `requestIdleCallback` 预热前 12 页（不阻塞首屏）。
+- **命令式窗口化滚动**：滚动过程不走 React 状态；固定槽位高度；页节点 Map 增量增删。
 - **横向逐页**：三页轨道 + 手势只翻一页（跟手拖动、松手最多进一页），无惯性连跳与残影。
-- **任务卡片**：标题列约束省略号，避免与标签重叠。
-- **长篇实测（1214052）**：243 页 / 均约 792KB；下载图片约 154s、PDF 约 17s；`scripts/bench-reader-flow.ts` 三策略对比后选用 prewarm12 窗口模型。
+- **长篇实测（1214052）**：243 页 / 均约 792KB；下载图片约 154s。
 
 ### Cirrus 配色接入
 
@@ -19,11 +37,11 @@
 ### 下载与合并优化
 
 - **多漫画串行队列**：新增 `src/web/download/queue.ts`（`MAX_CONCURRENT = 1`），暂停/失败自动执行下一本，避免磁盘与解码竞争卡顿。
-- **PDF 合并批处理**：`createWorkerPdf` 主线程攒批，每 16 个 chunk 合并为一次 `appendFile`，bridge 调用约降 15 倍。
+- **PDF 合并批处理**（可选归档路径）：`createWorkerPdf` 主线程攒批，每 16 个 chunk 合并为一次 `appendFile`。
 
 ### 清理
 
-- 中文注释转英文，保留英文区块注释；`ReaderScreen` 内联 ref 类型复用 `ImageReaderHandle`；删除死 CSS 规则。
+- 中文注释转英文，保留英文区块注释；删除死 CSS 规则。
 
 ## 2026-08-23
 

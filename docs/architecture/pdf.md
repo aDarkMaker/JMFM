@@ -2,7 +2,7 @@
 
 `src/core/pdf/` 负责将还原后的图片组装为阅读体验统一的 PDF。
 
-> 定位：PDF 为**归档产物**。新下载的漫画同时保留 `albumDir/pages/` 图片序列，阅读器以图片直读为主路径（秒开）；PDF 仅在旧文件（无 `pages/`）时用 pdf.js 回退渲染。
+> 定位：PDF 为**可选归档能力**（`DownloadRuntime.createAlbumPdf`）。下载主路径**不再自动合成 PDF**，只落 `albumDir/pages/`；阅读器以图片直读为主；仅旧 PDF（无 `pages/`）用 pdf.js 回退。
 
 ## 统一宽度
 

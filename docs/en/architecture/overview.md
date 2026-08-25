@@ -26,8 +26,8 @@ src/
     components/           # Presentational components
     download/             # Download serial queue
     hooks/                # download / cover / keyboard / gesture hooks
-    library/              # library insert and cover handling
-    reader/               # Direct image reading (image-doc / image-reader / pdf-doc)
+    library/              # insert / cover cache / library repair
+    reader/               # direct image reading (image-doc / image-loader / image-reader / pdf-doc)
     screens/              # 5 screens (Home / Library / Tasks / Settings / Reader)
     stores/               # zustand stores
     styles/               # CSS style modules
@@ -53,7 +53,7 @@ flowchart LR
     dl["core/download"]
     pdf["core/pdf"]
     rnt["runtime (Capacitor/Web/Node)"]
-    out["PDF file"]
+    pagesOut["albumDir/pages"]
 
     cfg --> net
     cfg --> api
@@ -61,15 +61,15 @@ flowchart LR
     api --> model
     model --> dl
     dl --> trans
-    dl --> pdf
     dl --> rnt
-    pdf --> out
+    rnt --> pagesOut
+    pdf -.->|"optional archive"| rnt
 ```
 
 - **net / api / model**: data fetching and modeling.
 - **transcode**: pure algorithms for image restoration.
-- **download**: orchestration depending on the `DownloadRuntime` interface, never on a concrete implementation.
-- **runtime**: Capacitor native (Filesystem + Canvas + pdf-lib), in-memory Web, and Node (ImageMagick) implement the same interface, so switching is seamless.
+- **download**: orchestration on `DownloadRuntime`; the hot path writes `pages/` only.
+- **runtime**: Capacitor native (Filesystem + Canvas), in-memory Web, and Node (ImageMagick) share one interface; `createAlbumPdf` remains for optional archives.
 
 ## Full Data Flow
 
@@ -81,11 +81,11 @@ flowchart LR
     svc -->|"per chapter"| ph["getPhoto"]
     svc -->|"ImageItem"| img["download image"]
     img --> num["getNum strips"]
-    num --> dec["strip reassembly"]
-    dec --> pages["albumDir/pages/*.jpg (kept)"]
-    pages --> read["reader direct image reading (instant)"]
-    dec --> pdf2["PDF generation (archive)"]
-    pdf2 --> file["title.pdf"]
+    num --> dec["strip reassembly → webp/jpg"]
+    dec --> pages["albumDir/pages/*"]
+    pages --> lib["saveToLibrary"]
+    lib --> read["reader direct image reading"]
+    pages -.-> pdf2["createAlbumPdf (optional)"]
 ```
 
 ## Design Principles
@@ -94,5 +94,7 @@ flowchart LR
 - **Pure functions first**: `getNum`, `computeStrips`, `computeUniformWidth`, `scaleSize` are pure and directly unit-testable.
 - **Config-driven**: domains, secrets, request headers and PDF params all come from `app-config.json`.
 - **Pluggable networking**: `HttpClient` is an interface; Web/Node use axios (`AxiosHttpClient`), the device uses the Capacitor native stack (`NativeHttpClient`, bypassing CORS), selected via `Capacitor.isNativePlatform()`.
-- **Direct image reading is the primary path**: new downloads keep the `pages/` image sequence; the reader renders local images directly with progressive prefetch for instant opening. PDFs are treated as archive artifacts, rendered by pdf.js only as a fallback for legacy files.
-- **Serial download queue**: `src/web/download/queue.ts` serializes multiple downloads with `MAX_CONCURRENT = 1`; when one pauses or fails the next one starts automatically, avoiding disk/decode contention.
+- **Direct image reading is the primary path**: downloads write `pages/` only (default webp); the reader renders local images; PDF is optional archive, with pdf.js only for legacy PDFs.
+- **Serial download queue**: `src/web/download/queue.ts` serializes albums with `MAX_CONCURRENT = 1`.
+- **Cover preload**: `coverCache` resolves URIs and decodes covers on app start / library change to avoid tab-switch layout jump.
+- **Library repair**: Settings runs three checks (metadata / format+count / cover); failing items are deleted and re-queued.

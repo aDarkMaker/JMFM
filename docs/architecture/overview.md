@@ -26,8 +26,8 @@ src/
     components/           # 展示组件
     download/             # 下载串行队列
     hooks/                # 下载 / 封面 / 键盘 / 手势等 hooks
-    library/              # 入库与封面处理
-    reader/               # 图片直读阅读器（image-doc / image-reader / pdf-doc）
+    library/              # 入库 / 封面缓存 / 资源修复
+    reader/               # 图片直读（image-doc / image-loader / image-reader / pdf-doc）
     screens/              # 5 个页面（Home / Library / Tasks / Settings / Reader）
     stores/               # zustand 状态库
     styles/               # CSS 样式模块
@@ -53,7 +53,7 @@ flowchart LR
     dl["core/download"]
     pdf["core/pdf"]
     rnt["runtime (Capacitor/Web/Node)"]
-    out["PDF 文件"]
+    pagesOut["albumDir/pages"]
 
     cfg --> net
     cfg --> api
@@ -61,15 +61,15 @@ flowchart LR
     api --> model
     model --> dl
     dl --> trans
-    dl --> pdf
     dl --> rnt
-    pdf --> out
+    rnt --> pagesOut
+    pdf -.->|"可选归档"| rnt
 ```
 
 - **net / api / model**：数据获取与建模。
 - **transcode**：图片解密重组的纯算法。
-- **download**：编排层，依赖 `DownloadRuntime` 接口而非具体实现。
-- **runtime**：Capacitor 原生（Filesystem + Canvas + pdf-lib）、Web 内存版与 Node（ImageMagick）实现同一接口，可无缝切换。
+- **download**：编排层，依赖 `DownloadRuntime` 接口而非具体实现；主路径只写 `pages/`。
+- **runtime**：Capacitor 原生（Filesystem + Canvas）、Web 内存版与 Node（ImageMagick）实现同一接口；`createAlbumPdf` 仍保留供可选归档。
 
 ## 完整数据流
 
@@ -81,11 +81,11 @@ flowchart LR
     svc -->|"每章"| ph["getPhoto"]
     svc -->|"ImageItem"| img["下载图片"]
     img --> num["getNum 计算条带"]
-    num --> dec["条带重组"]
-    dec --> pages["albumDir/pages/*.jpg（保留）"]
-    pages --> read["阅读器图片直读（秒开）"]
-    dec --> pdf2["PDF 生成（归档）"]
-    pdf2 --> file["标题.pdf"]
+    num --> dec["条带重组 → webp/jpg"]
+    dec --> pages["albumDir/pages/*"]
+    pages --> lib["saveToLibrary"]
+    lib --> read["阅读器图片直读"]
+    pages -.-> pdf2["createAlbumPdf（可选）"]
 ```
 
 ## 设计要点
@@ -94,5 +94,7 @@ flowchart LR
 - **纯函数优先**：`getNum`、`computeStrips`、`computeUniformWidth`、`scaleSize` 均为纯函数，可直接单测。
 - **配置驱动**：域名、密钥、请求头、PDF 参数全部读自 `app-config.json`。
 - **网络可插拔**：`HttpClient` 是接口，Web/Node 走 axios（`AxiosHttpClient`），真机走 Capacitor 原生栈（`NativeHttpClient`，绕过 CORS），按 `Capacitor.isNativePlatform()` 选择。
-- **图片直读为主路径**：新下载保留 `pages/` 图片序列，阅读器直接渲染本地图片并渐进预取，实现秒开；PDF 定位为归档产物，仅旧文件用 pdf.js 回退渲染。
-- **下载串行队列**：`src/web/download/queue.ts` 以 `MAX_CONCURRENT = 1` 排队多本下载，暂停/失败后自动执行下一本，避免磁盘与解码竞争卡顿。
+- **图片直读为主路径**：下载只落 `pages/`（默认 webp）；阅读器直接渲染本地图片；PDF 为可选归档，仅旧 PDF 用 pdf.js 回退。
+- **下载串行队列**：`src/web/download/queue.ts` 以 `MAX_CONCURRENT = 1` 排队多本下载，暂停/失败后自动执行下一本。
+- **封面预加载**：`coverCache` 在 App 启动与库变更时解析 URI 并预解码，避免切 Tab 封面闪动导致布局跳变。
+- **资源修复**：设置页三检（元数据 / 格式+页数 / 封面），不合格项删目录后重入下载队列。
