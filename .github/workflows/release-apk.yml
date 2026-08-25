@@ -1,0 +1,75 @@
+name: Release APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'img/**'
+      - '.github/README.md'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-apk
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'tools platform-tools platforms;android-36 build-tools;36.0.0'
+
+      - name: Install JS deps
+        run: bun install --frozen-lockfile
+
+      - name: Build release APK
+        env:
+          CI_VERSION_CODE: ${{ github.run_number }}
+          CI_VERSION_NAME: 0.1.${{ github.run_number }}
+        run: bun run apk:release
+
+      - name: Prepare asset
+        run: |
+          mkdir -p dist-apk
+          cp -f dist-apk/jmfmobile-release.apk dist-apk/JMFM.apk
+          ls -lh dist-apk/JMFM.apk
+
+      - name: Publish Latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG=latest
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          NOTES="## JMFM 最新安装包
+
+          - Commit: \`${SHORT_SHA}\`
+          - Version: \`0.1.${GITHUB_RUN_NUMBER}\` (versionCode ${GITHUB_RUN_NUMBER})
+          - Branch: \`${GITHUB_REF_NAME}\`
+
+          下载下方 **JMFM.apk** 安装即可。"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+          gh release create "$TAG" \
+            dist-apk/JMFM.apk \
+            --title "Latest" \
+            --notes "$NOTES" \
+            --latest

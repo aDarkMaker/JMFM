@@ -41,7 +41,14 @@ bunx cap sync android
 log "Assembling $VARIANT APK ..."
 cd "$ROOT/android"
 chmod +x ./gradlew
-./gradlew "$GRADLE_TASK" --quiet
+GRADLE_EXTRA=()
+if [[ -n "${CI_VERSION_CODE:-}" ]]; then
+  GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
+fi
+if [[ -n "${CI_VERSION_NAME:-}" ]]; then
+  GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
+fi
+./gradlew "$GRADLE_TASK" --quiet "${GRADLE_EXTRA[@]}"
 
 APK="$(find "$ROOT/android/app/build/outputs/apk/$VARIANT" -name '*.apk' -type f | head -n 1)"
 [[ -n "$APK" ]] || fail "APK not found under android/app/build/outputs/apk/$VARIANT"
