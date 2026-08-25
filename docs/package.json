@@ -1,0 +1,16 @@
+{
+  "name": "jmfm-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview",
+    "docs:sync-images": "node -e \"require('fs').cpSync('../img', 'public/img', {recursive:true})\""
+  },
+  "devDependencies": {
+    "mermaid": "^11.16.1",
+    "vitepress": "1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}
