@@ -9,6 +9,7 @@ bun.lockb
 
 # Web build
 dist/
+dist-apk/
 
 # Android (Capacitor)
 android/app/build/

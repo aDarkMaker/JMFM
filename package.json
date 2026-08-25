@@ -8,6 +8,8 @@
     "cap:sync": "cap sync android",
     "cap:run": "cap run android",
     "dev": "bash scripts/dev-android.sh",
+    "apk": "bash scripts/build-apk.sh",
+    "apk:release": "bash scripts/build-apk.sh release",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
