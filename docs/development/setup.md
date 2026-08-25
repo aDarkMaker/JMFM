@@ -35,6 +35,8 @@ bun run build            # 构建 Web 产物到 dist/
 bunx cap sync android    # 同步到 Android 原生工程
 bunx cap run android     # 构建 + 安装 + 启动（真机/模拟器）
 bash scripts/dev-android.sh   # 一键开发：build → sync → 真机优先运行
+bun run apk              # 一键打 debug APK → dist-apk/jmfmobile-debug.apk
+bun run apk:release      # 一键打 release APK → dist-apk/jmfmobile-release.apk
 bun run test             # bun test 单测
 bun run typecheck
 bun run lint

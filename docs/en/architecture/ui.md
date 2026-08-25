@@ -163,4 +163,5 @@ bun run build            # bun build → dist/
 bunx cap sync android    # sync web assets into the native project
 bunx cap run android     # build and run on a connected device
 bash scripts/dev-android.sh   # one shot: build → sync → run (device first)
+bun run apk              # one shot debug APK → dist-apk/
 ```

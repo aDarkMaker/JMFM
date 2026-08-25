@@ -35,6 +35,8 @@ bun run build            # build web assets to dist/
 bunx cap sync android    # sync into the Android native project
 bunx cap run android     # build + install + launch (device/emulator)
 bash scripts/dev-android.sh   # one-shot dev: build → sync → run (device first)
+bun run apk              # one-shot debug APK → dist-apk/jmfmobile-debug.apk
+bun run apk:release      # one-shot release APK → dist-apk/jmfmobile-release.apk
 bun run test             # bun test unit tests
 bun run typecheck
 bun run lint

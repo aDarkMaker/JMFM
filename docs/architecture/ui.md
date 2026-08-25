@@ -163,4 +163,5 @@ bun run build            # bun build → dist/
 bunx cap sync android    # 同步 web 产物到原生工程
 bunx cap run android     # 构建并运行到已连接设备
 bash scripts/dev-android.sh   # 一键：build → sync → 真机优先运行
+bun run apk              # 一键打 debug APK → dist-apk/
 ```
