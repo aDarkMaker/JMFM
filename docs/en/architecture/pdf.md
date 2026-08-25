@@ -21,10 +21,10 @@ export function computeUniformWidth(widths: number[], maxWidth: number): number 
 
 ```mermaid
 flowchart LR
-    imgs["source images"] --> sizes["read page sizes"]
-    sizes --> target["targetW = min(max(widths), 1190)"]
-    target --> resize["scale to targetW"]
-    resize --> pdf["PDF: uniform width, no padding"]
+    imgs[source images] --> sizes[read sizes]
+    sizes --> target[targetW]
+    target --> resize[scale]
+    resize --> pdf[uniform PDF]
 ```
 
 ## Size Calculation

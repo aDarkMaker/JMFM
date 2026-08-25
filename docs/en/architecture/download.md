@@ -64,10 +64,10 @@ After download, `pages/` is the primary artifact; the reader (`src/web/reader/`)
 
 ```mermaid
 flowchart LR
-    pages["albumDir/pages/*.{webp,jpg}"] --> meta["loadImageDocMeta (readdir + dir getUri)"]
-    meta --> srcs["fill all srcs as baseSrc + filename"]
-    srcs --> dom["imperative window mount (±1/+8)"]
-    dom --> img["applyToImg → img.src"]
+    pages[albumDir/pages] --> meta[loadImageDocMeta]
+    meta --> srcs[fill srcs]
+    srcs --> dom[window mount]
+    dom --> img[applyToImg]
 ```
 
 - Metadata cache (LRU): one parallel `readdir` + directory `getUri`; every page URI is available synchronously.

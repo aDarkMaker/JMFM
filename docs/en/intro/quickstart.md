@@ -1,17 +1,13 @@
 # Quick Start
 
-From zero to your first comic in a few minutes.
-
 ## 1. Prepare the environment
 
-Make sure you have:
-
 - Node.js >= 22.11
-- [Bun](https://bun.sh) (package manager + bundler)
-- ImageMagick (Node-side decode and PDF generation)
-- JDK 17+ and Android SDK (for device debugging)
+- [Bun](https://bun.sh)
+- ImageMagick (Node-side decode and PDF)
+- JDK 17+ and Android SDK (device debugging)
 
-Install ImageMagick on macOS in one shot:
+macOS:
 
 ```bash
 brew install imagemagick
@@ -23,23 +19,21 @@ brew install imagemagick
 bun install
 ```
 
-## 3. Verify the full pipeline
-
-No emulator needed — download a real comic directly:
+## 3. Verify the download pipeline
 
 ```bash
 bun run verify 1327951
 ```
 
-A few minutes later you'll see download artifacts under `temp/1327951/` (including the `pages/` image sequence).
+Output under `temp/1327951/` (including the `pages/` image sequence).
 
-If downloads fail on a restricted network, retry with a proxy:
+On a restricted network, use a proxy:
 
 ```bash
 JMF_PROXY=http://127.0.0.1:7890 bun run verify 1327951
 ```
 
-## 4. Run the quality checks
+## 4. Quality checks
 
 ```bash
 bun run test       # unit tests
@@ -47,15 +41,15 @@ bun run typecheck  # type checking
 bun run lint       # linting
 ```
 
-## 5. Try it on your phone
+## 5. Run on device
 
-Connect an Android device (USB debugging enabled) and run in one shot:
+Connect an Android device (USB debugging enabled):
 
 ```bash
 bash scripts/dev-android.sh
 ```
 
-Or build an APK directly:
+Or build an APK:
 
 ```bash
 bun run apk            # → dist-apk/jmfmobile-debug.apk

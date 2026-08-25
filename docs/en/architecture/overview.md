@@ -45,15 +45,15 @@ android/                  # Capacitor-generated Android native project
 
 ```mermaid
 flowchart LR
-    cfg["config"]
-    api["core/api"]
-    net["core/net"]
-    model["core/model"]
-    trans["core/transcode"]
-    dl["core/download"]
-    pdf["core/pdf"]
-    rnt["runtime (Capacitor/Web/Node)"]
-    pagesOut["albumDir/pages"]
+    cfg[config]
+    api[core/api]
+    net[core/net]
+    model[core/model]
+    trans[core/transcode]
+    dl[core/download]
+    pdf[core/pdf]
+    rnt[runtime]
+    pagesOut[albumDir/pages]
 
     cfg --> net
     cfg --> api
@@ -63,7 +63,7 @@ flowchart LR
     dl --> trans
     dl --> rnt
     rnt --> pagesOut
-    pdf -.->|"optional archive"| rnt
+    pdf -.->|optional archive| rnt
 ```
 
 - **net / api / model**: data fetching and modeling.
@@ -75,26 +75,26 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    id["Album ID"] --> api2["ApiClient"]
-    api2 -->|"dynamic domains"| http["HttpClient"]
-    api2 -->|"AlbumDetail"| svc["DownloadService"]
-    svc -->|"per chapter"| ph["getPhoto"]
-    svc -->|"ImageItem"| img["download image"]
-    img --> num["getNum strips"]
-    num --> dec["strip reassembly → webp/jpg"]
-    dec --> pages["albumDir/pages/*"]
-    pages --> lib["saveToLibrary"]
-    lib --> read["reader direct image reading"]
-    pages -.-> pdf2["createAlbumPdf (optional)"]
+    id[Album ID] --> api2[ApiClient]
+    api2 -->|domains| http[HttpClient]
+    api2 -->|AlbumDetail| svc[DownloadService]
+    svc -->|chapter| ph[getPhoto]
+    svc -->|ImageItem| img[download]
+    img --> num[getNum]
+    num --> dec[reassemble webp/jpg]
+    dec --> pages[albumDir/pages]
+    pages --> lib[saveToLibrary]
+    lib --> read[image reader]
+    pages -.-> pdf2[createAlbumPdf optional]
 ```
 
 ## Design Principles
 
-- **Interface isolation**: `ContentSource` abstracts the data source; `DownloadRuntime` abstracts runtime capabilities. Business logic never touches UI or a specific runtime.
-- **Pure functions first**: `getNum`, `computeStrips`, `computeUniformWidth`, `scaleSize` are pure and directly unit-testable.
-- **Config-driven**: domains, secrets, request headers and PDF params all come from `app-config.json`.
-- **Pluggable networking**: `HttpClient` is an interface; Web/Node use axios (`AxiosHttpClient`), the device uses the Capacitor native stack (`NativeHttpClient`, bypassing CORS), selected via `Capacitor.isNativePlatform()`.
-- **Direct image reading is the primary path**: downloads write `pages/` only (default webp); the reader renders local images; PDF is optional archive, with pdf.js only for legacy PDFs.
-- **Serial download queue**: `src/web/download/queue.ts` serializes albums with `MAX_CONCURRENT = 1`.
-- **Cover preload**: `coverCache` resolves URIs and decodes covers on app start / library change to avoid tab-switch layout jump.
-- **Library repair**: Settings runs three checks (metadata / format+count / cover); failing items are deleted and re-queued.
+- **Interface isolation**: `ContentSource` for fetch; `DownloadRuntime` for write/decode — core stays UI-free.
+- **Pure functions**: `getNum`, `computeStrips`, `computeUniformWidth`, `scaleSize` are unit-testable.
+- **Config-driven**: domains, secrets, headers, PDF params from `app-config.json`.
+- **Pluggable HttpClient**: Web/Node use `AxiosHttpClient`; device uses `NativeHttpClient` (bypasses CORS), selected via `Capacitor.isNativePlatform()`.
+- **pages primary path**: downloads write `pages/` only (default webp); reader renders local images; PDF optional, legacy PDFs via pdf.js.
+- **Serial queue**: `src/web/download/queue.ts`, `MAX_CONCURRENT = 1`; pause/fail advances to next.
+- **Cover preload**: `coverCache` pre-decodes cover URIs on start / library change to reduce tab-switch layout jump.
+- **Library repair**: Settings runs three checks (metadata / format+count / cover); failing items deleted and re-queued.

@@ -1,40 +1,32 @@
 # 产品介绍
 
-JMFM 是一款为漫画爱好者量身打造的专属下载工具。它基于 Capacitor + React Web 与 TypeScript 构建，让"把心仪的漫画装进口袋"这件事，变得足够简单——输入一个专辑 ID，剩下的一切交给它。
+JMFM 是禁漫天堂的漫画下载器。Capacitor + React Web + TypeScript，输入专辑 ID 即可走完整下载链路。
 
 ## 为什么要做 JMFM
 
-收藏漫画从来不应该是一件麻烦事。但现实中，获取一张完整的原图往往要穿过重重阻碍：
-
-- 图片被拆成一条条打乱顺序的碎片，直接保存根本无法阅读。
-- 网页入口经常被封锁，今天能用的地址明天就可能失效。
-- 图片宽窄不一，导出的 PDF 页面参差，阅读体验大打折扣。
-
-JMFM 把这些"麻烦"全部收敛到后台，你只负责挑选作品，其余的，交给稳定的链路去完成。
+源站图片被切成打乱顺序的条带，直接保存无法阅读；网页入口常被 DNS 封锁；页面宽度不一，PDF 排版参差。JMFM 用 API 通道取数，条带算法重组，输出统一格式的本地 pages/。
 
 ## 它如何工作
 
-整个过程是一条顺畅的自动化流水线：
-
-1. **稳定取数** —— 走移动端 API 通道，自动刷新可用域名，绕开网页封锁。
-2. **还原原图** —— 通过条带算法识别切分规律，把碎片逆序拼回完整画面。
-3. **本地成册** —— 页面写入 `albumDir/pages/`（默认 webp），阅读器图片直读秒开；PDF 为可选归档。
+1. **取数** — 移动端 API，启动时刷新可用域名。
+2. **重组** — getNum 算切分数，裁剪条带、逆序拼接。
+3. **落盘** — 写入 `albumDir/pages/`（默认 webp）；阅读器直读本地图片。PDF 为可选归档。
 
 ## 技术选型
 
-| 领域 | 选型 | 一句话理由 |
+| 领域 | 选型 | 说明 |
 | --- | --- | --- |
-| 框架 | Capacitor 8 + React Web | Web UI 跑在原生壳内，一套代码双端运行 |
-| 语言 | TypeScript | 类型安全，长期可维护 |
-| 构建 | Bun | 快速打包，无 Metro 依赖 |
-| 网络 | axios + CapacitorHttp | 域名轮换、重试、代理一站式；真机走原生栈 |
-| 加解密 | crypto-js | MD5 与 AES-256-ECB 的轻量实现 |
-| 图片解码（真机/Web） | Web Canvas | 像素级还原能力 |
-| PDF 生成 | pdf-lib | 纯 JS 生成统一宽度 PDF |
-| 图片解码（Node） | ImageMagick | 验证链路时的高保真渲染 |
-| 存储 | Capacitor Filesystem / Preferences | 原生文件系统与偏好存储 |
-| 测试 | bun test | 核心算法全量覆盖 |
+| 框架 | Capacitor 8 + React Web | Web UI 跑在原生壳内 |
+| 语言 | TypeScript | |
+| 构建 | Bun | |
+| 网络 | axios + CapacitorHttp | 域名轮换、重试、代理；真机走原生栈 |
+| 加解密 | crypto-js | MD5、AES-256-ECB |
+| 图片解码（真机/Web） | Web Canvas | 条带重组 |
+| PDF 生成 | pdf-lib | 可选归档，统一宽度 |
+| 图片解码（Node） | ImageMagick | verify 脚本验证链路 |
+| 存储 | Capacitor Filesystem / Preferences | |
+| 测试 | bun test | 核心算法单测 |
 
 ## 当前状态
 
-业务链路已完整跑通：下载 pages、本地阅读、资源库、任务队列与资源修复均可用。可用 `bun run apk` 打包 Android 安装包。
+下载 pages、本地阅读、资源库、串行队列、资源修复均已可用。`bun run apk` 可打包 Android 安装包。

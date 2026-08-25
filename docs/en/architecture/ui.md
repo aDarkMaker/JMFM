@@ -74,12 +74,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    app["App mount"] --> sub["subscribe library.items"]
-    sub --> preload["preloadCovers(coverPath[])"]
-    preload --> uri["resolveCoverSrc → URI cache"]
-    uri --> decode["Image() decode"]
-    decode --> hook["useCoverSrc peek hit"]
-    hook --> card["AlbumCard img eager"]
+    app[App mount] --> sub[subscribe library]
+    sub --> preload[preloadCovers]
+    preload --> uri[resolveCoverSrc cache]
+    uri --> decode[Image decode]
+    decode --> hook[useCoverSrc peek]
+    hook --> card[AlbumCard]
 ```
 
 - `src/web/library/coverCache.ts`: URI cache + inflight dedupe + `preloadCovers`.
@@ -89,15 +89,15 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    scan["scanLibraryRepair"] --> c1{"metadata: pagesDir / not PDF / pageCount"}
-    c1 -->|fail| need["needsRepair"]
-    c1 -->|pass| c2{"pages exist, count = pageCount, ext = imageFormat"}
-    c2 -->|fail| need
-    c2 -->|pass| c3{"coverPath exists on disk"}
-    c3 -->|fail| need
-    c3 -->|pass| ok["compliant"]
-    need --> del["repairLibraryItems delete dirs"]
-    del --> queue["re-queue downloads"]
+    scan[scanLibraryRepair] --> c1{metadata ok}
+    c1 -->|no| need[needsRepair]
+    c1 -->|yes| c2{pages count and format}
+    c2 -->|no| need
+    c2 -->|yes| c3{cover on disk}
+    c3 -->|no| need
+    c3 -->|yes| ok[compliant]
+    need --> del[delete dirs]
+    del --> queue[re-queue download]
 ```
 
 ## State management

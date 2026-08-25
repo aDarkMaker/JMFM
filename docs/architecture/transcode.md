@@ -39,15 +39,15 @@ export function computeStrips(num: number, height: number): Strip[] {
 
 ```mermaid
 flowchart LR
-    src["源图 960x1371<br/>4 条带打乱"] --> c1["裁 src 底部<br/>y=1029..1371"]
-    src --> c2["裁 y=686..1029"]
-    src --> c3["裁 y=343..686"]
-    src --> c4["裁 y=0..343"]
-    c1 --> a["目标图 top"]
+    src[source scrambled] --> c1[crop strip 1]
+    src --> c2[crop strip 2]
+    src --> c3[crop strip 3]
+    src --> c4[crop strip 4]
+    c1 --> a[assemble]
     c2 --> a
     c3 --> a
     c4 --> a
-    a --> out["还原图 960x1371"]
+    a --> out[restored page]
 ```
 
 ## 运行时实现

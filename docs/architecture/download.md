@@ -64,10 +64,10 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    pages["albumDir/pages/*.{webp,jpg}"] --> meta["loadImageDocMeta（readdir + 目录 getUri）"]
-    meta --> srcs["baseSrc + filename 同步填满 srcs"]
-    srcs --> dom["命令式窗口挂载（±1/+8）"]
-    dom --> img["applyToImg → img.src"]
+    pages[albumDir/pages] --> meta[loadImageDocMeta]
+    meta --> srcs[fill srcs]
+    srcs --> dom[window mount]
+    dom --> img[applyToImg]
 ```
 
 - 元数据缓存（LRU）：`readdir` 与目录 `getUri` 并行一次完成，全部页面 URI 同步可得。

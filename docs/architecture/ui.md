@@ -74,12 +74,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    app["App mount"] --> sub["subscribe library.items"]
-    sub --> preload["preloadCovers(coverPath[])"]
-    preload --> uri["resolveCoverSrc → URI cache"]
-    uri --> decode["Image() 预解码"]
-    decode --> hook["useCoverSrc peek 同步命中"]
-    hook --> card["AlbumCard img eager"]
+    app[App mount] --> sub[subscribe library]
+    sub --> preload[preloadCovers]
+    preload --> uri[resolveCoverSrc cache]
+    uri --> decode[Image decode]
+    decode --> hook[useCoverSrc peek]
+    hook --> card[AlbumCard]
 ```
 
 - `src/web/library/coverCache.ts`：URI 缓存 + inflight 去重 + `preloadCovers`。
@@ -89,15 +89,15 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    scan["scanLibraryRepair"] --> c1{"元数据：pagesDir / 非 PDF / pageCount"}
-    c1 -->|不合格| need["needsRepair"]
-    c1 -->|通过| c2{"pages 存在且数量=pageCount 且扩展名=imageFormat"}
-    c2 -->|不合格| need
-    c2 -->|通过| c3{"coverPath 存在且文件在盘"}
-    c3 -->|不合格| need
-    c3 -->|通过| ok["compliant"]
-    need --> del["repairLibraryItems 删目录"]
-    del --> queue["加入下载队列重下"]
+    scan[scanLibraryRepair] --> c1{metadata ok}
+    c1 -->|no| need[needsRepair]
+    c1 -->|yes| c2{pages count and format}
+    c2 -->|no| need
+    c2 -->|yes| c3{cover on disk}
+    c3 -->|no| need
+    c3 -->|yes| ok[compliant]
+    need --> del[delete dirs]
+    del --> queue[re-queue download]
 ```
 
 ## 状态管理

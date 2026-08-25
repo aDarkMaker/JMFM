@@ -21,10 +21,10 @@ export function computeUniformWidth(widths: number[], maxWidth: number): number 
 
 ```mermaid
 flowchart LR
-    imgs["源图片"] --> sizes["识别各页尺寸"]
-    sizes --> target["targetW = min(max(widths), 1190)"]
-    target --> resize["等比缩放到 targetW"]
-    resize --> pdf["PDF: 每页等宽等比 无白边"]
+    imgs[source images] --> sizes[read sizes]
+    sizes --> target[targetW]
+    target --> resize[scale]
+    resize --> pdf[uniform PDF]
 ```
 
 ## 尺寸计算

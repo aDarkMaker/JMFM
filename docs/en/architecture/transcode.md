@@ -39,15 +39,15 @@ With n=4 and height 1371:
 
 ```mermaid
 flowchart LR
-    src["Source 960x1371<br/>4 scrambled strips"] --> c1["crop src bottom<br/>y=1029..1371"]
-    src --> c2["crop y=686..1029"]
-    src --> c3["crop y=343..686"]
-    src --> c4["crop y=0..343"]
-    c1 --> a["target top"]
+    src[source scrambled] --> c1[crop strip 1]
+    src --> c2[crop strip 2]
+    src --> c3[crop strip 3]
+    src --> c4[crop strip 4]
+    c1 --> a[assemble]
     c2 --> a
     c3 --> a
     c4 --> a
-    a --> out["Restored 960x1371"]
+    a --> out[restored page]
 ```
 
 ## Runtime Implementations

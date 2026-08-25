@@ -45,15 +45,15 @@ android/                  # Capacitor 生成的 Android 原生工程
 
 ```mermaid
 flowchart LR
-    cfg["config"]
-    api["core/api"]
-    net["core/net"]
-    model["core/model"]
-    trans["core/transcode"]
-    dl["core/download"]
-    pdf["core/pdf"]
-    rnt["runtime (Capacitor/Web/Node)"]
-    pagesOut["albumDir/pages"]
+    cfg[config]
+    api[core/api]
+    net[core/net]
+    model[core/model]
+    trans[core/transcode]
+    dl[core/download]
+    pdf[core/pdf]
+    rnt[runtime]
+    pagesOut[albumDir/pages]
 
     cfg --> net
     cfg --> api
@@ -63,7 +63,7 @@ flowchart LR
     dl --> trans
     dl --> rnt
     rnt --> pagesOut
-    pdf -.->|"可选归档"| rnt
+    pdf -.->|optional archive| rnt
 ```
 
 - **net / api / model**：数据获取与建模。
@@ -75,26 +75,26 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    id["专辑 ID"] --> api2["ApiClient"]
-    api2 -->|"动态域名"| http["HttpClient"]
-    api2 -->|"AlbumDetail"| svc["DownloadService"]
-    svc -->|"每章"| ph["getPhoto"]
-    svc -->|"ImageItem"| img["下载图片"]
-    img --> num["getNum 计算条带"]
-    num --> dec["条带重组 → webp/jpg"]
-    dec --> pages["albumDir/pages/*"]
-    pages --> lib["saveToLibrary"]
-    lib --> read["阅读器图片直读"]
-    pages -.-> pdf2["createAlbumPdf（可选）"]
+    id[Album ID] --> api2[ApiClient]
+    api2 -->|domains| http[HttpClient]
+    api2 -->|AlbumDetail| svc[DownloadService]
+    svc -->|chapter| ph[getPhoto]
+    svc -->|ImageItem| img[download]
+    img --> num[getNum]
+    num --> dec[reassemble webp/jpg]
+    dec --> pages[albumDir/pages]
+    pages --> lib[saveToLibrary]
+    lib --> read[image reader]
+    pages -.-> pdf2[createAlbumPdf optional]
 ```
 
 ## 设计要点
 
-- **接口隔离**：`ContentSource` 抽象数据来源，`DownloadRuntime` 抽象运行时能力，业务层不感知 UI 与具体运行时。
-- **纯函数优先**：`getNum`、`computeStrips`、`computeUniformWidth`、`scaleSize` 均为纯函数，可直接单测。
-- **配置驱动**：域名、密钥、请求头、PDF 参数全部读自 `app-config.json`。
-- **网络可插拔**：`HttpClient` 是接口，Web/Node 走 axios（`AxiosHttpClient`），真机走 Capacitor 原生栈（`NativeHttpClient`，绕过 CORS），按 `Capacitor.isNativePlatform()` 选择。
-- **图片直读为主路径**：下载只落 `pages/`（默认 webp）；阅读器直接渲染本地图片；PDF 为可选归档，仅旧 PDF 用 pdf.js 回退。
-- **下载串行队列**：`src/web/download/queue.ts` 以 `MAX_CONCURRENT = 1` 排队多本下载，暂停/失败后自动执行下一本。
-- **封面预加载**：`coverCache` 在 App 启动与库变更时解析 URI 并预解码，避免切 Tab 封面闪动导致布局跳变。
-- **资源修复**：设置页三检（元数据 / 格式+页数 / 封面），不合格项删目录后重入下载队列。
+- **接口隔离**：`ContentSource` 取数，`DownloadRuntime` 抽象落盘与解码；core 不依赖 UI。
+- **纯函数**：`getNum`、`computeStrips`、`computeUniformWidth`、`scaleSize` 可单测。
+- **配置驱动**：域名、密钥、请求头、PDF 参数来自 `app-config.json`。
+- **HttpClient 可插拔**：Web/Node 用 `AxiosHttpClient`；真机用 `NativeHttpClient`（绕过 CORS），按 `Capacitor.isNativePlatform()` 选择。
+- **pages 主路径**：下载只写 `pages/`（默认 webp）；阅读器渲染本地图片；PDF 可选，旧 PDF 走 pdf.js。
+- **串行队列**：`src/web/download/queue.ts`，`MAX_CONCURRENT = 1`；暂停/失败切下一本。
+- **封面预加载**：`coverCache` 在启动与库变更时预解码封面 URI，减少 Tab 切换布局跳动。
+- **资源修复**：设置页三检（元数据 / 格式+页数 / 封面），不合格删目录并重入队列。

@@ -1,40 +1,32 @@
 # Product
 
-JMFM is a download tool built for comic lovers. It is powered by Capacitor + React Web and TypeScript, and makes "carrying your favorite comics in your pocket" delightfully simple: enter an album ID, and let the pipeline do the rest.
+JMFM downloads comics from JMComic. Built with Capacitor + React Web + TypeScript — enter an album ID to run the full pipeline.
 
 ## Why JMFM
 
-Collecting comics should never be a chore. In practice, getting a complete, clean original image often means fighting through obstacles:
-
-- Pages are sliced into scrambled strips; saving them directly gives you unreadable fragments.
-- Web endpoints get blocked frequently; today's address may be gone tomorrow.
-- Pages come in mixed widths, producing ragged PDFs that are painful to read.
-
-JMFM absorbs all of that friction behind the scenes. You pick the title, and a reliable pipeline handles the rest.
+Source images are sliced into scrambled strips; web endpoints get DNS-blocked; page widths vary and PDFs look uneven. JMFM fetches via the API channel, reassembles strips, and writes local pages/.
 
 ## How It Works
 
-A smooth, automated pipeline:
-
-1. **Stable Fetching** — the mobile API channel auto-refreshes domains and bypasses web blocks.
-2. **Image Restoration** — a strip algorithm detects the slicing pattern and reassembles pages in order.
-3. **Local albums** — pages are written to `albumDir/pages/` (default webp) for instant direct reading; PDF is optional archive.
+1. **Fetch** — mobile API channel; refreshes available domains at startup.
+2. **Reassemble** — getNum derives strip counts; crop and reverse-stitch.
+3. **Write** — output to `albumDir/pages/` (default webp); reader opens local images. PDF is optional archive.
 
 ## Tech Stack
 
-| Area | Choice | Why |
+| Area | Choice | Notes |
 | --- | --- | --- |
-| Framework | Capacitor 8 + React Web | Web UI inside a native shell, one codebase for both platforms |
-| Language | TypeScript | Type safety, long-term maintainability |
-| Build | Bun | Fast bundling, no Metro dependency |
-| Networking | axios + CapacitorHttp | Domains rotation, retries, proxy out of the box; native stack on device |
-| Crypto | crypto-js | Lightweight MD5 and AES-256-ECB |
-| Image decode (device/Web) | Web Canvas | Pixel-level restoration |
-| PDF generation | pdf-lib | Pure-JS uniform-width PDF |
-| Image decode (Node) | ImageMagick | High-fidelity rendering for verification |
-| Storage | Capacitor Filesystem / Preferences | Native filesystem and preference storage |
-| Testing | bun test | Full coverage of core algorithms |
+| Framework | Capacitor 8 + React Web | Web UI inside native shell |
+| Language | TypeScript | |
+| Build | Bun | |
+| Networking | axios + CapacitorHttp | Domain rotation, retries, proxy; native stack on device |
+| Crypto | crypto-js | MD5, AES-256-ECB |
+| Image decode (device/Web) | Web Canvas | Strip reassembly |
+| PDF generation | pdf-lib | Optional archive, uniform width |
+| Image decode (Node) | ImageMagick | verify script pipeline check |
+| Storage | Capacitor Filesystem / Preferences | |
+| Testing | bun test | Core algorithm unit tests |
 
 ## Status
 
-The pipeline is fully working: pages download, local reader, library, task queue and library repair. Use `bun run apk` to package an Android installable.
+Pages download, local reader, library, serial queue, and library repair are all working. `bun run apk` packages an Android installable.

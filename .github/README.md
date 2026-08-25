@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../img/logo.png" width="160" alt="JMFM logo" />
+  <img src="https://raw.githubusercontent.com/aDarkMaker/JMFM/main/img/logo.png" width="160" alt="JMFM logo" />
 
   # JMFM
 
@@ -15,53 +15,52 @@
 
 ---
 
-> 基于 **Capacitor + React + TypeScript**。输入专辑 ID，自动取数、解密重组、落盘成册；本地图片直读秒开，想看就看。
+Capacitor + React + TypeScript。输入专辑 ID，API 取数、条带重组、写入 pages/；阅读器直读本地图片。
 
-## 功能亮点
+## 功能
 
 | | |
 | --- | --- |
-| **稳定取数** | 走移动端 API，动态刷新域名，网页入口封锁也不怕 |
-| **原图还原** | `getNum` 条带逆序重排，碎片拼回完整画面 |
-| **秒开直读** | 下载只写 `pages/`（默认 webp），阅读器直接渲染，不必等 PDF |
-| **安心成库** | 多本串行排队；设置页三检元数据 / 页数格式 / 封面，一键修复重下 |
-| **一键出包** | `bun run apk` 打出可安装 APK，真机即装即用 |
+| **API 取数** | 动态域名刷新、token 鉴权，不依赖 HTML 入口 |
+| **条带重组** | getNum 算切分，裁剪逆序拼接 |
+| **pages 直读** | 下载只写 `pages/`（默认 webp），阅读器渲染本地图片 |
+| **串行队列** | 多本排队，暂停/失败自动切下一本 |
+| **资源修复** | 设置页三检元数据 / 页数格式 / 封面，不合格重下 |
+| **APK 打包** | `bun run apk` 打出可安装包 |
 
 ## 下载
 
 [![Download APK](https://img.shields.io/badge/Download-JMFM.apk-success?style=for-the-badge&logo=android&logoColor=white)](https://github.com/aDarkMaker/JMFM/releases/latest/download/JMFM.apk)
 
-每次推送到 `main`（应用相关改动）会自动打包，并更新 [Latest Release](https://github.com/aDarkMaker/JMFM/releases/latest) 中的 **JMFM.apk**。
-
-点击上方按钮，或打开 [Releases](https://github.com/aDarkMaker/JMFM/releases/latest) 下载安装即可。
+推送到 `main`（应用相关改动）会自动打包，更新 [Latest Release](https://github.com/aDarkMaker/JMFM/releases/latest) 中的 **JMFM.apk**。
 
 ## 快速开始
 
-**普通使用**
+**使用**
 
-1. 下载并安装 APK  
-2. 在「下载」页输入专辑 ID，开始任务  
-3. 完成后到「资源」打开，图片直读浏览  
+1. 安装 APK
+2. 「下载」页输入专辑 ID
+3. 「资源」页打开，阅读 pages/
 
-**开发者**
+**开发**
 
 ```bash
 git clone https://github.com/aDarkMaker/JMFM.git
 cd JMFM
 bun install
 
-bun run verify 1327951       # Node 端验证完整下载链路
-bash scripts/dev-android.sh  # 构建并装到真机（优先）
+bun run verify 1327951       # Node 端验证下载链路
+bash scripts/dev-android.sh  # 构建并装到真机
 bun run apk                  # 打包 debug APK → dist-apk/
 ```
 
-网络受限时可加代理：
+网络受限：
 
 ```bash
 JMF_PROXY=http://127.0.0.1:7890 bun run verify 1327951
 ```
 
-> 环境要求、架构说明与更多细节见 [完整文档](https://adarkmaker.github.io/JMFM/intro/quickstart)。
+环境要求与架构说明见 [完整文档](https://adarkmaker.github.io/JMFM/intro/quickstart)。
 
 ## 技术栈
 
