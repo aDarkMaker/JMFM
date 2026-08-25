@@ -6,7 +6,7 @@ import {computeStrips} from '../src/core/transcode';
 import {buildFileName} from '../src/core/pdf/names';
 import {computeUniformWidth} from '../src/core/pdf/layout';
 import {PDF} from '../src/core/constants';
-import {DecodedImage, DownloadRuntime, FileSystem} from '../src/core/download/types';
+import {DecodedImage, DownloadRuntime, FileSystem, DecodeFormat} from '../src/core/download/types';
 
 function runMagick(args: string[]): void {
   const r = spawnSync('magick', args, {encoding: 'utf8'});
@@ -30,8 +30,11 @@ export function decodeWithMagick(
   num: number,
   encoded: Uint8Array,
   ext: string,
+  format: DecodeFormat = 'jpg',
 ): DecodedImage {
   const lower = ext.toLowerCase();
+  const outExt = format === 'webp' ? 'webp' : 'jpg';
+  const quality = format === 'webp' ? 82 : 85;
   if (num <= 1 && lower !== 'webp') {
     return {
       width: 0,
@@ -47,17 +50,17 @@ export function decodeWithMagick(
 
   try {
     if (num <= 1) {
-      const out = join(dir, 'out.png');
-      runMagick([input, out]);
+      const out = join(dir, `out.${outExt}`);
+      runMagick([input, '-quality', String(quality), out]);
       const {width, height} = identifySize(out);
-      return {width, height, bytes: new Uint8Array(readFileSync(out)), ext: 'png'};
+      return {width, height, bytes: new Uint8Array(readFileSync(out)), ext: outExt};
     }
 
     const {width, height} = identifySize(input);
     if (num > height) {
-      const out = join(dir, 'out.png');
-      runMagick([input, out]);
-      return {width, height, bytes: new Uint8Array(readFileSync(out)), ext: 'png'};
+      const out = join(dir, `out.${outExt}`);
+      runMagick([input, '-quality', String(quality), out]);
+      return {width, height, bytes: new Uint8Array(readFileSync(out)), ext: outExt};
     }
 
     const strips = computeStrips(num, height);
@@ -74,13 +77,13 @@ export function decodeWithMagick(
       ]);
       parts.push(part);
     }
-    const out = join(dir, 'out.png');
-    runMagick([...parts, '-append', '+repage', out]);
+    const out = join(dir, `out.${outExt}`);
+    runMagick([...parts, '-append', '+repage', '-quality', String(quality), out]);
     return {
       width,
       height,
       bytes: new Uint8Array(readFileSync(out)),
-      ext: 'png',
+      ext: outExt,
     };
   } finally {
     rmSync(dir, {recursive: true, force: true});
@@ -130,8 +133,8 @@ export function createNodeRuntime(): DownloadRuntime {
   };
   return {
     fs,
-    decodeAndSave: async (num, encoded, ext) =>
-      decodeWithMagick(num, encoded, ext),
+    decodeAndSave: async (num, encoded, ext, format) =>
+      decodeWithMagick(num, encoded, ext, format),
     createAlbumPdf: createPdfWithMagick,
   };
 }

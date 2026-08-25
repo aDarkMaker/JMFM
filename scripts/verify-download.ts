@@ -4,7 +4,7 @@ import {DownloadService} from '../src/core/download';
 import {CDN_DOMAINS, REQUEST} from '../src/core/constants';
 import {createNodeRuntime} from './node-runtime';
 import {writeFileSync, readdirSync, statSync, existsSync} from 'node:fs';
-import {join, dirname} from 'node:path';
+import {join} from 'node:path';
 
 const ALBUM_ID = Number(process.argv[2] ?? 1327951);
 const OUT_DIR = `${process.cwd()}/temp`;
@@ -41,15 +41,13 @@ async function main(): Promise<void> {
   const tAll = performance.now();
   let tAlbum = 0;
   let tImages = 0;
-  let tPdf = 0;
   let albumParsedAt = 0;
   let imagesDoneAt = 0;
-  let pdfStartAt = 0;
   let lastChapterAt = 0;
   let title = '';
   let chapters = 0;
 
-  log('start', `album=${ALBUM_ID} full pdf`);
+  log('start', `album=${ALBUM_ID} pages only`);
   const http = new AxiosHttpClient({
     ...(process.env.JMF_PROXY ? {proxy: process.env.JMF_PROXY} : {}),
     timeoutMs: 15000,
@@ -68,9 +66,10 @@ async function main(): Promise<void> {
     downloadPath: OUT_DIR,
     concurrency: 6,
     cpuCount: 4,
+    imageFormat: process.env.JMF_IMAGE_FORMAT === 'jpg' ? 'jpg' : 'webp',
   });
 
-  const pdfPath = await service.downloadAlbum(ALBUM_ID, e => {
+  const albumDir = await service.downloadAlbum(ALBUM_ID, e => {
     switch (e.type) {
       case 'album-parsed':
         albumParsedAt = performance.now();
@@ -103,31 +102,18 @@ async function main(): Promise<void> {
           tImages = imagesDoneAt - albumParsedAt;
         }
         break;
-      case 'pdf-start':
-        pdfStartAt = performance.now();
-        if (!imagesDoneAt) {
-          imagesDoneAt = pdfStartAt;
-          tImages = imagesDoneAt - albumParsedAt;
-        }
-        log('pdf', `building (images phase ${tImages.toFixed(0)}ms)`);
+      case 'done':
+        log('done', e.albumDir);
         break;
-      case 'done': {
-        const doneAt = performance.now();
-        tPdf = doneAt - pdfStartAt;
-        log('done', `${e.pdfPath} (pdf ${tPdf.toFixed(0)}ms)`);
-        break;
-      }
       case 'error':
         log('error', e.message);
         break;
     }
   });
 
-  log('pdf', pdfPath);
-  const albumDir = dirname(pdfPath);
+  log('albumDir', albumDir);
   const pagesDir = join(albumDir, 'pages');
   const pages = summarizePages(pagesDir);
-  const pdfBytes = existsSync(pdfPath) ? statSync(pdfPath).size : 0;
   log(
     'summary',
     JSON.stringify({
@@ -139,11 +125,9 @@ async function main(): Promise<void> {
       pageCount: pages.pageCount,
       pagesTotalBytes: pages.totalBytes,
       pagesAvgBytes: pages.avgBytes,
-      pdfBytes,
       timingMs: {
         albumParsed: Math.round(tAlbum),
         images: Math.round(tImages),
-        pdf: Math.round(tPdf),
         total: Math.round(performance.now() - tAll),
       },
     }),

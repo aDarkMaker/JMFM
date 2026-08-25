@@ -8,7 +8,7 @@ import {
 import {REQUEST} from '../constants';
 import {HttpClient} from '../net';
 import {getNum} from '../transcode';
-import {DownloadRuntime} from './types';
+import {DownloadRuntime, DecodeFormat} from './types';
 import {calcConcurrency, decideImageStrategy, mapWithConcurrency} from './scheduler';
 import {PageSize} from '../pdf/layout';
 
@@ -18,8 +18,7 @@ export type DownloadEvent =
   | {type: 'album-parsed'; title: string; chapters: number; author: string; tags: string[]}
   | {type: 'chapter'; index: number; total: number; images: number}
   | {type: 'image'; downloaded: number; total: number; albumDone: number; albumTotal: number}
-  | {type: 'pdf-start'}
-  | {type: 'done'; pdfPath: string}
+  | {type: 'done'; albumDir: string}
   | {type: 'canceled'}
   | {type: 'error'; message: string};
 
@@ -41,6 +40,7 @@ export interface DownloadDeps {
   downloadPath: string;
   concurrency?: number;
   cpuCount?: number;
+  imageFormat?: DecodeFormat;
 }
 
 class CanceledError extends Error {
@@ -87,8 +87,6 @@ export class DownloadService {
         .catch(() => undefined);
 
       const totalChapters = album.episodes.length;
-      const pages: string[] = [];
-      const pageSizes: PageSize[] = [];
       let albumDone = 0;
       let albumTotal = 0;
 
@@ -111,21 +109,12 @@ export class DownloadService {
           albumDone,
           albumTotal,
         );
-        pages.push(...chapter.paths);
-        pageSizes.push(...chapter.sizes);
         albumDone += chapter.done;
       }
 
-      onEvent({type: 'pdf-start'});
-      const pdfPath = await runtime.createAlbumPdf(
-        albumDir,
-        album.name,
-        pages,
-        pageSizes,
-      );
       this.checkCanceled(controller);
-      onEvent({type: 'done', pdfPath});
-      return pdfPath;
+      onEvent({type: 'done', albumDir});
+      return albumDir;
     } catch (e) {
       if (isCanceledError(e)) {
         onEvent({type: 'canceled'});
@@ -199,6 +188,7 @@ export class DownloadService {
           num,
           resp.bytes,
           item.suffix,
+          this.deps.imageFormat,
         );
         ext = decoded.ext;
         await runtime.fs.writeFile(`${base}.${decoded.ext}`, decoded.bytes);

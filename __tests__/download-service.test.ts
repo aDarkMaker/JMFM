@@ -88,7 +88,7 @@ function makeHttp(): HttpClient {
 }
 
 describe('DownloadService end-to-end', () => {
-  it('downloads album -> chapters -> images -> pdf', async () => {
+  it('downloads album -> chapters -> images', async () => {
     const runtime = makeRuntime();
     const http = makeHttp();
     const service = new DownloadService({
@@ -101,9 +101,9 @@ describe('DownloadService end-to-end', () => {
     });
 
     const events: DownloadEvent[] = [];
-    const pdfPath = await service.downloadAlbum(123, e => events.push(e));
+    const albumDir = await service.downloadAlbum(123, e => events.push(e));
 
-    expect(pdfPath).toBe('/downloads/测试本子/测试本子.pdf');
+    expect(albumDir).toBe('/downloads/测试本子');
     expect(events.map(e => e.type)).toEqual([
       'album-parsed',
       'chapter',
@@ -112,13 +112,13 @@ describe('DownloadService end-to-end', () => {
       'chapter',
       'image',
       'image',
-      'pdf-start',
       'done',
     ]);
     const albumParsed = events.find(e => e.type === 'album-parsed');
     expect(albumParsed?.title).toBe('测试本子');
     expect(albumParsed?.chapters).toBe(2);
     expect(runtime.writes.size).toBe(5);
+    expect(runtime.writes.has('/downloads/测试本子/pages/0001.webp')).toBe(true);
     expect(runtime.calls.decode).toBe(4);
     expect(http.getBytes).toHaveBeenCalledTimes(4);
   });
@@ -159,14 +159,12 @@ describe('DownloadService end-to-end', () => {
       cpuCount: 4,
     });
 
-    // 预先写入第一章的图片
     runtime.writes.set('/downloads/测试本子/pages/0001.webp', new Uint8Array([9, 9, 9]));
     runtime.writes.set('/downloads/测试本子/pages/0002.webp', new Uint8Array([9, 9, 9]));
 
     const events: DownloadEvent[] = [];
     await service.downloadAlbum(123, e => events.push(e));
 
-    // 第一章 2 张已存在，只下载第二章 2 张
     expect(http.getBytes).toHaveBeenCalledTimes(2);
     expect(runtime.calls.decode).toBe(2);
     expect(runtime.writes.size).toBe(5);
@@ -189,7 +187,6 @@ describe('DownloadService end-to-end', () => {
     const controller = {paused: false, cancel() { this.paused = true; }};
     const events: DownloadEvent[] = [];
 
-    // 在第一章第一张图片完成后取消
     let cancelled = false;
     const origGetBytes = http.getBytes;
     http.getBytes = jest.fn(async (url, headers) => {

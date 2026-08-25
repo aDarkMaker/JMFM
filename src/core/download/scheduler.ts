@@ -1,7 +1,8 @@
 export type ImageStrategy = 'raw' | 'decode' | 'reassemble';
 
 export function decideImageStrategy(num: number, ext: string): ImageStrategy {
-  if (ext.toLowerCase() === 'gif' || num <= 0) {
+  const lower = ext.toLowerCase();
+  if (lower === 'gif' || num <= 0 || (num <= 1 && lower !== 'webp')) {
     return 'raw';
   }
   return 'reassemble';

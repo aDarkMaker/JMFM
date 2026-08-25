@@ -1,5 +1,7 @@
 import {PageSize} from '../pdf/layout';
 
+export type DecodeFormat = 'webp' | 'jpg';
+
 export interface DecodedImage {
   width: number;
   height: number;
@@ -20,7 +22,12 @@ export interface FileSystem {
 
 export interface DownloadRuntime {
   fs: FileSystem;
-  decodeAndSave(num: number, encoded: Uint8Array, ext: string): Promise<DecodedImage>;
+  decodeAndSave(
+    num: number,
+    encoded: Uint8Array,
+    ext: string,
+    format?: DecodeFormat,
+  ): Promise<DecodedImage>;
   createAlbumPdf(
     outputDir: string,
     title: string,
