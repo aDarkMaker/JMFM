@@ -2,7 +2,7 @@ import {CDN_DOMAINS, REQUEST} from '../../core/constants';
 import {HttpClient} from '../../core/net';
 import {DownloadRuntime} from '../../core/download';
 import {useLibraryStore} from '../stores/library';
-import {clearImageDocCache, loadImageDocMeta, prefetchPageSrcs} from '../reader/image-doc';
+import {clearImageDocCache, loadImageDocMeta} from '../reader/image-doc';
 
 export interface AlbumInfo {
   title: string;
@@ -51,7 +51,5 @@ export async function saveToLibrary(
   });
   const pagesDir = `${albumDir}/pages`;
   clearImageDocCache(pagesDir);
-  void loadImageDocMeta(pagesDir)
-    .then(meta => prefetchPageSrcs(meta, [0, 1, 2, 3, 4, 5]))
-    .catch(() => undefined);
+  void loadImageDocMeta(pagesDir).catch(() => undefined);
 }

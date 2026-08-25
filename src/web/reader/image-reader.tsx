@@ -1,6 +1,6 @@
-import {forwardRef, useCallback, useEffect, useImperativeHandle, useReducer, useRef, useState} from 'react';
+import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef} from 'react';
 import {clamp, SCALE_MAX, SCALE_MIN} from './types';
-import {getImageDocMeta, loadImageDocMeta, prefetchPageSrcs, ImageDocMeta} from './image-doc';
+import {getImageDocMeta, loadImageDocMeta, ImageDocMeta} from './image-doc';
 
 export interface ImageReaderHandle {
   goTo: (n: number) => void;
@@ -18,32 +18,48 @@ interface ImageReaderProps {
   onError: (e: string | null) => void;
 }
 
-const LAZY_RANGE = 3;
-const PREFETCH_AHEAD = 8;
-const PAGED_FLIP_MS = 250;
-const SCROLL_WINDOW_BACK = 3;
-const SCROLL_WINDOW_FRONT = 6;
-const PAGE_GAP = 12; // var(--space-3)
-const PLACEHOLDER_RATIO = 4 / 3;
+const PAGE_GAP = 12;
+const SLOT_RATIO = 4 / 3;
+const SCROLL_BACK = 1;
+const SCROLL_FRONT = 3;
+const SCROLL_HYSTERESIS = 1;
+const DECODE_AHEAD = 4;
+const DECODE_CONCURRENCY = 2;
+const PREWARM_PAGES = 12;
+const TOOLBAR_THROTTLE_MS = 250;
+const PAGED_FLIP_MS = 200;
+const SWIPE_MIN = 48;
 
 export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(function ImageReader(
-  {pagesDir, pageCount, mode, onPageChange, onReady, onError},
+  {pagesDir, mode, onPageChange, onReady, onError},
   ref,
 ) {
-  const [meta, setMeta] = useState<ImageDocMeta | null>(() => getImageDocMeta(pagesDir) ?? null);
-  const [page, setPage] = useState(1);
-  const [, bump] = useReducer((n: number) => n + 1, 0);
+  const metaRef = useRef<ImageDocMeta | null>(getImageDocMeta(pagesDir) ?? null);
   const pageRef = useRef(1);
   const scaleRef = useRef(1);
+  const slotWRef = useRef(320);
+  const slotHRef = useRef(320 * SLOT_RATIO + PAGE_GAP);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pageElsRef = useRef<Map<number, HTMLElement>>(new Map());
-  const pageRatioRef = useRef<Map<number, number>>(new Map());
+  const scrollTopRef = useRef<HTMLDivElement>(null);
+  const scrollPagesRef = useRef<HTMLDivElement>(null);
+  const scrollBottomRef = useRef<HTMLDivElement>(null);
+  const pageElsRef = useRef(new Map<number, HTMLElement>());
+  const scrollWindowRef = useRef({start: -1, end: -1});
   const scrollRafRef = useRef(0);
+  const toolbarTimerRef = useRef(0);
+  const decodedRef = useRef(new Set<number>());
+  const decodingRef = useRef(new Set<number>());
+  const decodeQueueRef = useRef<number[]>([]);
+  const decodeActiveRef = useRef(0);
   const pagedAreaRef = useRef<HTMLDivElement>(null);
-  const frontRef = useRef<HTMLImageElement>(null);
-  const backRef = useRef<HTMLImageElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<[HTMLImageElement | null, HTMLImageElement | null, HTMLImageElement | null]>([
+    null,
+    null,
+    null,
+  ]);
   const animatingRef = useRef(false);
-  const touchRef = useRef<{x: number; y: number} | null>(null);
+  const touchRef = useRef<{x: number; y: number; t: number} | null>(null);
   const pinchRef = useRef<{dist: number; scale: number} | null>(null);
   const onPageChangeRef = useRef(onPageChange);
   const onReadyRef = useRef(onReady);
@@ -52,216 +68,326 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
   onReadyRef.current = onReady;
   onErrorRef.current = onError;
 
-  const total = meta?.pageCount ?? pageCount ?? 0;
+  const measureSlots = useCallback(() => {
+    const area = mode === 'scroll' ? scrollRef.current : pagedAreaRef.current;
+    if (!area) return;
+    const pad = mode === 'scroll' ? 24 : 32;
+    const w = Math.max((area.clientWidth - pad) * scaleRef.current, 240);
+    slotWRef.current = w;
+    slotHRef.current = w * SLOT_RATIO + PAGE_GAP;
+  }, [mode]);
 
-  const renderSrc = useCallback(
-    (index: number): string | undefined => {
-      if (!meta) return undefined;
-      const existing = meta.srcs[index];
-      if (existing) return existing;
-      if (Math.abs(index + 1 - pageRef.current) <= LAZY_RANGE) {
-        void prefetchPageSrcs(meta, [index]).then(bump);
-      }
-      return undefined;
-    },
-    [meta],
-  );
-
-  const resolveInitial = useCallback(async (m: ImageDocMeta) => {
-    const indices: number[] = [];
-    const start = Math.max(0, pageRef.current - 1 - LAZY_RANGE);
-    const end = Math.min(m.pageCount, pageRef.current - 1 + PREFETCH_AHEAD);
-    for (let i = start; i < end; i++) {
-      if (!m.srcs[i]) indices.push(i);
-    }
-    await prefetchPageSrcs(m, indices);
+  const notifyPage = useCallback((p: number) => {
+    if (toolbarTimerRef.current) return;
+    toolbarTimerRef.current = window.setTimeout(() => {
+      toolbarTimerRef.current = 0;
+    }, TOOLBAR_THROTTLE_MS);
+    onPageChangeRef.current(p);
   }, []);
 
-  useEffect(() => {
-    let alive = true;
-    const cached = getImageDocMeta(pagesDir);
-    if (cached) {
-      setMeta(cached);
-      onReadyRef.current(cached.pageCount);
-      void resolveInitial(cached).then(bump);
-      return;
-    }
-    loadImageDocMeta(pagesDir)
-      .then(m => {
-        if (!alive) return;
-        setMeta(m);
-        onReadyRef.current(m.pageCount);
-        void resolveInitial(m).then(bump);
-      })
-      .catch(e => {
-        if (alive) {
-          onErrorRef.current(e instanceof Error ? e.message : String(e));
-        }
-      });
-    return () => {
-      alive = false;
-    };
-  }, [pagesDir, resolveInitial]);
-
-  const prefetchVisible = useCallback(() => {
+  const pumpDecode = useCallback(() => {
+    const meta = metaRef.current;
     if (!meta) return;
-    const cur = pageRef.current;
-    const indices: number[] = [];
-    for (let d = -LAZY_RANGE; d <= PREFETCH_AHEAD; d++) {
-      const i = cur - 1 + d;
-      if (i >= 0 && i < meta.pageCount && !meta.srcs[i]) {
-        indices.push(i);
+    while (decodeActiveRef.current < DECODE_CONCURRENCY && decodeQueueRef.current.length > 0) {
+      const index = decodeQueueRef.current.shift()!;
+      if (decodedRef.current.has(index) || decodingRef.current.has(index)) continue;
+      const src = meta.srcs[index];
+      if (!src) continue;
+      decodingRef.current.add(index);
+      decodeActiveRef.current += 1;
+      const img = new Image();
+      img.decoding = 'async';
+      const done = () => {
+        decodingRef.current.delete(index);
+        decodedRef.current.add(index);
+        decodeActiveRef.current -= 1;
+        pumpDecode();
+      };
+      img.onload = done;
+      img.onerror = done;
+      img.src = src;
+    }
+  }, []);
+
+  const enqueueDecode = useCallback(
+    (indices: number[], priority = false) => {
+      const meta = metaRef.current;
+      if (!meta) return;
+      const add: number[] = [];
+      for (const i of indices) {
+        if (i < 0 || i >= meta.pageCount) continue;
+        if (decodedRef.current.has(i) || decodingRef.current.has(i)) continue;
+        if (!meta.srcs[i]) continue;
+        if (decodeQueueRef.current.includes(i)) continue;
+        add.push(i);
       }
-    }
-    if (indices.length > 0) {
-      void prefetchPageSrcs(meta, indices).then(bump);
-    }
-  }, [meta]);
+      if (add.length === 0) return;
+      if (priority) {
+        decodeQueueRef.current = [...add, ...decodeQueueRef.current];
+      } else {
+        decodeQueueRef.current.push(...add);
+      }
+      pumpDecode();
+    },
+    [pumpDecode],
+  );
 
-  useEffect(() => {
-    prefetchVisible();
-  }, [prefetchVisible, page]);
+  const setImgSrc = useCallback((img: HTMLImageElement, index: number) => {
+    const meta = metaRef.current;
+    if (!meta) return;
+    const src = meta.srcs[index];
+    if (!src) return;
+    if (img.getAttribute('src') === src) return;
+    img.src = src;
+  }, []);
 
-  const flipTo = useCallback(
-    async (n: number) => {
-      const front = frontRef.current;
-      const back = backRef.current;
-      if (!front || !back || animatingRef.current) return;
-      const next = clamp(n, 1, Math.max(1, total));
-      if (next === pageRef.current) return;
-      const dir = next > pageRef.current ? 1 : -1;
+  const sizeImg = useCallback((img: HTMLImageElement) => {
+    img.style.width = `${slotWRef.current}px`;
+    img.style.height = `${slotWRef.current * SLOT_RATIO}px`;
+  }, []);
+
+  const makePageEl = useCallback(
+    (index: number): HTMLElement => {
+      const wrap = document.createElement('div');
+      wrap.className = 'reader-scroll-page';
+      wrap.dataset.page = String(index + 1);
+      wrap.style.height = `${slotHRef.current}px`;
+      const img = document.createElement('img');
+      img.className = 'reader-img';
+      img.decoding = 'async';
+      img.alt = '';
+      sizeImg(img);
+      setImgSrc(img, index);
+      wrap.appendChild(img);
+      return wrap;
+    },
+    [sizeImg, setImgSrc],
+  );
+
+  const patchScrollWindow = useCallback(
+    (start: number, end: number) => {
+      const meta = metaRef.current;
+      const host = scrollPagesRef.current;
+      const top = scrollTopRef.current;
+      const bottom = scrollBottomRef.current;
+      if (!meta || !host || !top || !bottom) return;
+      const prev = scrollWindowRef.current;
+      if (prev.start === start && prev.end === end) return;
+      scrollWindowRef.current = {start, end};
+      const h = slotHRef.current;
+      top.style.height = `${start * h}px`;
+      bottom.style.height = `${Math.max(0, (meta.pageCount - end) * h)}px`;
+
+      const map = pageElsRef.current;
+      for (const [idx, el] of [...map.entries()]) {
+        if (idx < start || idx >= end) {
+          el.remove();
+          map.delete(idx);
+        }
+      }
+      let anchor: HTMLElement | null = null;
+      for (let i = start; i < end; i++) {
+        let el = map.get(i);
+        if (!el) {
+          el = makePageEl(i);
+          map.set(i, el);
+          if (anchor) {
+            anchor.after(el);
+          } else if (host.firstChild) {
+            host.insertBefore(el, host.firstChild);
+          } else {
+            host.appendChild(el);
+          }
+        } else {
+          el.style.height = `${h}px`;
+          const img = el.firstElementChild as HTMLImageElement | null;
+          if (img) {
+            sizeImg(img);
+            setImgSrc(img, i);
+          }
+        }
+        anchor = el;
+      }
+      enqueueDecode(Array.from({length: end - start}, (_, k) => start + k), true);
+      enqueueDecode(
+        Array.from({length: DECODE_AHEAD}, (_, k) => end + k).filter(i => i < meta.pageCount),
+      );
+    },
+    [makePageEl, sizeImg, setImgSrc, enqueueDecode],
+  );
+
+  const ensureScrollWindow = useCallback(
+    (cur: number, force = false) => {
+      const meta = metaRef.current;
+      if (!meta) return;
+      const prev = scrollWindowRef.current;
+      const wantStart = Math.max(0, cur - 1 - SCROLL_BACK);
+      const wantEnd = Math.min(meta.pageCount, cur - 1 + SCROLL_FRONT + 1);
+      let start = prev.start;
+      let end = prev.end;
+      if (force || start < 0) {
+        start = wantStart;
+        end = wantEnd;
+      } else {
+        if (cur - 1 - SCROLL_HYSTERESIS < start) start = wantStart;
+        if (cur - 1 + SCROLL_HYSTERESIS >= end - 1) end = wantEnd;
+        start = Math.max(0, Math.min(start, wantStart));
+        end = Math.min(meta.pageCount, Math.max(end, wantEnd));
+        if (start === prev.start && end === prev.end) {
+          enqueueDecode(
+            Array.from({length: DECODE_AHEAD}, (_, k) => cur - 1 + SCROLL_FRONT + 1 + k),
+          );
+          return;
+        }
+      }
+      patchScrollWindow(start, end);
+    },
+    [patchScrollWindow, enqueueDecode],
+  );
+
+  const onScroll = useCallback(() => {
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      const area = scrollRef.current;
+      const meta = metaRef.current;
+      if (!area || !meta) return;
+      const h = slotHRef.current || 1;
+      const cur = clamp(Math.floor(area.scrollTop / h) + 1, 1, meta.pageCount);
+      if (cur !== pageRef.current) {
+        pageRef.current = cur;
+        notifyPage(cur);
+      }
+      ensureScrollWindow(cur);
+    });
+  }, [notifyPage, ensureScrollWindow]);
+
+  const setTrackX = useCallback((x: number, animate: boolean) => {
+    const track = trackRef.current;
+    if (!track) return;
+    track.style.transition = animate ? `transform ${PAGED_FLIP_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1)` : 'none';
+    track.style.transform = `translate3d(${x}%, 0, 0)`;
+  }, []);
+
+  const paintPagedSlides = useCallback(
+    (center: number) => {
+      const meta = metaRef.current;
+      if (!meta) return;
+      const pages = [center - 1, center, center + 1];
+      pages.forEach((page1, slot) => {
+        const img = slideRefs.current[slot];
+        if (!img) return;
+        if (page1 < 1 || page1 > meta.pageCount) {
+          img.removeAttribute('src');
+          img.style.visibility = 'hidden';
+          return;
+        }
+        img.style.visibility = 'visible';
+        sizeImg(img);
+        setImgSrc(img, page1 - 1);
+      });
+      enqueueDecode([center - 1, center, center + 1, center + 2].map(p => p - 1), true);
+    },
+    [sizeImg, setImgSrc, enqueueDecode],
+  );
+
+  const flipPaged = useCallback(
+    async (next: number) => {
+      const meta = metaRef.current;
+      if (!meta || animatingRef.current) return;
+      const cur = pageRef.current;
+      const target = clamp(next, 1, meta.pageCount);
+      if (target === cur) return;
+      const dir = target > cur ? 1 : -1;
       animatingRef.current = true;
-      const backSrc = renderSrc(next - 1);
-      if (backSrc) back.src = backSrc;
-      back.style.transform = `translate3d(${dir * 100}%, 0, 0)`;
-      back.style.visibility = 'visible';
-      pageRef.current = next;
-      setPage(next);
-      onPageChangeRef.current(next);
-      const easing = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
-      const backAnim = back.animate(
-        [
-          {transform: `translate3d(${dir * 100}%, 0, 0)`},
-          {transform: 'translate3d(0, 0, 0)'},
-        ],
-        {duration: PAGED_FLIP_MS, easing, fill: 'both'},
-      );
-      const frontAnim = front.animate(
-        [
-          {transform: 'translate3d(0, 0, 0)'},
-          {transform: `translate3d(${-dir * 100}%, 0, 0)`},
-        ],
-        {duration: PAGED_FLIP_MS, easing, fill: 'both'},
-      );
-      await Promise.all([backAnim.finished, frontAnim.finished].map(p => p.catch(() => {})));
-      try {
-        backAnim.commitStyles();
-        frontAnim.commitStyles();
-      } catch {
-        // older WebViews
+      if (dir > 0) {
+        const img = slideRefs.current[2];
+        if (img) {
+          sizeImg(img);
+          setImgSrc(img, target - 1);
+        }
+        setTrackX(-66.6667, true);
+      } else {
+        const img = slideRefs.current[0];
+        if (img) {
+          sizeImg(img);
+          setImgSrc(img, target - 1);
+        }
+        setTrackX(0, true);
       }
-      backAnim.cancel();
-      frontAnim.cancel();
-      if (backSrc) front.src = backSrc;
-      front.style.transform = 'none';
-      front.style.visibility = 'visible';
-      back.style.transform = 'none';
-      back.style.visibility = 'hidden';
+      await new Promise<void>(resolve => {
+        window.setTimeout(resolve, PAGED_FLIP_MS + 16);
+      });
+      pageRef.current = target;
+      notifyPage(target);
+      setTrackX(-33.3333, false);
+      paintPagedSlides(target);
       animatingRef.current = false;
     },
-    [renderSrc, total],
+    [sizeImg, setImgSrc, setTrackX, notifyPage, paintPagedSlides],
   );
 
-  const pageWidth = useCallback(() => {
-    const area = scrollRef.current;
-    if (!area) return 320;
-    return Math.max((area.clientWidth - 24) * scaleRef.current, 240);
-  }, []);
-
-  const pageHeight = useCallback(
-    (i: number) => pageWidth() * (pageRatioRef.current.get(i) ?? PLACEHOLDER_RATIO) + PAGE_GAP,
-    [pageWidth],
-  );
-
-  const offsetOf = useCallback(
-    (index: number) => {
-      let s = 0;
-      for (let j = 0; j < index; j++) {
-        s += pageHeight(j + 1);
+  const refreshSized = useCallback(() => {
+    measureSlots();
+    if (mode === 'scroll') {
+      const h = slotHRef.current;
+      const prev = scrollWindowRef.current;
+      if (scrollTopRef.current && prev.start >= 0) {
+        scrollTopRef.current.style.height = `${prev.start * h}px`;
       }
-      return s;
-    },
-    [pageHeight],
-  );
+      if (scrollBottomRef.current && metaRef.current && prev.end >= 0) {
+        scrollBottomRef.current.style.height = `${Math.max(0, (metaRef.current.pageCount - prev.end) * h)}px`;
+      }
+      pageElsRef.current.forEach((el, idx) => {
+        el.style.height = `${h}px`;
+        const img = el.firstElementChild as HTMLImageElement | null;
+        if (img) {
+          sizeImg(img);
+          setImgSrc(img, idx);
+        }
+      });
+    } else {
+      paintPagedSlides(pageRef.current);
+    }
+  }, [mode, measureSlots, sizeImg, setImgSrc, paintPagedSlides]);
 
   const goTo = useCallback(
     (n: number) => {
-      const next = clamp(n, 1, Math.max(1, total));
+      const meta = metaRef.current;
+      if (!meta) return;
+      const next = clamp(n, 1, Math.max(1, meta.pageCount));
       if (mode === 'scroll') {
         pageRef.current = next;
-        setPage(next);
-        onPageChangeRef.current(next);
+        notifyPage(next);
         const area = scrollRef.current;
         if (area) {
-          area.scrollTo({top: offsetOf(next - 1) - 8, behavior: 'smooth'});
+          area.scrollTo({top: (next - 1) * slotHRef.current, behavior: 'smooth'});
         }
+        ensureScrollWindow(next, true);
+      } else if (Math.abs(next - pageRef.current) === 1) {
+        void flipPaged(next);
       } else {
-        void flipTo(next);
+        pageRef.current = next;
+        notifyPage(next);
+        setTrackX(-33.3333, false);
+        paintPagedSlides(next);
       }
     },
-    [mode, total, flipTo, offsetOf],
-  );
-
-  const applyWidth = useCallback(
-    (s: number) => {
-      const area = scrollRef.current;
-      if (!area) return;
-      const w = `${Math.max((area.clientWidth - 24) * s, 240)}px`;
-      pageElsRef.current.forEach(el => {
-        el.style.width = w;
-      });
-      bump();
-    },
-    [],
-  );
-
-  const applyPagedWidth = useCallback(
-    (s: number) => {
-      const area = pagedAreaRef.current;
-      if (!area) return;
-      const baseW = Math.max(area.clientWidth - 32, 240);
-      const w = `${Math.max(baseW * s, 240)}px`;
-      [frontRef.current, backRef.current].forEach(img => {
-        if (img) {
-          img.style.width = w;
-          img.style.height = 'auto';
-        }
-      });
-    },
-    [],
+    [mode, notifyPage, ensureScrollWindow, flipPaged, setTrackX, paintPagedSlides],
   );
 
   const zoom = useCallback(
     (factor: number) => {
-      const s = clamp(scaleRef.current * factor, SCALE_MIN, SCALE_MAX);
-      scaleRef.current = s;
-      if (mode === 'scroll') {
-        applyWidth(s);
-      } else {
-        applyPagedWidth(s);
-      }
+      scaleRef.current = clamp(scaleRef.current * factor, SCALE_MIN, SCALE_MAX);
+      refreshSized();
     },
-    [mode, applyWidth, applyPagedWidth],
+    [refreshSized],
   );
 
   const fitToWidth = useCallback(() => {
     scaleRef.current = 1;
-    if (mode === 'scroll') {
-      applyWidth(1);
-    } else {
-      applyPagedWidth(1);
-    }
-  }, [mode, applyWidth, applyPagedWidth]);
+    refreshSized();
+  }, [refreshSized]);
 
   useImperativeHandle(ref, () => ({
     goTo,
@@ -271,60 +397,94 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
   }), [goTo, zoom, fitToWidth]);
 
   useEffect(() => {
-    if (mode === 'scroll') {
-      if (meta) {
-        applyWidth(scaleRef.current);
+    let alive = true;
+    let idleId = 0;
+    const schedulePrewarm = (m: ImageDocMeta) => {
+      const warm = Array.from({length: Math.min(PREWARM_PAGES, m.pageCount)}, (_, i) => i);
+      const run = () => {
+        if (!alive) return;
+        enqueueDecode(warm);
+      };
+      const ric = (window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: {timeout: number}) => number;
+      }).requestIdleCallback;
+      if (typeof ric === 'function') {
+        idleId = ric(run, {timeout: 400});
+      } else {
+        idleId = window.setTimeout(run, 32) as unknown as number;
       }
-      return;
+    };
+    const boot = (m: ImageDocMeta) => {
+      metaRef.current = m;
+      onReadyRef.current(m.pageCount);
+      measureSlots();
+      if (mode === 'scroll') {
+        ensureScrollWindow(1, true);
+      } else {
+        setTrackX(-33.3333, false);
+        paintPagedSlides(1);
+      }
+      schedulePrewarm(m);
+    };
+    const cached = getImageDocMeta(pagesDir);
+    if (cached) {
+      boot(cached);
+      return () => {
+        alive = false;
+        if (idleId) {
+          const cic = (window as Window & {cancelIdleCallback?: (id: number) => void}).cancelIdleCallback;
+          if (typeof cic === 'function') cic(idleId);
+          else clearTimeout(idleId);
+        }
+      };
     }
-    const area = pagedAreaRef.current;
+    loadImageDocMeta(pagesDir)
+      .then(m => {
+        if (!alive) return;
+        boot(m);
+      })
+      .catch(e => {
+        if (alive) {
+          onErrorRef.current(e instanceof Error ? e.message : String(e));
+        }
+      });
+    return () => {
+      alive = false;
+      if (toolbarTimerRef.current) clearTimeout(toolbarTimerRef.current);
+      if (idleId) {
+        const cic = (window as Window & {cancelIdleCallback?: (id: number) => void}).cancelIdleCallback;
+        if (typeof cic === 'function') cic(idleId);
+        else clearTimeout(idleId);
+      }
+      pageElsRef.current.clear();
+      scrollPagesRef.current?.replaceChildren();
+      scrollWindowRef.current = {start: -1, end: -1};
+      decodeQueueRef.current = [];
+      decodingRef.current.clear();
+    };
+  }, [pagesDir, mode, measureSlots, ensureScrollWindow, paintPagedSlides, setTrackX, enqueueDecode]);
+
+  useEffect(() => {
+    if (mode !== 'scroll') return;
+    const area = scrollRef.current;
     if (!area) return;
-    applyPagedWidth(scaleRef.current);
-    const ro = new ResizeObserver(() => applyPagedWidth(scaleRef.current));
+    measureSlots();
+    const ro = new ResizeObserver(() => {
+      refreshSized();
+      ensureScrollWindow(pageRef.current, true);
+    });
     ro.observe(area);
     return () => ro.disconnect();
-  }, [mode, meta, applyWidth, applyPagedWidth]);
+  }, [mode, measureSlots, refreshSized, ensureScrollWindow]);
 
-  const onScroll = useCallback(() => {
-    const area = scrollRef.current;
-    if (!area || scrollRafRef.current) return;
-    scrollRafRef.current = requestAnimationFrame(() => {
-      scrollRafRef.current = 0;
-      const a = scrollRef.current;
-      if (!a) return;
-      const threshold = a.scrollTop + a.clientHeight * 0.3;
-      let lo = 0;
-      let hi = total;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (offsetOf(mid) <= threshold) {
-          lo = mid + 1;
-        } else {
-          hi = mid;
-        }
-      }
-      let cur = Math.max(1, lo);
-      if (a.scrollTop + a.clientHeight >= a.scrollHeight - 4) {
-        cur = total;
-      }
-      if (cur !== pageRef.current) {
-        pageRef.current = cur;
-        setPage(cur);
-        onPageChangeRef.current(cur);
-      }
-    });
-  }, [total, offsetOf]);
-
-  const onImgLoad = useCallback(
-    (i: number) => (e: React.SyntheticEvent<HTMLImageElement>) => {
-      const img = e.currentTarget;
-      if (img.naturalWidth > 0) {
-        pageRatioRef.current.set(i + 1, img.naturalHeight / img.naturalWidth);
-        bump();
-      }
-    },
-    [],
-  );
+  useEffect(() => {
+    if (mode !== 'paged') return;
+    const area = pagedAreaRef.current;
+    if (!area) return;
+    const ro = new ResizeObserver(() => refreshSized());
+    ro.observe(area);
+    return () => ro.disconnect();
+  }, [mode, refreshSized]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -334,7 +494,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       };
       touchRef.current = null;
     } else if (e.touches.length === 1) {
-      touchRef.current = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      touchRef.current = {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()};
     }
   }, []);
 
@@ -343,16 +503,24 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       const p = pinchRef.current;
       if (p && e.touches.length === 2) {
         const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        const s = clamp(p.scale * (dist / p.dist), SCALE_MIN, SCALE_MAX);
-        scaleRef.current = s;
-        if (mode === 'scroll') {
-          applyWidth(s);
-        } else {
-          applyPagedWidth(s);
+        scaleRef.current = clamp(p.scale * (dist / p.dist), SCALE_MIN, SCALE_MAX);
+        refreshSized();
+        return;
+      }
+      if (mode === 'paged' && touchRef.current && e.touches.length === 1 && !animatingRef.current) {
+        const dx = e.touches[0].clientX - touchRef.current.x;
+        const dy = e.touches[0].clientY - touchRef.current.y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          const meta = metaRef.current;
+          const cur = pageRef.current;
+          if (!meta) return;
+          if ((dx < 0 && cur >= meta.pageCount) || (dx > 0 && cur <= 1)) return;
+          const pct = (dx / (pagedAreaRef.current?.clientWidth || 1)) * 100;
+          setTrackX(-33.3333 + pct, false);
         }
       }
     },
-    [mode, applyWidth, applyPagedWidth],
+    [mode, refreshSized, setTrackX],
   );
 
   const onTouchEnd = useCallback(
@@ -360,29 +528,23 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       pinchRef.current = null;
       const t = touchRef.current;
       touchRef.current = null;
-      if (t && e.changedTouches.length > 0 && mode === 'paged') {
-        const dx = e.changedTouches[0].clientX - t.x;
-        const dy = e.changedTouches[0].clientY - t.y;
-        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          const next = dx < 0 ? pageRef.current + 1 : pageRef.current - 1;
-          if (next >= 1 && next <= total) {
-            void flipTo(next);
-          }
-        }
+      if (!t || mode !== 'paged' || animatingRef.current) return;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - t.x;
+      const dy = touch.clientY - t.y;
+      const dt = Math.max(1, Date.now() - t.t);
+      const velocity = Math.abs(dx) / dt;
+      if (Math.abs(dx) > Math.abs(dy) * 1.2 && (Math.abs(dx) > SWIPE_MIN || velocity > 0.4)) {
+        void flipPaged(dx < 0 ? pageRef.current + 1 : pageRef.current - 1);
+      } else {
+        setTrackX(-33.3333, true);
       }
     },
-    [mode, total, flipTo],
+    [mode, flipPaged, setTrackX],
   );
 
   if (mode === 'scroll') {
-    const cur = clamp(page, 1, Math.max(1, total));
-    const start = Math.max(0, cur - 1 - SCROLL_WINDOW_BACK);
-    const end = Math.min(total, cur - 1 + SCROLL_WINDOW_FRONT + 1);
-    const windowIndices: number[] = [];
-    for (let i = start; i < end; i++) {
-      windowIndices.push(i);
-    }
-    const totalHeight = offsetOf(total);
     return (
       <div
         className="reader-scroll-area reader-img-area"
@@ -392,32 +554,11 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {total > 0 ? (
-          <div className="reader-scroll-content">
-            <div className="reader-scroll-spacer" style={{height: offsetOf(start)}} />
-            {windowIndices.map(i => (
-              <div
-                className="reader-scroll-page"
-                key={i}
-                ref={el => {
-                  if (el) pageElsRef.current.set(i + 1, el);
-                  else pageElsRef.current.delete(i + 1);
-                }}
-              >
-                <img
-                  className="reader-img"
-                  data-page={i + 1}
-                  src={renderSrc(i)}
-                  loading="eager"
-                  decoding="async"
-                  onLoad={onImgLoad(i)}
-                  alt=""
-                />
-              </div>
-            ))}
-            <div className="reader-scroll-spacer" style={{height: Math.max(0, totalHeight - offsetOf(end))}} />
-          </div>
-        ) : null}
+        <div className="reader-scroll-content">
+          <div className="reader-scroll-spacer" ref={scrollTopRef} />
+          <div className="reader-scroll-pages" ref={scrollPagesRef} />
+          <div className="reader-scroll-spacer" ref={scrollBottomRef} />
+        </div>
       </div>
     );
   }
@@ -430,12 +571,20 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {total > 0 ? (
-        <>
-          <img ref={frontRef} className="reader-img reader-img-paged" src={renderSrc(page - 1)} alt="" />
-          <img ref={backRef} className="reader-img reader-img-paged" style={{visibility: 'hidden'}} alt="" />
-        </>
-      ) : null}
+      <div className="reader-paged-track" ref={trackRef}>
+        {[0, 1, 2].map(slot => (
+          <div className="reader-paged-slide" key={slot}>
+            <img
+              ref={el => {
+                slideRefs.current[slot] = el;
+              }}
+              className="reader-img reader-img-paged"
+              alt=""
+              decoding="async"
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 });

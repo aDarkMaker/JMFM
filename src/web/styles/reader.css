@@ -114,8 +114,13 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  will-change: transform;
-  transform-origin: top center;
+}
+
+.reader-scroll-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .reader-scroll-spacer {
@@ -126,23 +131,21 @@
 .reader-scroll-page {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100%;
-  margin-bottom: var(--space-3);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 60vh;
-}
-
-.reader-scroll-page:last-child {
   margin-bottom: 0;
+  overflow: hidden;
+  contain: layout style paint;
+  flex-shrink: 0;
 }
 
 .reader-paged-area {
   flex: 1;
   position: relative;
   display: flex;
-  overflow: auto;
+  overflow: hidden;
   touch-action: pan-y;
-  padding: var(--space-3);
+  padding: 0;
   min-height: 0;
 }
 
@@ -159,6 +162,7 @@
   box-shadow: var(--shadow-2);
   background: #fff;
   flex-shrink: 0;
+  object-fit: contain;
   aspect-ratio: 3 / 4;
 }
 
@@ -167,27 +171,38 @@
 }
 
 .reader-img-paged-area {
-  display: grid;
-  place-items: center;
+  display: block;
   height: 100%;
-  touch-action: pan-y;
   overflow: hidden;
+  touch-action: pan-y;
+}
+
+.reader-paged-track {
+  display: flex;
+  width: 300%;
+  height: 100%;
+  transform: translate3d(-33.3333%, 0, 0);
+  will-change: transform;
+}
+
+.reader-paged-slide {
+  flex: 0 0 33.3333%;
+  width: 33.3333%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  box-sizing: border-box;
+  contain: layout style paint;
 }
 
 .reader-img-paged {
-  grid-area: 1 / 1;
-  width: auto;
-  height: auto;
-  aspect-ratio: 3 / 4;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  transform: none;
-  transition: none;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  box-shadow: none;
-  visibility: visible;
+  box-shadow: var(--shadow-2);
+  background: #fff;
 }
 
 .reader-canvas-paged {
