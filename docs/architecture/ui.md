@@ -67,7 +67,7 @@ flowchart LR
 - **Home**：展示每日推荐卡片（封面、标题、作者、标签、章节数），点击进入详情。当前以 mock 数据驱动，后续接入推荐 API。
 - **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读。
 - **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本下载经 `src/web/download/queue.ts` 串行排队（`MAX_CONCURRENT = 1`），未开始的显示"等待中"。
-- **Reader**：`ReaderTarget.pagesDir` 存在且为原生平台时走图片直读（`src/web/reader/image-reader.tsx`，滚动/翻页两种模式），否则回退 pdf.js 渲染。
+- **Reader**：`ReaderTarget.pagesDir` 存在且为原生平台时走图片直读（`src/web/reader/image-reader.tsx`）：纵向为命令式窗口化滚动，横向为三页轨道手势逐页；否则回退 pdf.js 渲染。
 - **Settings**：下载路径、重试次数、并发线程、图片格式、代理等，读写 `data/settings`。
 
 ## 状态管理

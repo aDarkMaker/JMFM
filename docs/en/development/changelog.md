@@ -4,15 +4,13 @@
 
 ### Reader: instant direct image reading
 
-- **Direct image reading as the primary path**: downloads keep the `albumDir/pages/` image sequence; the reader renders local images directly with progressive prefetch (`loadImageDocMeta` → on-demand `getUri` → batched background prefetch). pdf.js is only a fallback for legacy files.
-- **Instant opening**: `setMeta` no longer waits for the prefetch; the first frame renders placeholders immediately plus the first screen's srcs; `saveToLibrary` pre-warms the first 6 pages, so opening from the library shows the first screen instantly.
-- **Windowed scroll rendering** (mirroring the native RecyclerView model): scroll mode mounts only the current page ±3/+6, with spacers sized by each page's aspect ratio carrying the total height; pages leaving the window unmount. `onScroll` now uses rAF throttling plus pure arithmetic binary search instead of per-frame `querySelectorAll` and forced layout reads.
-- **Paged mode initial size fix**: fit-to-width is now width-driven instead of `transform: scale`, with a `ResizeObserver`; flipped pages fit the screen width without being cropped.
-- **Performance details**: `decoding="async"`, `PREFETCH_BATCH` reduced from 20 to 6 to avoid a bridge storm, `PREFETCH_AHEAD` narrowed to 8, and img node refs cached instead of re-querying.
-
-### Task card layout fix
-
-- `.task-head` now uses CSS Grid: icon 10% / title 60% / badge 30% (title 70% / badge 30% without an icon); the badge is right-aligned, icon and title stay on the same visual baseline, and long titles ellipsize.
+- **Direct image reading as the primary path**: downloads keep the `albumDir/pages/` image sequence; the reader renders local images directly. pdf.js is only a fallback for legacy files.
+- **One-shot directory URI resolve**: `loadImageDocMeta` runs `readdir` and directory `getUri` in parallel, then fills all `srcs` synchronously as `baseSrc + filename`, eliminating per-page bridge calls.
+- **Imperative windowed scroll**: no React state during scroll; fixed slot heights; only the current page ±1/+3 stays mounted; page nodes tracked in a Map; toolbar page updates throttled to 250ms.
+- **Throttled decode + idle prewarm**: decode queue concurrency 2 prioritizes visible pages; warms 4 ahead; after open, `requestIdleCallback` prewarms the first 12 pages without blocking first paint.
+- **Paged one-page-at-a-time**: three-slide track with gesture-driven flips (follow finger, at most one page on release); no fling skip or ghosting.
+- **Task cards**: title column is width-constrained with ellipsis so it no longer overlaps the badge.
+- **Long-album bench (1214052)**: 243 pages / ~792KB avg; images ~154s, PDF ~17s; `scripts/bench-reader-flow.ts` compared three strategies and selected the prewarm12 window model.
 
 ### Cirrus palette
 

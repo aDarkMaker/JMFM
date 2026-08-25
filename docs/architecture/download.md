@@ -60,13 +60,14 @@ PDF 生成后 `pages/` 序列被保留，阅读器（`src/web/reader/`）不再�
 
 ```mermaid
 flowchart LR
-    pages["albumDir/pages/*.jpg"] --> meta["loadImageDocMeta（readdir + 排序）"]
-    meta --> dom["立即渲染 DOM 占位（pageCount）"]
-    dom --> uri["resolvePageSrc（按需 getUri）"]
-    uri --> img["<img src> 渐进显示"]
-    meta --> pre["prefetchPageSrcs 后台批量预取"]
+    pages["albumDir/pages/*.jpg"] --> meta["loadImageDocMeta（readdir + 目录 getUri）"]
+    meta --> srcs["baseSrc + filename 同步填满 srcs"]
+    srcs --> dom["命令式窗口挂载（±1/+3）"]
+    dom --> img["<img> + 限流预解码（并发 2）"]
 ```
 
-- 元数据缓存（LRU 3 本）与 src 懒填充：先 `readdir` 拿到页数与文件名，首帧不阻塞；可见页附近按需 `getUri`，后台分批预取（`PREFETCH_BATCH = 6`）避免 bridge 风暴。
-- 滚动模式采用窗口化渲染：只挂载当前页 ±3/+6，上下 spacer 按各页宽高比撑起总高度，滚出即卸载（对齐原生 RecyclerView 复用模型）；`onScroll` 以 rAF 节流 + 纯算术二分定位当前页。
-- `saveToLibrary` 在入库时预热前 6 页，返回库后打开即见首屏。
+- 元数据缓存（LRU 3 本）：`readdir` 与目录 `getUri` 并行一次完成，全部页面 URI 同步可得，无逐页 bridge。
+- 滚动模式采用命令式窗口化渲染：固定槽位高度，只挂载当前页 ±1/+3，节点 Map 增量增删；解码队列并发 2，优先解码可见页，前方预热 4 页；打开后 `requestIdleCallback` 预热前 12 页（实测可消首次滑动卡顿）。
+- 横向翻页为三页轨道手势逐页，松手最多进一页。
+- `saveToLibrary` 入库时预加载 `ImageDocMeta`，打开阅读器时命中缓存。
+- **实测（1214052，243 页，均约 792KB/页）**：桌面 `bench-reader-flow` 显示瓶颈在解码（p50≈33ms/页@400px），读盘可忽略；`prewarm12 + ±1/+3 + 并发2` 为首选（`firstScroll≈0`，滚完全部约 7.8s）。

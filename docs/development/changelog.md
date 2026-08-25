@@ -4,15 +4,13 @@
 
 ### 阅读器图片直读秒开改造
 
-- **图片直读主路径**：下载保留 `albumDir/pages/` 图片序列，阅读器直接渲染本地图片并渐进预取（`loadImageDocMeta` → 按需 `getUri` → 后台分批预取），PDF.js 仅作旧文件回退。
-- **秒开**：`setMeta` 不再等待预取完成，首帧立即渲染占位 + 首屏 src；入库时预热前 6 页，库内打开即见首屏。
-- **窗口化滚动渲染**（对齐原生 RecyclerView 模型）：滚动模式只挂载当前页 ±3/+6，上下 spacer 按页宽高比撑起总高度，滚出即卸载；`onScroll` 改 rAF 节流 + 纯算术二分定位，移除每帧 `querySelectorAll` 与强制布局读取。
-- **paged 翻页模式初始尺寸修复**：fit-to-width 由 `transform: scale` 改为宽度驱动，配合 `ResizeObserver`，翻页图片贴合屏宽不再被裁剪。
-- **性能细节**：`decoding="async"` 异步解码、`PREFETCH_BATCH` 由 20 降至 6 避免 bridge 风暴、`PREFETCH_AHEAD` 收窄至 8、img 节点 ref 缓存取代重复查询。
-
-### 任务卡片布局修复
-
-- `.task-head` 改 CSS Grid：图标 10% / 标题 60% / 标签 30%（无图标时标题 70% / 标签 30%），标签右对齐，图标与标题视觉水平线对齐，长标题省略号生效。
+- **图片直读主路径**：下载保留 `albumDir/pages/` 图片序列，阅读器直接渲染本地图片；PDF.js 仅作旧文件回退。
+- **目录级 URI 一次解析**：`loadImageDocMeta` 并行 `readdir` + 目录 `getUri`，用 `baseSrc + filename` 同步填满全部 `srcs`，消除逐页 bridge。
+- **命令式窗口化滚动**：滚动过程不走 React 状态；固定槽位高度；只挂载当前页 ±1/+3；页节点 Map 增量增删；工具栏页码 250ms 节流。
+- **限流预解码 + idle 预热**：解码队列并发 2，可见页优先；前方预热 4 页；打开后 `requestIdleCallback` 预热前 12 页（不阻塞首屏）。
+- **横向逐页**：三页轨道 + 手势只翻一页（跟手拖动、松手最多进一页），无惯性连跳与残影。
+- **任务卡片**：标题列约束省略号，避免与标签重叠。
+- **长篇实测（1214052）**：243 页 / 均约 792KB；下载图片约 154s、PDF 约 17s；`scripts/bench-reader-flow.ts` 三策略对比后选用 prewarm12 窗口模型。
 
 ### Cirrus 配色接入
 

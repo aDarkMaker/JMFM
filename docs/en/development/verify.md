@@ -33,11 +33,21 @@ It will:
 
 1. Refresh dynamic domains.
 2. Fetch album and chapters via `ApiClient`.
-3. Download all images concurrently.
+3. Download all images into `temp/<title>/pages/` (sequence kept).
 4. Reassemble strips with ImageMagick.
-5. Generate a uniform-width PDF under `temp/<albumId>/`.
+5. Generate a uniform-width PDF in the same folder and print stage timings plus page size summary.
 
-Verified against album 1327951: 50 pages, all at 960pt width, no white placeholders, no tiny pages.
+Verified against albums 1327951 (50 pages) and 1214052 (243 pages): `pages/` kept, uniform-width PDF.
+
+## Reader desktop bench
+
+After download, simulate open → scroll-to-end on `pages/` and compare window / prewarm strategies:
+
+```bash
+bun scripts/bench-reader-flow.ts 1214052
+```
+
+Writes `temp/bench-reader-1214052.json` (first paint, first scroll, full scroll, decode p50/p95, recommended params).
 
 ## Checking the PDF
 

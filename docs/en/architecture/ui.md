@@ -67,7 +67,7 @@ flowchart LR
 - **Home**: shows daily recommendation cards (cover, title, author, tags, chapter count). Currently mock-driven; a recommendation API will be wired later.
 - **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open.
 - **Tasks**: shows the download queue with live progress, supports pause / resume / delete. Multiple albums are serialized through `src/web/download/queue.ts` (`MAX_CONCURRENT = 1`); queued ones show "waiting".
-- **Reader**: when `ReaderTarget.pagesDir` exists on a native platform it uses direct image reading (`src/web/reader/image-reader.tsx`, scroll and paged modes); otherwise it falls back to pdf.js rendering.
+- **Reader**: when `ReaderTarget.pagesDir` exists on a native platform it uses direct image reading (`src/web/reader/image-reader.tsx`): imperative windowed scroll vertically, and a three-slide gesture track for one-page horizontal flips; otherwise it falls back to pdf.js rendering.
 - **Settings**: download path, retry count, concurrency, image format, proxy; reads and writes `data/settings`.
 
 ## State management

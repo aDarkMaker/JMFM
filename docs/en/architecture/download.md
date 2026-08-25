@@ -60,13 +60,14 @@ After PDF generation the `pages/` sequence is kept, so the reader (`src/web/read
 
 ```mermaid
 flowchart LR
-    pages["albumDir/pages/*.jpg"] --> meta["loadImageDocMeta (readdir + sort)"]
-    meta --> dom["render DOM placeholders immediately (pageCount)"]
-    dom --> uri["resolvePageSrc (getUri on demand)"]
-    uri --> img["<img src> progressive display"]
-    meta --> pre["prefetchPageSrcs batched background prefetch"]
+    pages["albumDir/pages/*.jpg"] --> meta["loadImageDocMeta (readdir + dir getUri)"]
+    meta --> srcs["fill all srcs as baseSrc + filename"]
+    srcs --> dom["imperative window mount (±1/+3)"]
+    dom --> img["<img> + throttled decode (concurrency 2)"]
 ```
 
-- Metadata is cached (LRU 3 albums) and srcs fill lazily: `readdir` first for page count and names without blocking the first frame; near-visible pages resolve `getUri` on demand, while a background batch prefetch (`PREFETCH_BATCH = 6`) avoids a bridge storm.
-- Scroll mode uses windowed rendering: only the current page ±3/+6 stays mounted, with spacers sized by each page's aspect ratio carrying the total height; pages leaving the window unmount (mirroring the native RecyclerView reuse model). `onScroll` locates the current page via rAF throttling plus pure arithmetic binary search.
-- `saveToLibrary` pre-warms the first 6 pages on insert, so the first screen shows immediately when opening from the library.
+- Metadata is cached (LRU 3 albums): `readdir` and directory `getUri` run once in parallel; every page URI is available synchronously with no per-page bridge calls.
+- Scroll mode uses imperative windowed rendering: fixed slot heights, only the current page ±1/+3 stays mounted, nodes tracked in a Map; decode queue concurrency 2 prioritizes visible pages and warms 4 ahead; after open, `requestIdleCallback` prewarms the first 12 pages (measured to remove first-scroll jank).
+- Paged mode uses a three-slide track with gesture-driven one-page flips.
+- `saveToLibrary` preloads `ImageDocMeta` on insert so opening from the library hits the cache.
+- **Bench (album 1214052, 243 pages, ~792KB/page avg)**: desktop `bench-reader-flow` shows decode is the bottleneck (p50 ≈ 33ms/page @400px), disk IO is negligible; winner is `prewarm12 + ±1/+3 + concurrency 2` (`firstScroll ≈ 0`, full scroll ≈ 7.8s).
