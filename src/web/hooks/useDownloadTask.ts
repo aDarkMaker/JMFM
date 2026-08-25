@@ -13,6 +13,8 @@ export function useDownloadTask() {
   const proxyEnabled = useSettingsStore(s => s.settings.proxyEnabled);
   const proxy = useSettingsStore(s => s.settings.proxy);
   const retryTimes = useSettingsStore(s => s.settings.retryTimes);
+  const imageThreads = useSettingsStore(s => s.settings.imageThreads);
+  const imageFormat = useSettingsStore(s => s.settings.imageFormat);
 
   const runTask = useCallback(
     async (taskId: string) => {
@@ -27,6 +29,10 @@ export function useDownloadTask() {
         source,
         runtime,
         downloadPath,
+        concurrency: imageThreads || undefined,
+        cpuCount:
+          typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4,
+        imageFormat: imageFormat === 'webp' ? 'webp' : 'jpg',
       });
 
       const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
@@ -39,7 +45,7 @@ export function useDownloadTask() {
       useDownloadStore.getState().setStatus(taskId, 'running');
 
       try {
-        const pdfPath = await service.downloadAlbum(
+        const albumDir = await service.downloadAlbum(
           albumId,
           (e: DownloadEvent) => {
             if (e.type === 'album-parsed') {
@@ -57,7 +63,7 @@ export function useDownloadTask() {
         );
         useDownloadStore.getState().setStatus(taskId, 'done');
         if (albumInfo) {
-          await saveToLibrary(albumId, albumInfo, albumTotal, pdfPath, http, runtime);
+          await saveToLibrary(albumId, albumInfo, albumTotal, albumDir, http, runtime);
         }
       } catch (err) {
         if (isCanceledError(err)) {
@@ -71,7 +77,7 @@ export function useDownloadTask() {
         }
       }
     },
-    [downloadPath, proxyEnabled, proxy, retryTimes],
+    [downloadPath, proxyEnabled, proxy, retryTimes, imageThreads, imageFormat],
   );
 
   const startDownload = useCallback(

@@ -60,7 +60,8 @@ export const AlbumCard = memo(function AlbumCard({
             className="album-cover-img"
             src={coverSrc ?? undefined}
             alt={album.title}
-            loading="lazy"
+            loading="eager"
+            decoding="async"
             onError={() => setImgFailed(true)}
           />
         ) : (

@@ -7,6 +7,8 @@ import {TasksScreen} from './screens/TasksScreen';
 import {SettingsScreen} from './screens/SettingsScreen';
 import {ReaderScreen} from './screens/ReaderScreen';
 import {useSettingsStore} from './stores/settings';
+import {useLibraryStore} from './stores/library';
+import {preloadCovers} from './library/coverCache';
 import {useKeyboardVisibility} from './hooks/useKeyboardVisibility';
 import {useReaderLifecycle} from './hooks/usePlatformBack';
 
@@ -41,6 +43,14 @@ export function App() {
       void load();
     }
   }, [loaded, load]);
+
+  useEffect(() => {
+    const warm = () => {
+      void preloadCovers(useLibraryStore.getState().items.map(i => i.coverPath));
+    };
+    warm();
+    return useLibraryStore.subscribe(warm);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

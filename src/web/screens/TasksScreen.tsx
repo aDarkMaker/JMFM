@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
+import {gsap} from 'gsap';
 import {useDownloadStore, TaskStatus} from '../stores/download';
 import {ProgressBar} from '../components/ProgressBar';
 import {EmptyState} from '../components/EmptyState';
@@ -8,7 +9,7 @@ import {useDownloadTask} from '../hooks/useDownloadTask';
 import {hasJapanese} from '../hooks/useJapaneseFont';
 
 const AUTO_REMOVE_MS = 3000;
-const LEAVE_ANIM_MS = 240;
+const STACK_GAP_PX = 12;
 
 const BADGE_TEXT: Record<TaskStatus, string> = {
   pending: '等待中',
@@ -16,11 +17,6 @@ const BADGE_TEXT: Record<TaskStatus, string> = {
   paused: '已暂停',
   done: '已完成',
   error: '失败',
-};
-
-const STATUS_ICON: Partial<Record<TaskStatus, 'check-circle' | 'error'>> = {
-  done: 'check-circle',
-  error: 'error',
 };
 
 function parseIds(input: string): number[] {
@@ -42,45 +38,87 @@ export function TasksScreen() {
   const resumeAll = useDownloadStore(s => s.resumeAll);
   const {startDownload, cancel} = useDownloadTask();
   const [input, setInput] = useState('');
-  const [leaving, setLeaving] = useState<Set<string>>(new Set());
-  const leavingRef = useRef<Set<string>>(new Set());
-  const leaveTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const tileRefs = useRef(new Map<string, HTMLDivElement>());
+  const leavingRef = useRef(new Set<string>());
+  const autoRemoveTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const scheduledRemoveRef = useRef(new Set<string>());
   const ids = parseIds(input);
   const isValid = ids.length > 0;
   const hasRunning = tasks.some(t => t.status === 'running');
   const hasPaused = tasks.some(t => t.status === 'paused');
 
-  const startRemove = useCallback(
-    (taskId: string) => {
-      if (leavingRef.current.has(taskId)) return;
-      leavingRef.current.add(taskId);
-      setLeaving(new Set(leavingRef.current));
-      const timer = setTimeout(() => {
-        leavingRef.current.delete(taskId);
-        leaveTimersRef.current.delete(taskId);
-        setLeaving(new Set(leavingRef.current));
-        useDownloadStore.getState().remove(taskId);
-      }, LEAVE_ANIM_MS);
-      leaveTimersRef.current.set(taskId, timer);
-    },
-    [],
-  );
+  const startRemove = useCallback((taskId: string) => {
+    if (leavingRef.current.has(taskId)) return;
+    const auto = autoRemoveTimersRef.current.get(taskId);
+    if (auto) {
+      clearTimeout(auto);
+      autoRemoveTimersRef.current.delete(taskId);
+    }
+    scheduledRemoveRef.current.add(taskId);
+    leavingRef.current.add(taskId);
+
+    const el = tileRefs.current.get(taskId);
+    const finish = () => {
+      leavingRef.current.delete(taskId);
+      scheduledRemoveRef.current.delete(taskId);
+      tileRefs.current.delete(taskId);
+      useDownloadStore.getState().remove(taskId);
+    };
+
+    if (!el) {
+      finish();
+      return;
+    }
+
+    const h = el.offsetHeight;
+    gsap.killTweensOf(el);
+    gsap.set(el, {
+      height: h,
+      overflow: 'hidden',
+      marginBottom: 0,
+    });
+    gsap.to(el, {
+      height: 0,
+      opacity: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
+      marginBottom: -STACK_GAP_PX,
+      duration: 0.28,
+      ease: 'power2.inOut',
+      overwrite: true,
+      onComplete: finish,
+    });
+  }, []);
 
   useEffect(() => {
-    const map = leaveTimersRef.current;
+    const autoMap = autoRemoveTimersRef.current;
+    const tiles = tileRefs.current;
     return () => {
-      map.forEach(timer => clearTimeout(timer));
-      map.clear();
+      autoMap.forEach(timer => clearTimeout(timer));
+      autoMap.clear();
+      scheduledRemoveRef.current.clear();
+      tiles.forEach(el => gsap.killTweensOf(el));
+      tiles.clear();
+      leavingRef.current.clear();
     };
   }, []);
 
   useEffect(() => {
-    const pending = new Map<string, ReturnType<typeof setTimeout>>();
-    tasks.forEach(t => {
-      if (t.status !== 'done' || leavingRef.current.has(t.id) || pending.has(t.id)) return;
-      pending.set(t.id, setTimeout(() => startRemove(t.id), AUTO_REMOVE_MS));
-    });
-    return () => pending.forEach(timer => clearTimeout(timer));
+    for (const t of tasks) {
+      if (t.status !== 'done') continue;
+      if (scheduledRemoveRef.current.has(t.id) || leavingRef.current.has(t.id)) continue;
+      if (t.done <= 0) {
+        scheduledRemoveRef.current.add(t.id);
+        startRemove(t.id);
+        continue;
+      }
+      scheduledRemoveRef.current.add(t.id);
+      const timer = setTimeout(() => {
+        autoRemoveTimersRef.current.delete(t.id);
+        startRemove(t.id);
+      }, AUTO_REMOVE_MS);
+      autoRemoveTimersRef.current.set(t.id, timer);
+    }
   }, [tasks, startRemove]);
 
   function handleRemoveTask(taskId: string) {
@@ -145,18 +183,19 @@ export function TasksScreen() {
       ) : (
         <div className="tasks-stack">
           {tasks.map(task => {
-            const statusIcon = STATUS_ICON[task.status];
             return (
               <div
-                className={`task-tile${leaving.has(task.id) ? ' is-leaving' : ''}`}
+                className="task-tile"
                 key={task.id}
+                ref={el => {
+                  if (el) {
+                    tileRefs.current.set(task.id, el);
+                  } else {
+                    tileRefs.current.delete(task.id);
+                  }
+                }}
               >
-                <div className={`task-head${statusIcon ? ' has-icon' : ''}`}>
-                  {statusIcon ? (
-                    <span className={`task-status-icon is-${task.status}`}>
-                      <Icon name={statusIcon} size={16} />
-                    </span>
-                  ) : null}
+                <div className="task-head">
                   <span className={`task-title${hasJapanese(task.title) ? ' is-ja' : ''}`}>{task.title}</span>
                   <span className={`task-badge is-${task.status}`}>
                     {BADGE_TEXT[task.status]}

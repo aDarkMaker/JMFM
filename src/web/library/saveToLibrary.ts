@@ -2,6 +2,7 @@ import {CDN_DOMAINS, REQUEST} from '../../core/constants';
 import {HttpClient} from '../../core/net';
 import {DownloadRuntime} from '../../core/download';
 import {useLibraryStore} from '../stores/library';
+import {preloadCovers} from './coverCache';
 import {clearImageDocCache, loadImageDocMeta} from '../reader/image-doc';
 
 export interface AlbumInfo {
@@ -15,11 +16,10 @@ export async function saveToLibrary(
   albumId: number,
   info: AlbumInfo,
   pageCount: number,
-  pdfPath: string,
+  albumDir: string,
   http: HttpClient,
   runtime: DownloadRuntime,
 ): Promise<void> {
-  const albumDir = pdfPath.slice(0, pdfPath.lastIndexOf('/'));
   let coverPath: string | undefined;
   try {
     for (const domain of CDN_DOMAINS) {
@@ -45,10 +45,11 @@ export async function saveToLibrary(
     tags: info.tags,
     chapterCount: info.chapters,
     pageCount,
-    filePath: pdfPath,
+    filePath: albumDir,
     pagesDir: `${albumDir}/pages`,
     coverPath,
   });
+  void preloadCovers([coverPath]);
   const pagesDir = `${albumDir}/pages`;
   clearImageDocCache(pagesDir);
   void loadImageDocMeta(pagesDir).catch(() => undefined);

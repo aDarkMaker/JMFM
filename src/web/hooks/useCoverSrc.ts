@@ -1,32 +1,35 @@
 import {useEffect, useState} from 'react';
-import {Capacitor} from '@capacitor/core';
-import {Directory, Filesystem} from '@capacitor/filesystem';
+import {peekCoverSrc, resolveCoverSrc} from '../library/coverCache';
 
 export function useCoverSrc(coverPath?: string): string | null {
-  const [src, setSrc] = useState<string | null>(null);
+  const [src, setSrc] = useState<string | null>(() =>
+    coverPath ? peekCoverSrc(coverPath) : null,
+  );
+
   useEffect(() => {
     let alive = true;
-    setSrc(null);
     if (!coverPath) {
+      setSrc(null);
       return;
     }
-    if (/^(https?:|blob:|data:)/.test(coverPath)) {
-      setSrc(coverPath);
+
+    const cached = peekCoverSrc(coverPath);
+    if (cached) {
+      setSrc(cached);
       return;
     }
-    if (!Capacitor.isNativePlatform()) {
-      return;
-    }
-    Filesystem.getUri({path: coverPath, directory: Directory.Documents})
-      .then(r => {
-        if (alive) {
-          setSrc(Capacitor.convertFileSrc(r.uri));
-        }
-      })
-      .catch(() => undefined);
+
+    setSrc(null);
+    void resolveCoverSrc(coverPath).then(next => {
+      if (alive) {
+        setSrc(next);
+      }
+    });
+
     return () => {
       alive = false;
     };
   }, [coverPath]);
+
   return src;
 }
