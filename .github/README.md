@@ -29,9 +29,11 @@
 
 ## 下载
 
-[![GitHub Releases](https://img.shields.io/github/v/release/aDarkMaker/JMFM?style=for-the-badge&label=Download&color=success)](https://github.com/aDarkMaker/JMFM/releases)
+[![Download APK](https://img.shields.io/badge/Download-JMFM.apk-success?style=for-the-badge&logo=android&logoColor=white)](https://github.com/aDarkMaker/JMFM/releases/latest/download/JMFM.apk)
 
-从 [Releases](https://github.com/aDarkMaker/JMFM/releases) 获取最新 APK，安装后即可使用。
+每次推送到 `main`（应用相关改动）会自动打包，并更新 [Latest Release](https://github.com/aDarkMaker/JMFM/releases/latest) 中的 **JMFM.apk**。
+
+点击上方按钮，或打开 [Releases](https://github.com/aDarkMaker/JMFM/releases/latest) 下载安装即可。
 
 ## 快速开始
 

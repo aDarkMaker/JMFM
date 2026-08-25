@@ -37,6 +37,7 @@ bunx cap run android     # build + install + launch (device/emulator)
 bash scripts/dev-android.sh   # one-shot dev: build → sync → run (device first)
 bun run apk              # one-shot debug APK → dist-apk/jmfmobile-debug.apk
 bun run apk:release      # one-shot release APK → dist-apk/jmfmobile-release.apk
+# pushes to main (app changes) auto-update GitHub Releases JMFM.apk
 bun run test             # bun test unit tests
 bun run typecheck
 bun run lint
