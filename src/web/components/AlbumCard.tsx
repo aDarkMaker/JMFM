@@ -12,6 +12,7 @@ export interface AlbumCardData {
   pageCount?: number;
   coverColor?: string;
   coverPath?: string;
+  filePath?: string;
   favorite?: boolean;
 }
 
@@ -40,7 +41,7 @@ export const AlbumCard = memo(function AlbumCard({
   onDismiss,
   downloading,
 }: AlbumCardProps) {
-  const coverSrc = useCoverSrc(album.coverPath);
+  const coverSrc = useCoverSrc(album.coverPath, album.filePath);
   const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {

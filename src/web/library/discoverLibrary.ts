@@ -7,7 +7,7 @@ import {safFileExists, safListDirectory, safReadTextFile} from './safStorage';
 const META_FILE = '.jmf-meta.json';
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 /** Offset so locally-hashed ids never collide with real API album ids. */
-const LOCAL_ID_OFFSET = 1_000_000_000;
+export const LOCAL_ID_OFFSET = 1_000_000_000;
 
 export interface LocalAlbumMeta {
   albumId?: number;
@@ -105,10 +105,67 @@ export function mergeDiscovered(
 
 /**
  * Deduplicate persisted items after discovery: a single comic may exist under
- * multiple albumIds (different pagesDir hashes) after path migration. Keeps the
- * first item and prefers one with a coverPath.
+ * multiple albumIds (different pagesDir hashes) after path migration.
  */
+export function mergeLibraryDuplicates(
+  target: LibraryItem,
+  incoming: LibraryItem,
+  downloadPath: string
+): LibraryItem {
+  const merged: LibraryItem = {...target};
+
+  if (incoming.albumId < LOCAL_ID_OFFSET && target.albumId >= LOCAL_ID_OFFSET) {
+    merged.albumId = incoming.albumId;
+  } else if (
+    incoming.albumId < LOCAL_ID_OFFSET &&
+    target.albumId < LOCAL_ID_OFFSET &&
+    incoming.albumId !== target.albumId
+  ) {
+    merged.albumId = incoming.albumId;
+  }
+
+  if ((!merged.tags || merged.tags.length === 0) && incoming.tags?.length) {
+    merged.tags = incoming.tags;
+  }
+  if (!merged.author && incoming.author) {
+    merged.author = incoming.author;
+  }
+  if ((!merged.pageCount || merged.pageCount <= 0) && incoming.pageCount) {
+    merged.pageCount = incoming.pageCount;
+  }
+  if (incoming.coverPath && !merged.coverPath) {
+    merged.coverPath = incoming.coverPath;
+  }
+
+  const preferPath = (a?: string, b?: string): string | undefined => {
+    if (!a) return b;
+    if (!b) return a;
+    if (a.startsWith(`${downloadPath}/`) || a === downloadPath) return a;
+    if (b.startsWith(`${downloadPath}/`) || b === downloadPath) return b;
+    return a;
+  };
+  merged.filePath = preferPath(merged.filePath, incoming.filePath) ?? merged.filePath;
+  merged.pagesDir = preferPath(merged.pagesDir, incoming.pagesDir) ?? merged.pagesDir;
+
+  return merged;
+}
+
+function dedupeSortScore(item: LibraryItem, downloadPath: string): number {
+  let score = 0;
+  if (item.albumId < LOCAL_ID_OFFSET) score += 1000;
+  if (item.coverPath) score += 100;
+  if (item.pagesDir?.startsWith(`${downloadPath}/`) || item.filePath?.startsWith(`${downloadPath}/`)) {
+    score += 50;
+  }
+  if (item.tags?.length) score += 10;
+  if (item.author) score += 5;
+  return score;
+}
+
 export function dedupeLibraryItems(items: LibraryItem[], downloadPath: string): LibraryItem[] {
+  const sorted = [...items].sort(
+    (a, b) => dedupeSortScore(b, downloadPath) - dedupeSortScore(a, downloadPath)
+  );
   const byPagesDir = new Map<string, LibraryItem>();
   const byRealId = new Map<number, LibraryItem>();
   const byRelKey = new Map<string, LibraryItem>();
@@ -116,20 +173,20 @@ export function dedupeLibraryItems(items: LibraryItem[], downloadPath: string): 
   const result: LibraryItem[] = [];
 
   const mergeInto = (target: LibraryItem, incoming: LibraryItem): void => {
-    if (incoming.coverPath && !target.coverPath) {
-      const idx = result.indexOf(target);
-      if (idx >= 0) {
-        const fixed = {...target, coverPath: incoming.coverPath};
-        result[idx] = fixed;
-        const key = fixed.pagesDir ?? fixed.filePath;
-        if (key) byRelKey.set(albumRelativeKey(downloadPath, key), fixed);
-        const normalizedTitle = fixed.title.trim().toLowerCase();
-        if (normalizedTitle) byTitle.set(normalizedTitle, fixed);
-      }
+    const merged = mergeLibraryDuplicates(target, incoming, downloadPath);
+    const idx = result.indexOf(target);
+    if (idx >= 0) {
+      result[idx] = merged;
+      if (merged.pagesDir) byPagesDir.set(merged.pagesDir, merged);
+      if (merged.albumId < LOCAL_ID_OFFSET) byRealId.set(merged.albumId, merged);
+      const key = merged.pagesDir ?? merged.filePath;
+      if (key) byRelKey.set(albumRelativeKey(downloadPath, key), merged);
+      const normalizedTitle = merged.title.trim().toLowerCase();
+      if (normalizedTitle) byTitle.set(normalizedTitle, merged);
     }
   };
 
-  for (const item of items) {
+  for (const item of sorted) {
     if (item.pagesDir && byPagesDir.has(item.pagesDir)) continue;
     if (item.albumId > 0 && item.albumId < LOCAL_ID_OFFSET && byRealId.has(item.albumId)) {
       continue;
@@ -164,6 +221,7 @@ export function dedupeLibraryItems(items: LibraryItem[], downloadPath: string): 
 
 export interface LibraryScanner {
   listDirs(path: string): Promise<string[]>;
+  listFiles(path: string): Promise<string[]>;
   listImages(path: string): Promise<string[]>;
   readMeta(path: string): Promise<LocalAlbumMeta | null>;
   fileExists(path: string): Promise<boolean>;
@@ -176,6 +234,15 @@ function safScanner(treeUri: string, downloadPath: string): LibraryScanner {
         const rel = toSafRelativePath(path, downloadPath);
         const entries = await safListDirectory(treeUri, rel);
         return entries.filter((e) => e.type === 'directory').map((e) => e.name);
+      } catch {
+        return [];
+      }
+    },
+    async listFiles(path) {
+      try {
+        const rel = toSafRelativePath(path, downloadPath);
+        const entries = await safListDirectory(treeUri, rel);
+        return entries.filter((e) => e.type === 'file').map((e) => e.name);
       } catch {
         return [];
       }
@@ -217,6 +284,14 @@ function nativeScanner(): LibraryScanner {
       try {
         const r = await Filesystem.readdir({path, directory: Directory.Documents});
         return r.files.filter((f) => f.type !== 'file').map((f) => f.name);
+      } catch {
+        return [];
+      }
+    },
+    async listFiles(path) {
+      try {
+        const r = await Filesystem.readdir({path, directory: Directory.Documents});
+        return r.files.filter((f) => f.type !== 'directory').map((f) => f.name);
       } catch {
         return [];
       }
@@ -298,12 +373,16 @@ async function discoverUnderBase(
   return found;
 }
 
-/** Prefer the canonical cover.jpg in the album dir; fall back to meta path only when it still exists. */
+/** Prefer cover.jpg listed in the album dir; fall back to meta path when it still exists. */
 async function resolveCoverPath(
   albumDir: string,
   metaCover: string | undefined,
   scanner: LibraryScanner
 ): Promise<string | undefined> {
+  const files = await scanner.listFiles(albumDir);
+  if (files.includes('cover.jpg')) {
+    return `${albumDir}/cover.jpg`;
+  }
   const canonical = `${albumDir}/cover.jpg`;
   if (await scanner.fileExists(canonical)) {
     return canonical;
@@ -312,6 +391,66 @@ async function resolveCoverPath(
     return metaCover;
   }
   return undefined;
+}
+
+/** Backfill cover.jpg for persisted items that were skipped during discovery. */
+export async function backfillCoverPaths(
+  items: LibraryItem[],
+  downloadPath: string,
+  scanner?: LibraryScanner,
+  downloadTreeUri?: string
+): Promise<{items: LibraryItem[]; changed: boolean}> {
+  const effectiveScanner =
+    scanner ?? (downloadTreeUri ? safScanner(downloadTreeUri, downloadPath) : nativeScanner());
+  let changed = false;
+  const result: LibraryItem[] = [];
+  for (const item of items) {
+    if (!item.filePath) {
+      result.push(item);
+      continue;
+    }
+    const canonical = `${item.filePath}/cover.jpg`;
+    const files = await effectiveScanner.listFiles(item.filePath);
+    if (files.includes('cover.jpg')) {
+      if (item.coverPath !== canonical) changed = true;
+      result.push({...item, coverPath: canonical});
+      continue;
+    }
+    if (item.coverPath && (await effectiveScanner.fileExists(item.coverPath))) {
+      result.push(item);
+      continue;
+    }
+    if (item.coverPath) changed = true;
+    result.push({...item, coverPath: undefined});
+  }
+  return {items: result, changed};
+}
+
+/** Patch hash albumIds from on-disk meta when available. */
+export async function repairAlbumIdsFromMeta(
+  items: LibraryItem[],
+  downloadPath: string,
+  scanner?: LibraryScanner,
+  downloadTreeUri?: string
+): Promise<{items: LibraryItem[]; changed: boolean}> {
+  const effectiveScanner =
+    scanner ?? (downloadTreeUri ? safScanner(downloadTreeUri, downloadPath) : nativeScanner());
+  let changed = false;
+  const result: LibraryItem[] = [];
+  for (const item of items) {
+    if (item.albumId < LOCAL_ID_OFFSET || !item.filePath) {
+      result.push(item);
+      continue;
+    }
+    const meta = await effectiveScanner.readMeta(item.filePath);
+    if (meta?.albumId && meta.albumId < LOCAL_ID_OFFSET && meta.albumId !== item.albumId) {
+      changed = true;
+      result.push({...item, albumId: meta.albumId});
+    } else {
+      result.push(item);
+    }
+  }
+  return {items: result, changed};
 }
 
 export async function discoverLibraryFromDisk(

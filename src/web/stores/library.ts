@@ -3,7 +3,13 @@ import {Capacitor} from '@capacitor/core';
 import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
 import {waitForSettingsLoaded, useSettingsStore} from './settings';
 import {resolveLibraryPaths} from '../library/resolveLibraryPaths';
-import {discoverLibraryFromDisk, dedupeLibraryItems, mergeDiscovered} from '../library/discoverLibrary';
+import {
+  discoverLibraryFromDisk,
+  dedupeLibraryItems,
+  mergeDiscovered,
+  backfillCoverPaths,
+  repairAlbumIdsFromMeta,
+} from '../library/discoverLibrary';
 
 export interface LibraryItem {
   albumId: number;
@@ -110,8 +116,27 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         if (discovered.length > 0) {
           items = mergeDiscovered(items, discovered, settings.downloadPath);
         }
+        const backfill = await backfillCoverPaths(
+          items,
+          settings.downloadPath,
+          undefined,
+          settings.downloadTreeUri
+        );
+        items = backfill.items;
+        const repaired = await repairAlbumIdsFromMeta(
+          items,
+          settings.downloadPath,
+          undefined,
+          settings.downloadTreeUri
+        );
+        items = repaired.items;
         items = dedupeLibraryItems(items, settings.downloadPath);
-        if (fixed.length > 0 || discovered.length > 0) {
+        if (
+          fixed.length > 0 ||
+          discovered.length > 0 ||
+          backfill.changed ||
+          repaired.changed
+        ) {
           try {
             await storage.set(KEY, JSON.stringify(items));
           } catch {

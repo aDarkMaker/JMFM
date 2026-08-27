@@ -82,6 +82,19 @@ export async function resolveItemPaths(
     ? (path: string) => defaultPathExists(path, downloadTreeUri, downloadPath)
     : exists;
   if (item.pagesDir && (await checkExists(item.pagesDir))) {
+    const albumDir = item.filePath || item.pagesDir.replace(/\/pages$/, '');
+    const canonical = `${albumDir}/cover.jpg`;
+    const coverOk = item.coverPath != null && (await checkExists(item.coverPath));
+    if (coverOk) {
+      return null;
+    }
+    const coverExists = await checkExists(canonical);
+    if (coverExists) {
+      return {...item, coverPath: canonical};
+    }
+    if (item.coverPath) {
+      return {...item, coverPath: undefined};
+    }
     return null;
   }
   const safe = safeTitle(item.title);

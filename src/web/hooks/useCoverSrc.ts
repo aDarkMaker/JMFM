@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {peekCoverSrc, resolveCoverSrc} from '../library/coverCache';
 
-export function useCoverSrc(coverPath?: string): string | null {
+export function useCoverSrc(coverPath?: string, albumDir?: string): string | null {
   const [src, setSrc] = useState<string | null>(() => (coverPath ? peekCoverSrc(coverPath) : null));
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export function useCoverSrc(coverPath?: string): string | null {
     }
 
     setSrc(null);
-    void resolveCoverSrc(coverPath).then((next) => {
+    void resolveCoverSrc(coverPath, albumDir).then((next) => {
       if (alive) {
         setSrc(next);
       }
@@ -27,7 +27,7 @@ export function useCoverSrc(coverPath?: string): string | null {
     return () => {
       alive = false;
     };
-  }, [coverPath]);
+  }, [coverPath, albumDir]);
 
   return src;
 }
