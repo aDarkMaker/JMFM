@@ -1,8 +1,5 @@
 import {useCallback, useState} from 'react';
-import {createRuntime} from '../../core/download/runtime';
-import {createHttpClient} from '../../core/net';
-import {ApiClient} from '../../core/api';
-import {scanLibraryRepair, repairItem, deleteAlbumDir} from '../library/repairLibrary';
+import {scanLibraryRepair} from '../library/repairLibrary';
 import {useLibraryStore, waitForLibraryLoaded} from '../stores/library';
 import {useSettingsStore} from '../stores/settings';
 import {useDownloadTask} from './useDownloadTask';
@@ -20,53 +17,20 @@ export type RepairOutcome =
       compliant: number;
     };
 
-interface RepairProgress {
-  done: number;
-  total: number;
-}
-
 export function useLibraryRepair(imageFormat: string) {
   const [repairing, setRepairing] = useState(false);
-  const [repairProgress, setRepairProgress] = useState<RepairProgress | null>(null);
-  const {enqueueAlbum} = useDownloadTask();
+  const {enqueueAlbumsForRepair} = useDownloadTask();
 
   const runRepair = useCallback(
     async (issues: {item: LibraryItem; defects: Defect[]}[]): Promise<RepairOutcome> => {
+      if (repairing) {
+        return {kind: 'none'};
+      }
       setRepairing(true);
       try {
-        const downloadPath = useSettingsStore.getState().settings.downloadPath;
-        const http = createHttpClient({});
-        const runtime = createRuntime();
-        const source = new ApiClient(http);
-        const deps = {
-          http,
-          source,
-          runtime,
-          downloadPath,
-          imageFormat: imageFormat === 'webp' ? ('webp' as const) : ('jpg' as const),
-        };
-        let repaired = 0;
-        let redownloaded = 0;
-        for (const {item} of issues) {
-          const result = await repairItem(deps, item);
-          if (result.kind === 'missing') {
-            await deleteAlbumDir(item);
-            enqueueAlbum(item.albumId, item.title);
-            redownloaded += 1;
-          } else {
-            useLibraryStore.getState().patchItem(item.albumId, {
-              title: item.title,
-              author: item.author,
-              tags: item.tags,
-              pageCount: item.pageCount,
-              coverPath: item.coverPath,
-            });
-            repaired += 1;
-          }
-          setRepairProgress({done: repaired + redownloaded, total: issues.length});
-        }
-        const message = `完成，补齐 ${repaired} 本`;
-        return {kind: 'alert', title: '修复文件', message};
+        const albums = issues.map(({item}) => ({albumId: item.albumId, title: item.title}));
+        const queued = enqueueAlbumsForRepair(albums);
+        return {kind: 'alert', title: '修复文件', message: `已将 ${queued} 本添加到下载队列`};
       } catch (err) {
         return {
           kind: 'alert',
@@ -75,10 +39,9 @@ export function useLibraryRepair(imageFormat: string) {
         };
       } finally {
         setRepairing(false);
-        setRepairProgress(null);
       }
     },
-    [enqueueAlbum, imageFormat]
+    [enqueueAlbumsForRepair, repairing]
   );
 
   const handleRepair = useCallback(
@@ -137,11 +100,10 @@ export function useLibraryRepair(imageFormat: string) {
         };
       } finally {
         setRepairing(false);
-        setRepairProgress(null);
       }
     },
     [repairing, imageFormat]
   );
 
-  return {repairing, repairProgress, runRepair, handleRepair};
+  return {repairing, runRepair, handleRepair};
 }

@@ -123,5 +123,47 @@ export function useDownloadTask() {
     [startDownload]
   );
 
-  return {startDownload, cancel, enqueueAlbum};
+  /** Re-queue albums for repair: clears finished tasks, batch-adds, then starts downloads. */
+  const enqueueAlbumsForRepair = useCallback(
+    (albums: {albumId: number; title: string}[]): number => {
+      const unique = new Map<number, string>();
+      for (const album of albums) {
+        unique.set(album.albumId, album.title);
+      }
+      const entries = [...unique.entries()].map(([albumId, title]) => ({albumId, title}));
+      if (entries.length === 0) {
+        return 0;
+      }
+
+      const store = useDownloadStore.getState();
+      const albumIds = entries.map((e) => e.albumId);
+      for (const task of store.tasks) {
+        if (!albumIds.includes(task.albumId)) continue;
+        if (task.status === 'running' || task.status === 'pending') {
+          continue;
+        }
+        task.controller?.cancel();
+        store.remove(task.id);
+      }
+
+      const fresh = entries.map((e) => ({id: uid(), albumId: e.albumId, title: e.title}));
+      store.addBatch(fresh);
+
+      let queued = 0;
+      for (const {albumId} of entries) {
+        const task = useDownloadStore.getState().tasks.find((t) => t.albumId === albumId);
+        if (!task || task.status === 'running') {
+          continue;
+        }
+        if (task.status === 'pending') {
+          startDownload(task.id);
+          queued += 1;
+        }
+      }
+      return queued;
+    },
+    [startDownload]
+  );
+
+  return {startDownload, cancel, enqueueAlbum, enqueueAlbumsForRepair};
 }

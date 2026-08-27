@@ -32,7 +32,7 @@ export function SettingsScreen() {
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
   const libraryItems = useLibraryStore((s) => s.items);
-  const {repairing, repairProgress, runRepair, handleRepair} = useLibraryRepair(
+  const {repairing, runRepair, handleRepair} = useLibraryRepair(
     settings.imageFormat
   );
   const {
@@ -136,8 +136,8 @@ export function SettingsScreen() {
         setDialog({
           mode: 'confirm',
           title: '修复文件',
-          message: `共 ${outcome.total} 本，需修复 ${outcome.count} 本（已合规 ${outcome.compliant} 本），是否开始？`,
-          confirmLabel: '开始修复',
+          message: `将 ${outcome.count} 本添加到下载队列？`,
+          confirmLabel: '添加',
           payload: outcome.issues,
         });
         return;
@@ -323,8 +323,8 @@ export function SettingsScreen() {
             onRemove={handleRemoveFilterTag}
             hint={
               filterMode === 'blacklist'
-                ? '暂无黑名单标签，可从下方推荐快速添加'
-                : '暂无白名单标签，可从下方推荐快速添加'
+                ? '暂无黑名单标签'
+                : '暂无白名单标签'
             }
             placeholder={filterMode === 'blacklist' ? '添加黑名单标签' : '添加白名单标签'}
           />
@@ -334,13 +334,7 @@ export function SettingsScreen() {
           <ListTile
             icon="healing"
             title="修复文件"
-            subtitle={
-              repairing && repairProgress
-                ? `修复中 ${repairProgress.done}/${repairProgress.total}`
-                : repairing
-                  ? '扫描中…'
-                  : '检查并补齐缺失的页面与封面'
-            }
+            subtitle={repairing ? '扫描中…' : '检查并补齐缺失的页面与封面'}
             onClick={() => void handleRepairClick()}
           />
           <ListTile
