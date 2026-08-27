@@ -1,9 +1,11 @@
 package com.jmfmobile;
 
+import android.content.ContentResolver;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.DocumentsContract;
 import androidx.annotation.Nullable;
-import androidx.documentfile.provider.DocumentFile;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -47,21 +49,32 @@ public class SafStoragePlugin extends Plugin {
             return;
         }
         String relativePath = call.getString("relativePath", "");
-        DocumentFile dir = resolveDocumentFile(treeUriStr, relativePath);
-        if (dir == null || !dir.isDirectory()) {
-            JSObject result = new JSObject();
-            result.put("entries", new JSArray());
-            call.resolve(result);
-            return;
-        }
-        DocumentFile[] children = dir.listFiles();
+        Uri treeUri = Uri.parse(treeUriStr);
+        String targetDocId = docIdFor(treeUri, relativePath);
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, targetDocId);
         JSArray entries = new JSArray();
-        if (children != null) {
-            for (DocumentFile child : children) {
-                JSObject entry = new JSObject();
-                entry.put("name", child.getName());
-                entry.put("type", child.isDirectory() ? "directory" : "file");
-                entries.put(entry);
+        try (Cursor cursor = getContext()
+            .getContentResolver()
+            .query(
+                childrenUri,
+                new String[] {
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE,
+                },
+                null,
+                null,
+                null)) {
+            if (cursor != null) {
+                int nameIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME);
+                int mimeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
+                while (cursor.moveToNext()) {
+                    String name = cursor.getString(nameIdx);
+                    String mime = cursor.getString(mimeIdx);
+                    JSObject entry = new JSObject();
+                    entry.put("name", name);
+                    entry.put("type", DocumentsContract.Document.MIME_TYPE_DIR.equals(mime) ? "directory" : "file");
+                    entries.put(entry);
+                }
             }
         }
         JSObject result = new JSObject();
@@ -77,12 +90,9 @@ public class SafStoragePlugin extends Plugin {
             call.reject("treeUri and relativePath required");
             return;
         }
-        DocumentFile file = resolveDocumentFile(treeUriStr, relativePath);
-        if (file == null || !file.isFile()) {
-            call.reject("file not found");
-            return;
-        }
-        try (InputStream in = getContext().getContentResolver().openInputStream(file.getUri());
+        Uri treeUri = Uri.parse(treeUriStr);
+        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docIdFor(treeUri, relativePath));
+        try (InputStream in = getContext().getContentResolver().openInputStream(docUri);
             BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             char[] buffer = new char[4096];
@@ -106,36 +116,45 @@ public class SafStoragePlugin extends Plugin {
             call.reject("treeUri and relativePath required");
             return;
         }
-        DocumentFile file = resolveDocumentFile(treeUriStr, relativePath);
-        if (file == null) {
+        Uri treeUri = Uri.parse(treeUriStr);
+        String targetDocId = docIdFor(treeUri, relativePath);
+        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, targetDocId);
+        if (!documentExists(treeUri, targetDocId)) {
             call.reject("entry not found");
             return;
         }
         JSObject result = new JSObject();
-        result.put("uri", file.getUri().toString());
+        result.put("uri", docUri.toString());
         call.resolve(result);
     }
 
-    @Nullable
-    private DocumentFile resolveDocumentFile(String treeUriStr, String relativePath) {
-        Uri treeUri = Uri.parse(treeUriStr);
-        DocumentFile current = DocumentFile.fromTreeUri(getContext(), treeUri);
-        if (current == null) {
-            return null;
+    private boolean documentExists(Uri treeUri, String docId) {
+        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId);
+        try (Cursor cursor = getContext()
+            .getContentResolver()
+            .query(
+                docUri,
+                new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID},
+                null,
+                null,
+                null)) {
+            return cursor != null && cursor.getCount() > 0;
+        } catch (Exception ex) {
+            return false;
         }
+    }
+
+    private String docIdFor(Uri treeUri, String relativePath) {
+        String base = DocumentsContract.getTreeDocumentId(treeUri);
         if (relativePath == null || relativePath.isEmpty()) {
-            return current;
+            return base;
         }
+        StringBuilder sb = new StringBuilder(base);
         for (String segment : relativePath.split("/")) {
-            if (segment.isEmpty()) {
-                continue;
+            if (!segment.isEmpty()) {
+                sb.append('/').append(segment);
             }
-            DocumentFile next = current.findFile(segment);
-            if (next == null) {
-                return null;
-            }
-            current = next;
         }
-        return current;
+        return sb.toString();
     }
 }
