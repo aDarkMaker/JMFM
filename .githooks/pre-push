@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+remote="${1:-}"
+url="${2:-}"
+
+if [[ "$remote" != "origin" ]]; then
+  exit 0
+fi
+
+if [[ ! -t 0 ]]; then
+  exit 0
+fi
+
+pushing_main=false
+while read -r local_ref local_oid remote_ref remote_oid; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    pushing_main=true
+    break
+  fi
+done
+
+if [[ "$pushing_main" != "true" ]]; then
+  exit 0
+fi
+
+echo ""
+echo "JMFM push to main — select version bump:"
+echo "  1) 小版本 (minor)  e.g. 1.0.0 → 1.1.0"
+echo "  2) 大版本 (major)  e.g. 1.1.0 → 2.0.0"
+echo "  3) 跳过 (no bump)"
+echo ""
+printf "Choice [1-3]: "
+read -r choice
+
+case "$choice" in
+  1)
+    bun scripts/bump-version.ts minor
+    git add version.json package.json
+    git commit -m "chore: bump version to $(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+    ;;
+  2)
+    bun scripts/bump-version.ts major
+    git add version.json package.json
+    git commit -m "chore: bump version to $(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+    ;;
+  3|*)
+    echo "Skipping version bump."
+    ;;
+esac
+
+exit 0
