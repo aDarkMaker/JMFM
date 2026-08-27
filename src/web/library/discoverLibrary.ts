@@ -453,6 +453,46 @@ export async function repairAlbumIdsFromMeta(
   return {items: result, changed};
 }
 
+export interface TitleSearchResolver {
+  searchAlbums(query: string, page?: number): Promise<{albums: {albumId: number; name: string}[]}>;
+}
+
+const TITLE_SEARCH_DELAY_MS = 600;
+
+/** Resolve hash albumIds by exact title search against the API. */
+export async function repairAlbumIdsFromTitle(
+  items: LibraryItem[],
+  resolver: TitleSearchResolver
+): Promise<{items: LibraryItem[]; changed: boolean}> {
+  let changed = false;
+  const result: LibraryItem[] = [];
+  for (const item of items) {
+    if (item.albumId < LOCAL_ID_OFFSET || !item.filePath) {
+      result.push(item);
+      continue;
+    }
+    const title = item.title.trim();
+    if (!title) {
+      result.push(item);
+      continue;
+    }
+    try {
+      const {albums} = await resolver.searchAlbums(title, 1);
+      const hit = albums.find((a) => a.name.trim() === title);
+      if (hit && hit.albumId < LOCAL_ID_OFFSET && hit.albumId !== item.albumId) {
+        changed = true;
+        result.push({...item, albumId: hit.albumId});
+      } else {
+        result.push(item);
+      }
+    } catch {
+      result.push(item);
+    }
+    await new Promise((r) => setTimeout(r, TITLE_SEARCH_DELAY_MS));
+  }
+  return {items: result, changed};
+}
+
 export async function discoverLibraryFromDisk(
   items: LibraryItem[],
   downloadPath: string,

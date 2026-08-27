@@ -69,12 +69,20 @@ export async function saveToLibrary(
   void loadImageDocMeta(pagesDir).catch(() => undefined);
 }
 
-function persistLocalMeta(
+export async function writeLocalAlbumMeta(
   runtime: DownloadRuntime,
   albumDir: string,
   meta: LocalAlbumMeta
 ): Promise<void> {
   const text = JSON.stringify(meta);
   const bytes = new TextEncoder().encode(text);
-  return runtime.fs.writeFile(`${albumDir}/${META_FILE}`, bytes).catch(() => undefined);
+  await runtime.fs.writeFile(`${albumDir}/${META_FILE}`, bytes).catch(() => undefined);
+}
+
+function persistLocalMeta(
+  runtime: DownloadRuntime,
+  albumDir: string,
+  meta: LocalAlbumMeta
+): Promise<void> {
+  return writeLocalAlbumMeta(runtime, albumDir, meta);
 }

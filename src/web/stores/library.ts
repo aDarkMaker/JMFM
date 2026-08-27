@@ -9,7 +9,13 @@ import {
   mergeDiscovered,
   backfillCoverPaths,
   repairAlbumIdsFromMeta,
+  repairAlbumIdsFromTitle,
+  LOCAL_ID_OFFSET,
 } from '../library/discoverLibrary';
+import {ApiClient} from '../../core/api';
+import {createHttpClient} from '../../core/net';
+import {writeLocalAlbumMeta} from '../library/saveToLibrary';
+import {createRuntime} from '../../core/download/runtime';
 
 export interface LibraryItem {
   albumId: number;
@@ -79,6 +85,49 @@ interface LibraryState {
 
 let loadPromise: Promise<void> | null = null;
 
+async function repairTitleIdsInBackground(items: LibraryItem[]): Promise<void> {
+  const hashItems = items.filter((i) => i.albumId >= LOCAL_ID_OFFSET && i.filePath);
+  if (hashItems.length === 0) {
+    return;
+  }
+  const {settings} = useSettingsStore.getState();
+  const http = createHttpClient({
+    ...(settings.proxyEnabled && settings.proxy ? {proxy: settings.proxy} : {}),
+    maxRetries: settings.retryTimes,
+  });
+  const api = new ApiClient(http);
+  const runtime = createRuntime();
+  const repaired = await repairAlbumIdsFromTitle(items, api);
+  if (!repaired.changed) {
+    return;
+  }
+  const next = dedupeLibraryItems(repaired.items, settings.downloadPath);
+  for (const item of next) {
+    if (item.albumId >= LOCAL_ID_OFFSET || !item.filePath) {
+      continue;
+    }
+    const before = hashItems.find((h) => h.filePath === item.filePath);
+    if (!before || before.albumId === item.albumId) {
+      continue;
+    }
+    await writeLocalAlbumMeta(runtime, item.filePath, {
+      albumId: item.albumId,
+      title: item.title,
+      author: item.author,
+      tags: item.tags,
+      chapterCount: item.chapterCount,
+      pageCount: item.pageCount,
+      coverPath: item.coverPath,
+    });
+  }
+  useLibraryStore.setState({items: next});
+  try {
+    await storage.set(KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   items: [],
   loaded: false,
@@ -145,6 +194,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         }
       }
       set({items, loaded: true});
+      if (Capacitor.isNativePlatform()) {
+        void repairTitleIdsInBackground(items);
+      }
     })().finally(() => {
       loadPromise = null;
     });
