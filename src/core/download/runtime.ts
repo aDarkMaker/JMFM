@@ -85,17 +85,6 @@ export function createNativeRuntime(): DownloadRuntime {
         return false;
       }
     },
-    pickDirectory: async () => {
-      // Native directory picker requires an external plugin; fall back to Documents
-      return 'Documents';
-    },
-    createDirectory: async path => {
-      await Filesystem.mkdir({
-        path,
-        directory: Directory.Documents,
-        recursive: true,
-      }).catch(() => undefined);
-    },
   };
   return {
     fs,
@@ -107,7 +96,6 @@ export function createNativeRuntime(): DownloadRuntime {
 
 export function createWebRuntime(): DownloadRuntime {
   const mem = new Map<string, Uint8Array>();
-  let pickedDirHandle: FileSystemDirectoryHandle | null = null;
   const fs: FileSystem = {
     mkdir: async () => undefined,
     writeFile: async (path, data) => {
@@ -135,30 +123,6 @@ export function createWebRuntime(): DownloadRuntime {
       mem.delete(path);
     },
     exists: async path => mem.has(path),
-    pickDirectory: async () => {
-      if (!('showDirectoryPicker' in window)) {
-        return null;
-      }
-      try {
-        const picker = (window as unknown as {showDirectoryPicker?: (opts: {mode: string}) => Promise<FileSystemDirectoryHandle>}).showDirectoryPicker;
-        if (!picker) return null;
-        const handle = await picker({mode: 'readwrite'});
-        pickedDirHandle = handle;
-        return handle.name;
-      } catch {
-        return null;
-      }
-    },
-    createDirectory: async path => {
-      if (!pickedDirHandle) {
-        return;
-      }
-      const parts = path.split('/').filter(Boolean);
-      let current = pickedDirHandle;
-      for (const part of parts) {
-        current = await current.getDirectoryHandle(part, {create: true});
-      }
-    },
   };
   return {
     fs,

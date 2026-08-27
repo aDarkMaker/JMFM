@@ -2,8 +2,6 @@ import {
   AlbumDetail,
   ImageItem,
   PhotoDetail,
-  buildFallbackImageUrl,
-  createImageItem,
 } from '../model';
 import {REQUEST} from '../constants';
 import {HttpClient} from '../net';
@@ -221,21 +219,4 @@ export class DownloadService {
     }
     return null;
   }
-}
-
-export function buildImageItemsFromPhoto(photo: PhotoDetail): ImageItem[] {
-  if (photo.pageArr.length > 0) {
-    return photo.pageArr.map((name, i) => createImageItem(photo, name, i));
-  }
-  return Array.from({length: photo.totalPics}, (_, i) => {
-    const fileName = String(i + 1).padStart(5, '0');
-    return {
-      aid: photo.photoId,
-      scrambleId: photo.scrambleId,
-      url: buildFallbackImageUrl(photo.photoId, i + 1),
-      fileName,
-      suffix: 'jpg',
-      index: i,
-    };
-  });
 }

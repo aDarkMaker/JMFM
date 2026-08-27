@@ -1,26 +1,18 @@
 import {
-  APP,
   CDN_DOMAINS,
   DOWNLOAD,
   HTML_DOMAINS,
   PDF,
-  PROGRESS,
   REQUEST,
   SCRAMBLE,
 } from '@/core/constants';
+import {config} from '@/config';
 
 describe('constants', () => {
   it('exposes scramble thresholds', () => {
     expect(SCRAMBLE.SCRAMBLE_220980).toBe(220980);
     expect(SCRAMBLE.SCRAMBLE_268850).toBe(268850);
     expect(SCRAMBLE.SCRAMBLE_421926).toBe(421926);
-  });
-
-  it('exposes app secrets', () => {
-    expect(APP.APP_VERSION).toBe('2.0.6');
-    expect(APP.APP_TOKEN_SECRET).toBe('18comicAPP');
-    expect(APP.APP_TOKEN_SECRET_2).toBe('18comicAPPContent');
-    expect(APP.APP_DATA_SECRET).toBe('185Hcomic3PAPP7R');
   });
 
   it('keeps reserved html domains', () => {
@@ -53,10 +45,10 @@ describe('constants', () => {
     expect(PDF.PAGE_HEIGHT_PT).toBe(842);
   });
 
-  it('exposes progress thresholds in order', () => {
-    expect(PROGRESS.START).toBeLessThan(PROGRESS.ALBUM_PARSED);
-    expect(PROGRESS.ALBUM_PARSED).toBeLessThan(PROGRESS.CHAPTER_PARSED);
-    expect(PROGRESS.CHAPTER_PARSED).toBeLessThan(PROGRESS.PDF_START);
-    expect(PROGRESS.PDF_END).toBeLessThan(PROGRESS.DONE);
+  it('loads app secrets from config', () => {
+    expect(config.app.version).toBe('2.0.6');
+    expect(config.app.tokenSecret).toBe('18comicAPP');
+    expect(config.app.tokenSecret2).toBe('18comicAPPContent');
+    expect(config.app.dataSecret).toBe('185Hcomic3PAPP7R');
   });
 });

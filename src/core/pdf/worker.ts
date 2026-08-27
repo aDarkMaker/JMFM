@@ -1,7 +1,7 @@
 import {buildFileName} from './names';
 import {buildPdfPages} from './index';
 import type {PageSize} from './layout';
-import type {FileSystem} from '../download/types';
+import type {FileSystem} from '../fs/types';
 
 interface ReadyMsg {
   type: 'ready';

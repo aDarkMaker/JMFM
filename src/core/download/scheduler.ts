@@ -1,4 +1,4 @@
-export type ImageStrategy = 'raw' | 'decode' | 'reassemble';
+export type ImageStrategy = 'raw' | 'reassemble';
 
 export function decideImageStrategy(num: number, ext: string): ImageStrategy {
   const lower = ext.toLowerCase();

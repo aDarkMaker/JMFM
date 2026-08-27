@@ -6,6 +6,16 @@ export interface Episode {
   name: string;
 }
 
+export interface AlbumSummary {
+  albumId: number;
+  name: string;
+  author: string;
+  tags: string[];
+  category?: string;
+  updateAt?: number;
+  coverUrl?: string;
+}
+
 export interface AlbumDetail {
   albumId: number;
   name: string;
@@ -35,6 +45,15 @@ export interface ImageItem {
   fileName: string;
   suffix: string;
   index: number;
+}
+
+export type DecodeFormat = 'webp' | 'jpg';
+
+export interface DecodedImage {
+  width: number;
+  height: number;
+  bytes: Uint8Array;
+  ext: string;
 }
 
 export function buildImageUrl(photo: PhotoDetail, fileName: string): string {
