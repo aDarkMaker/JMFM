@@ -1,12 +1,13 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {FilePicker} from '@capawesome/capacitor-file-picker';
 import {useSettingsStore} from '../stores/settings';
 import {useLibraryStore, LibraryItem} from '../stores/library';
 import {parsePickedDirectory} from '../library/resolveLibraryPaths';
+import {suggestFilterTags} from '../library/filterTags';
 import {ListTile} from '../components/ListTile';
 import {SectionHeader} from '../components/SectionHeader';
 import {ConfirmDialog} from '../components/ConfirmDialog';
-import {isHardBlockedKeyword} from '../../core/model/blocklist';
+import {TagFilterPanel, FilterMode} from '../components/TagFilterPanel';
 import {useLibraryRepair, RepairOutcome} from '../hooks/useLibraryRepair';
 import {useAppUpdate} from '../hooks/useAppUpdate';
 import {ProgressBar} from '../components/ProgressBar';
@@ -42,8 +43,7 @@ export function SettingsScreen() {
   } = useAppUpdate();
 
   const [newDomain, setNewDomain] = useState('');
-  const [newTag, setNewTag] = useState('');
-  const [newWhitelistTag, setNewWhitelistTag] = useState('');
+  const [filterMode, setFilterMode] = useState<FilterMode>('blacklist');
   const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
@@ -81,35 +81,42 @@ export function SettingsScreen() {
     void update({domains: next});
   };
 
-  const handleAddTag = () => {
-    const value = newTag.trim();
-    if (!value) {
+  const handleAddFilterTag = (tag: string) => {
+    if (filterMode === 'blacklist') {
+      const blacklistTags = settings.blacklistTags.includes(tag)
+        ? settings.blacklistTags
+        : [...settings.blacklistTags, tag];
+      const whitelistTags = settings.whitelistTags.filter(
+        t => t.toLowerCase() !== tag.toLowerCase(),
+      );
+      void update({blacklistTags, whitelistTags});
       return;
     }
-    if (isHardBlockedKeyword(value)) {
-      setNewTag('');
-      return;
-    }
-    if (!settings.blacklistTags.includes(value)) {
-      void update({blacklistTags: [...settings.blacklistTags, value]});
-    }
-    setNewTag('');
+    const whitelistTags = settings.whitelistTags.includes(tag)
+      ? settings.whitelistTags
+      : [...settings.whitelistTags, tag];
+    const blacklistTags = settings.blacklistTags.filter(
+      t => t.toLowerCase() !== tag.toLowerCase(),
+    );
+    void update({blacklistTags, whitelistTags});
   };
 
-  const handleAddWhitelistTag = () => {
-    const value = newWhitelistTag.trim();
-    if (!value) {
+  const handleRemoveFilterTag = (tag: string) => {
+    if (filterMode === 'blacklist') {
+      void update({blacklistTags: settings.blacklistTags.filter(t => t !== tag)});
       return;
     }
-    if (isHardBlockedKeyword(value)) {
-      setNewWhitelistTag('');
-      return;
-    }
-    if (!settings.whitelistTags.includes(value)) {
-      void update({whitelistTags: [...settings.whitelistTags, value]});
-    }
-    setNewWhitelistTag('');
+    void update({whitelistTags: settings.whitelistTags.filter(t => t !== tag)});
   };
+
+  const suggestions = useMemo(
+    () =>
+      suggestFilterTags(
+        libraryItems,
+        filterMode === 'blacklist' ? settings.blacklistTags : settings.whitelistTags,
+      ),
+    [libraryItems, filterMode, settings.blacklistTags, settings.whitelistTags],
+  );
 
   const applyRepairOutcome = (outcome: RepairOutcome) => {
     switch (outcome.kind) {
@@ -292,73 +299,28 @@ export function SettingsScreen() {
           <span className="settings-hint">
             黑名单命中不会出现或被下载；白名单优先推荐
           </span>
-          <div className="domain-list">
-            {settings.blacklistTags.map((tag, index) => (
-              <div className="domain-item" key={index}>
-                <span className="tag-blacklist-chip">{tag}</span>
-                <button
-                  className="domain-remove"
-                  aria-label={`移除 ${tag}`}
-                  onClick={() => {
-                    const next = settings.blacklistTags.filter((_, i) => i !== index);
-                    void update({blacklistTags: next});
-                  }}>
-                  ×
-                </button>
-              </div>
-            ))}
-            <div className="domain-add">
-              <input
-                className="domain-input"
-                type="text"
-                placeholder="添加黑名单标签"
-                value={newTag}
-                onChange={e => setNewTag(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    handleAddTag();
-                  }
-                }}
-              />
-              <button className="domain-add-btn" onClick={handleAddTag}>
-                添加
-              </button>
-            </div>
-          </div>
-          <span className="settings-hint">白名单标签</span>
-          <div className="domain-list">
-            {settings.whitelistTags.map((tag, index) => (
-              <div className="domain-item" key={index}>
-                <span className="tag-whitelist-chip">{tag}</span>
-                <button
-                  className="domain-remove"
-                  aria-label={`移除 ${tag}`}
-                  onClick={() => {
-                    const next = settings.whitelistTags.filter((_, i) => i !== index);
-                    void update({whitelistTags: next});
-                  }}>
-                  ×
-                </button>
-              </div>
-            ))}
-            <div className="domain-add">
-              <input
-                className="domain-input"
-                type="text"
-                placeholder="添加白名单标签"
-                value={newWhitelistTag}
-                onChange={e => setNewWhitelistTag(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    handleAddWhitelistTag();
-                  }
-                }}
-              />
-              <button className="domain-add-btn" onClick={handleAddWhitelistTag}>
-                添加
-              </button>
-            </div>
-          </div>
+          <TagFilterPanel
+            mode={filterMode}
+            blacklistCount={settings.blacklistTags.length}
+            whitelistCount={settings.whitelistTags.length}
+            onModeChange={setFilterMode}
+            tags={
+              filterMode === 'blacklist'
+                ? settings.blacklistTags
+                : settings.whitelistTags
+            }
+            suggestions={suggestions}
+            onAdd={handleAddFilterTag}
+            onRemove={handleRemoveFilterTag}
+            hint={
+              filterMode === 'blacklist'
+                ? '暂无黑名单标签，可从下方推荐快速添加'
+                : '暂无白名单标签，可从下方推荐快速添加'
+            }
+            placeholder={
+              filterMode === 'blacklist' ? '添加黑名单标签' : '添加白名单标签'
+            }
+          />
         </div>
         <div className="settings-group">
           <span className="settings-group-title">通用</span>

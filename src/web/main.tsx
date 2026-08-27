@@ -13,6 +13,7 @@ import './styles/home.css';
 import './styles/library.css';
 import './styles/tasks.css';
 import './styles/settings.css';
+import './styles/tagFilter.css';
 import './styles/reader.css';
 import './styles/confirmDialog.css';
 
