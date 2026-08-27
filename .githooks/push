@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+real_push() {
+  git push "$@"
+}
+
+remote=""
+branch=""
+if [[ $# -gt 0 ]]; then
+  for arg in "$@"; do
+    case "$arg" in
+      origin) remote=origin ;;
+      main) branch=main ;;
+      HEAD) branch=main ;;
+    esac
+  done
+else
+  current="$(git branch --show-current)"
+  remote="$(git config "branch.$current.remote" 2>/dev/null || true)"
+  merge="$(git config "branch.$current.merge" 2>/dev/null || true)"
+  branch="${merge#refs/heads/}"
+fi
+
+if [[ "$remote" != "origin" || "$branch" != "main" ]]; then
+  exec git push "$@"
+fi
+
+prompt_tty=/dev/tty
+choice=""
+if [[ -w "$prompt_tty" ]] 2>/dev/null; then
+  {
+    echo ""
+    echo "JMFM push to main — select version bump:"
+    echo "  1) 小版本 (minor)  e.g. 1.0.0 → 1.1.0"
+    echo "  2) 大版本 (major)  e.g. 1.1.0 → 2.0.0"
+    echo "  3) 跳过 (no bump)"
+    echo ""
+    printf "Choice [1-3]: "
+  } > "$prompt_tty" 2>/dev/null && read -r choice < "$prompt_tty" 2>/dev/null || true
+fi
+if [[ -z "$choice" ]]; then
+  case "${JMFM_VERSION_BUMP:-skip}" in
+    minor) choice=1 ;;
+    major) choice=2 ;;
+    *) choice=3 ;;
+  esac
+fi
+
+case "$choice" in
+  1|2)
+    kind=$([[ "$choice" == "1" ]] && echo minor || echo major)
+    bun scripts/bump-version.ts "$kind"
+    git add version.json package.json
+    git commit -m "chore: bump version to $(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+    ;;
+  3|*)
+    echo "Skipping version bump."
+    ;;
+esac
+
+real_push "$@"
