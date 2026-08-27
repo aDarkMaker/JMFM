@@ -3,6 +3,7 @@ import {FilePicker} from '@capawesome/capacitor-file-picker';
 import {useSettingsStore} from '../stores/settings';
 import {useLibraryStore, LibraryItem} from '../stores/library';
 import {parsePickedDirectory} from '../library/resolveLibraryPaths';
+import {persistDownloadTreeUri} from '../library/safStorage';
 import {suggestFilterTags} from '../library/filterTags';
 import {ListTile} from '../components/ListTile';
 import {SectionHeader} from '../components/SectionHeader';
@@ -58,7 +59,12 @@ export function SettingsScreen() {
       if (!result?.path) {
         return;
       }
-      void update({downloadPath: parsePickedDirectory(result.path)});
+      await persistDownloadTreeUri(result.path);
+      await update({
+        downloadPath: parsePickedDirectory(result.path),
+        downloadTreeUri: result.path,
+      });
+      await useLibraryStore.getState().load();
     } catch (err) {
       console.error('Failed to pick directory:', err);
     }
@@ -241,6 +247,11 @@ export function SettingsScreen() {
             onClick={() => void handlePickDirectory()}
             onInputChange={v => void update({downloadPath: v})}
           />
+          {!settings.downloadTreeUri ? (
+            <span className="settings-hint">
+              选择解析&下载路径
+            </span>
+          ) : null}
         </div>
         <div className="settings-group">
           <span className="settings-group-title">网络</span>

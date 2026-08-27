@@ -96,15 +96,24 @@ export function useLibraryRepair(imageFormat: string) {
         items = useLibraryStore.getState().items;
       }
       if (items.length === 0) {
+        const {downloadTreeUri} = useSettingsStore.getState().settings;
+        if (!downloadTreeUri) {
+          return {
+            kind: 'alert',
+            title: '修复文件',
+            message: '漫画库为空。请在设置中重新选择下载目录，以导入已有漫画。',
+          };
+        }
         return {kind: 'alert', title: '修复文件', message: '漫画库为空，无需修复'};
       }
       setRepairing(true);
       try {
-        const downloadPath = useSettingsStore.getState().settings.downloadPath;
+        const {downloadPath, downloadTreeUri} = useSettingsStore.getState().settings;
         const {compliant, remapped, issues} = await scanLibraryRepair(
           items,
           imageFormat,
           downloadPath,
+          downloadTreeUri,
         );
         for (const item of remapped) {
           useLibraryStore.getState().patchItem(item.albumId, {

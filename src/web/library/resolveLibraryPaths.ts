@@ -1,5 +1,7 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {LibraryItem} from '../stores/library';
+import {toSafRelativePath} from './safPaths';
+import {safEntryExists} from './safStorage';
 
 export const LEGACY_PREFIXES = [
   'Documents/JMFDownloads',
@@ -13,7 +15,14 @@ export function safeTitle(title: string): string {
   return title.replace(/[/\\:*?"<>|]/g, '_');
 }
 
-async function defaultPathExists(path: string): Promise<boolean> {
+async function defaultPathExists(
+  path: string,
+  treeUri?: string,
+  downloadPath?: string,
+): Promise<boolean> {
+  if (treeUri && downloadPath) {
+    return safEntryExists(treeUri, toSafRelativePath(path, downloadPath));
+  }
   try {
     await Filesystem.stat({path, directory: Directory.Documents});
     return true;
@@ -67,20 +76,24 @@ export async function resolveItemPaths(
   item: LibraryItem,
   downloadPath: string,
   exists: (path: string) => Promise<boolean> = defaultPathExists,
+  downloadTreeUri?: string,
 ): Promise<LibraryItem | null> {
-  if (item.pagesDir && (await exists(item.pagesDir))) {
+  const checkExists = downloadTreeUri
+    ? (path: string) => defaultPathExists(path, downloadTreeUri, downloadPath)
+    : exists;
+  if (item.pagesDir && (await checkExists(item.pagesDir))) {
     return null;
   }
   const safe = safeTitle(item.title);
   const bases = [downloadPath, ...LEGACY_PREFIXES];
   for (const base of bases) {
     const pagesDir = `${base}/${safe}/pages`;
-    if (await exists(pagesDir)) {
+    if (await checkExists(pagesDir)) {
       const albumDir = `${base}/${safe}`;
       const newCover = `${albumDir}/cover.jpg`;
-      const coverExists = await exists(newCover);
+      const coverExists = await checkExists(newCover);
       const oldCoverOk =
-        item.coverPath != null && (await exists(item.coverPath));
+        item.coverPath != null && (await checkExists(item.coverPath));
       return {
         ...item,
         filePath: albumDir,
@@ -96,10 +109,11 @@ export async function resolveLibraryPaths(
   items: LibraryItem[],
   downloadPath: string,
   exists: (path: string) => Promise<boolean> = defaultPathExists,
+  downloadTreeUri?: string,
 ): Promise<LibraryItem[]> {
   const fixed: LibraryItem[] = [];
   for (const item of items) {
-    const resolved = await resolveItemPaths(item, downloadPath, exists);
+    const resolved = await resolveItemPaths(item, downloadPath, exists, downloadTreeUri);
     if (resolved) {
       fixed.push(resolved);
     }

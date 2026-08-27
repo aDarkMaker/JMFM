@@ -1,6 +1,8 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {LibraryItem} from '../stores/library';
 import {LEGACY_PREFIXES} from './resolveLibraryPaths';
+import {toSafRelativePath} from './safPaths';
+import {safListDirectory, safReadTextFile} from './safStorage';
 
 const META_FILE = '.jmf-meta.json';
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
@@ -81,6 +83,40 @@ export interface LibraryScanner {
   readMeta(path: string): Promise<LocalAlbumMeta | null>;
 }
 
+function safScanner(treeUri: string, downloadPath: string): LibraryScanner {
+  return {
+    async listDirs(path) {
+      try {
+        const rel = toSafRelativePath(path, downloadPath);
+        const entries = await safListDirectory(treeUri, rel);
+        return entries.filter(e => e.type === 'directory').map(e => e.name);
+      } catch {
+        return [];
+      }
+    },
+    async listImages(path) {
+      try {
+        const rel = toSafRelativePath(path, downloadPath);
+        const entries = await safListDirectory(treeUri, rel);
+        return entries
+          .filter(e => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)))
+          .map(e => e.name);
+      } catch {
+        return [];
+      }
+    },
+    async readMeta(path) {
+      try {
+        const rel = toSafRelativePath(`${path}/${META_FILE}`, downloadPath);
+        const raw = await safReadTextFile(treeUri, rel);
+        return parseLocalMeta(raw);
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
 function nativeScanner(): LibraryScanner {
   return {
     async listDirs(path) {
@@ -159,8 +195,12 @@ async function discoverUnderBase(
 export async function discoverLibraryFromDisk(
   items: LibraryItem[],
   downloadPath: string,
-  scanner: LibraryScanner = nativeScanner(),
+  scanner?: LibraryScanner,
+  downloadTreeUri?: string,
 ): Promise<LibraryItem[]> {
+  const effectiveScanner =
+    scanner ??
+    (downloadTreeUri ? safScanner(downloadTreeUri, downloadPath) : nativeScanner());
   const existingByDir = new Set(
     items.map(i => i.pagesDir).filter((p): p is string => Boolean(p)),
   );
@@ -174,7 +214,7 @@ export async function discoverLibraryFromDisk(
       base,
       existingByDir,
       existingByRealId,
-      scanner,
+      effectiveScanner,
     );
     for (const item of discovered) {
       found.push(item);

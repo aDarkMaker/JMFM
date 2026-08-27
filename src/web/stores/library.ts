@@ -85,12 +85,22 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     if (Capacitor.isNativePlatform()) {
       await waitForSettingsLoaded();
       const {settings} = useSettingsStore.getState();
-      const fixed = await resolveLibraryPaths(items, settings.downloadPath);
+      const fixed = await resolveLibraryPaths(
+        items,
+        settings.downloadPath,
+        undefined,
+        settings.downloadTreeUri,
+      );
       if (fixed.length > 0) {
         const byAlbum = new Map(fixed.map(i => [i.albumId, i]));
         items = items.map(i => byAlbum.get(i.albumId) ?? i);
       }
-      const discovered = await discoverLibraryFromDisk(items, settings.downloadPath);
+      const discovered = await discoverLibraryFromDisk(
+        items,
+        settings.downloadPath,
+        undefined,
+        settings.downloadTreeUri,
+      );
       if (discovered.length > 0) {
         items = mergeDiscovered(items, discovered);
       }

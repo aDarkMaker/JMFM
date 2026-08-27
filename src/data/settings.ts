@@ -4,6 +4,8 @@ import {isHardBlockedKeyword} from '../core/model/blocklist';
 
 export interface Settings {
   downloadPath: string;
+  /** SAF tree URI for cross-install access to existing downloads on Android. */
+  downloadTreeUri?: string;
   retryTimes: number;
   imageThreads: number;
   imageFormat: string;
@@ -41,6 +43,7 @@ const KEY = 'jmf.settings';
 export function sanitizeSettings(raw: Partial<Settings>): Settings {
   return {
     downloadPath: raw.downloadPath?.trim() || DEFAULT_SETTINGS.downloadPath,
+    downloadTreeUri: raw.downloadTreeUri?.trim() || undefined,
     retryTimes: normalizeInt(raw.retryTimes, 1, 10, DEFAULT_SETTINGS.retryTimes),
     imageThreads: normalizeInt(raw.imageThreads, 0, 64, DEFAULT_SETTINGS.imageThreads),
     imageFormat: raw.imageFormat || DEFAULT_SETTINGS.imageFormat,

@@ -1,5 +1,8 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
+import {useSettingsStore} from '../stores/settings';
+import {toSafRelativePath} from '../library/safPaths';
+import {safGetEntryUri, safListDirectory} from '../library/safStorage';
 
 export interface ImageDocMeta {
   pagesDir: string;
@@ -63,6 +66,10 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
     if (cached.baseSrc) fillSrcsFromBase(cached);
     return cached;
   }
+  const {downloadPath, downloadTreeUri} = useSettingsStore.getState().settings;
+  if (downloadTreeUri) {
+    return loadSafImageDocMeta(pagesDir, downloadTreeUri, downloadPath);
+  }
   const [dir, uri] = await Promise.all([
     Filesystem.readdir({
       path: pagesDir,
@@ -86,6 +93,33 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
     baseSrc,
   };
   fillSrcsFromBase(entry);
+  cacheEntry(pagesDir, entry);
+  return entry;
+}
+
+async function loadSafImageDocMeta(
+  pagesDir: string,
+  treeUri: string,
+  downloadPath: string,
+): Promise<ImageDocMeta> {
+  const rel = toSafRelativePath(pagesDir, downloadPath);
+  const entries = await safListDirectory(treeUri, rel);
+  const files = entries
+    .filter(e => e.type === 'file' && isImageFile(e.name))
+    .sort((a, b) => sortByNumericName(a.name, b.name))
+    .map(e => e.name);
+  const srcs = await Promise.all(
+    files.map(async name => {
+      const uri = await safGetEntryUri(treeUri, `${rel}/${name}`);
+      return Capacitor.convertFileSrc(uri);
+    }),
+  );
+  const entry: ImageDocMeta = {
+    pagesDir,
+    pageCount: files.length,
+    files,
+    srcs,
+  };
   cacheEntry(pagesDir, entry);
   return entry;
 }

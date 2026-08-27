@@ -3,6 +3,8 @@ import {LibraryItem} from '../stores/library';
 import {PagesContext, collectAlbumPages, downloadPages} from '../../core/download/pages';
 import {clearImageDocCache} from '../reader/image-doc';
 import {resolveItemPaths} from './resolveLibraryPaths';
+import {toSafRelativePath} from './safPaths';
+import {safEntryExists, safListDirectory} from './safStorage';
 import {downloadCover} from './cover';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
@@ -40,7 +42,23 @@ function extOf(name: string): string {
   return (name.split('.').pop() ?? '').toLowerCase();
 }
 
-async function listDir(path: string): Promise<{name: string; type: string}[]> {
+async function listDir(
+  path: string,
+  treeUri?: string,
+  downloadPath?: string,
+): Promise<{name: string; type: string}[]> {
+  if (treeUri && downloadPath) {
+    try {
+      const rel = toSafRelativePath(path, downloadPath);
+      const entries = await safListDirectory(treeUri, rel);
+      return entries.map(e => ({
+        name: e.name,
+        type: e.type === 'directory' ? 'directory' : 'file',
+      }));
+    } catch {
+      return [];
+    }
+  }
   try {
     const r = await Filesystem.readdir({
       path,
@@ -52,7 +70,14 @@ async function listDir(path: string): Promise<{name: string; type: string}[]> {
   }
 }
 
-async function pathExists(path: string): Promise<boolean> {
+async function pathExists(
+  path: string,
+  treeUri?: string,
+  downloadPath?: string,
+): Promise<boolean> {
+  if (treeUri && downloadPath) {
+    return safEntryExists(treeUri, toSafRelativePath(path, downloadPath));
+  }
   try {
     await Filesystem.stat({path, directory: Directory.Documents});
     return true;
@@ -61,21 +86,26 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
-async function inspectItem(item: LibraryItem, format: string): Promise<Defect[]> {
+async function inspectItem(
+  item: LibraryItem,
+  format: string,
+  treeUri?: string,
+  downloadPath?: string,
+): Promise<Defect[]> {
   if (
     !item.pagesDir ||
     item.filePath.toLowerCase().endsWith('.pdf') ||
     item.pageCount == null ||
     item.pageCount <= 0
   ) {
-    const hasDir = item.pagesDir && (await pathExists(item.pagesDir));
+    const hasDir = item.pagesDir && (await pathExists(item.pagesDir, treeUri, downloadPath));
     return hasDir ? [{kind: 'pages'}] : [{kind: 'missing'}];
   }
-  if (!(await pathExists(item.pagesDir))) {
+  if (!(await pathExists(item.pagesDir, treeUri, downloadPath))) {
     return [{kind: 'missing'}];
   }
   const want = normalizeFormat(format);
-  const pageFiles = (await listDir(item.pagesDir)).filter(
+  const pageFiles = (await listDir(item.pagesDir, treeUri, downloadPath)).filter(
     e => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)),
   );
   const defects: Defect[] = [];
@@ -87,7 +117,7 @@ async function inspectItem(item: LibraryItem, format: string): Promise<Defect[]>
   if (pageFiles.length !== item.pageCount || pageFiles.some(e => !formatOk(e.name))) {
     defects.push({kind: 'pages'});
   }
-  if (!item.coverPath || !(await pathExists(item.coverPath))) {
+  if (!item.coverPath || !(await pathExists(item.coverPath, treeUri, downloadPath))) {
     defects.push({kind: 'cover'});
   }
   if (!item.tags || item.tags.length === 0) {
@@ -100,20 +130,26 @@ export async function scanLibraryRepair(
   items: LibraryItem[],
   format: string,
   downloadPath?: string,
+  downloadTreeUri?: string,
 ): Promise<ScanResult> {
   const issues: {item: LibraryItem; defects: Defect[]}[] = [];
   const remapped: LibraryItem[] = [];
   let compliant = 0;
   for (const item of items) {
     if (downloadPath) {
-      const resolved = await resolveItemPaths(item, downloadPath);
+      const resolved = await resolveItemPaths(
+        item,
+        downloadPath,
+        undefined,
+        downloadTreeUri,
+      );
       if (resolved) {
         remapped.push(resolved);
         compliant += 1;
         continue;
       }
     }
-    const defects = await inspectItem(item, format);
+    const defects = await inspectItem(item, format, downloadTreeUri, downloadPath);
     if (defects.length === 0) {
       compliant += 1;
     } else {

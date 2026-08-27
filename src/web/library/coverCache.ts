@@ -1,5 +1,8 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
+import {useSettingsStore} from '../stores/settings';
+import {toSafRelativePath} from './safPaths';
+import {safGetEntryUri} from './safStorage';
 
 const uriCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string | null>>();
@@ -29,10 +32,11 @@ export async function resolveCoverSrc(coverPath: string): Promise<string | null>
     return pending;
   }
 
-  const job = Filesystem.getUri({path: coverPath, directory: Directory.Documents})
-    .then(r => {
-      const src = Capacitor.convertFileSrc(r.uri);
-      uriCache.set(coverPath, src);
+  const job = resolveNativeCoverSrc(coverPath)
+    .then(src => {
+      if (src) {
+        uriCache.set(coverPath, src);
+      }
       return src;
     })
     .catch(() => null)
@@ -42,6 +46,17 @@ export async function resolveCoverSrc(coverPath: string): Promise<string | null>
 
   inflight.set(coverPath, job);
   return job;
+}
+
+async function resolveNativeCoverSrc(coverPath: string): Promise<string | null> {
+  const {downloadPath, downloadTreeUri} = useSettingsStore.getState().settings;
+  if (downloadTreeUri) {
+    const rel = toSafRelativePath(coverPath, downloadPath);
+    const uri = await safGetEntryUri(downloadTreeUri, rel);
+    return Capacitor.convertFileSrc(uri);
+  }
+  const r = await Filesystem.getUri({path: coverPath, directory: Directory.Documents});
+  return Capacitor.convertFileSrc(r.uri);
 }
 
 function decodeImage(src: string): Promise<void> {
