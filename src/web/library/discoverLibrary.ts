@@ -472,13 +472,16 @@ export async function repairAlbumIdsFromTitle(
       continue;
     }
     const title = item.title.trim();
-    if (!title) {
+    const folderName = item.filePath.split('/').filter(Boolean).pop()?.trim() ?? '';
+    const matchNames = [...new Set([title, folderName].filter(Boolean))];
+    if (matchNames.length === 0) {
       result.push(item);
       continue;
     }
     try {
-      const {albums} = await resolver.searchAlbums(title, 1);
-      const hit = albums.find((a) => a.name.trim() === title);
+      const query = matchNames[0]!;
+      const {albums} = await resolver.searchAlbums(query, 1);
+      const hit = albums.find((a) => matchNames.includes(a.name.trim()));
       if (hit && hit.albumId < LOCAL_ID_OFFSET && hit.albumId !== item.albumId) {
         changed = true;
         result.push({...item, albumId: hit.albumId});

@@ -84,30 +84,22 @@ interface LibraryState {
 }
 
 let loadPromise: Promise<void> | null = null;
+let titleRepairPromise: Promise<void> | null = null;
 
-async function repairTitleIdsInBackground(items: LibraryItem[]): Promise<void> {
-  const hashItems = items.filter((i) => i.albumId >= LOCAL_ID_OFFSET && i.filePath);
-  if (hashItems.length === 0) {
-    return;
-  }
-  const {settings} = useSettingsStore.getState();
-  const http = createHttpClient({
-    ...(settings.proxyEnabled && settings.proxy ? {proxy: settings.proxy} : {}),
-    maxRetries: settings.retryTimes,
-  });
-  const api = new ApiClient(http);
+async function persistResolvedIds(
+  before: LibraryItem[],
+  after: LibraryItem[],
+  downloadPath: string
+): Promise<LibraryItem[]> {
+  const next = dedupeLibraryItems(after, downloadPath);
+  const hashItems = before.filter((i) => i.albumId >= LOCAL_ID_OFFSET && i.filePath);
   const runtime = createRuntime();
-  const repaired = await repairAlbumIdsFromTitle(items, api);
-  if (!repaired.changed) {
-    return;
-  }
-  const next = dedupeLibraryItems(repaired.items, settings.downloadPath);
   for (const item of next) {
     if (item.albumId >= LOCAL_ID_OFFSET || !item.filePath) {
       continue;
     }
-    const before = hashItems.find((h) => h.filePath === item.filePath);
-    if (!before || before.albumId === item.albumId) {
+    const prev = hashItems.find((h) => h.filePath === item.filePath);
+    if (!prev || prev.albumId === item.albumId) {
       continue;
     }
     await writeLocalAlbumMeta(runtime, item.filePath, {
@@ -126,6 +118,59 @@ async function repairTitleIdsInBackground(items: LibraryItem[]): Promise<void> {
   } catch {
     // ignore
   }
+  return next;
+}
+
+async function repairTitleIds(items: LibraryItem[]): Promise<LibraryItem[]> {
+  const hasHash = items.some((i) => i.albumId >= LOCAL_ID_OFFSET && i.filePath);
+  if (!hasHash) {
+    return items;
+  }
+  const {settings} = useSettingsStore.getState();
+  const http = createHttpClient({
+    ...(settings.proxyEnabled && settings.proxy ? {proxy: settings.proxy} : {}),
+    maxRetries: settings.retryTimes,
+  });
+  const api = new ApiClient(http);
+  const repaired = await repairAlbumIdsFromTitle(items, api);
+  if (!repaired.changed) {
+    return items;
+  }
+  return persistResolvedIds(items, repaired.items, settings.downloadPath);
+}
+
+async function repairTitleIdsInBackground(items: LibraryItem[]): Promise<void> {
+  await repairTitleIds(items);
+}
+
+/** Resolve hash albumIds from meta + API search before repair/download. */
+export async function ensureRealAlbumIds(): Promise<LibraryItem[]> {
+  if (titleRepairPromise) {
+    await titleRepairPromise;
+    return useLibraryStore.getState().items;
+  }
+  const job = (async () => {
+    await waitForLibraryLoaded();
+    let items = useLibraryStore.getState().items;
+    const {settings} = useSettingsStore.getState();
+    const fromMeta = await repairAlbumIdsFromMeta(
+      items,
+      settings.downloadPath,
+      undefined,
+      settings.downloadTreeUri
+    );
+    items = fromMeta.items;
+    items = await repairTitleIds(items);
+    return items;
+  })();
+  titleRepairPromise = job.then(() => undefined).finally(() => {
+    titleRepairPromise = null;
+  });
+  return job;
+}
+
+export function isHashAlbumId(albumId: number): boolean {
+  return albumId >= LOCAL_ID_OFFSET;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
