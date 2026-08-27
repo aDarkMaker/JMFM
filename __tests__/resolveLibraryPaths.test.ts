@@ -15,16 +15,18 @@ function item(title: string, pagesDir?: string, coverPath?: string): LibraryItem
 
 describe('parsePickedDirectory', () => {
   it('decodes URL-encoded SAF tree URIs', () => {
-    expect(parsePickedDirectory('content://com.android.externalstorage.documents/tree/primary%3ADownload')).toBe(
-      'Download/JMFDownloads',
-    );
+    expect(
+      parsePickedDirectory(
+        'content://com.android.externalstorage.documents/tree/primary%3ADownload'
+      )
+    ).toBe('Download/JMFDownloads');
   });
 
   it('keeps Documents/JMFDownloads without duplicating app dir', () => {
     expect(
       parsePickedDirectory(
-        'content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FJMFDownloads',
-      ),
+        'content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FJMFDownloads'
+      )
     ).toBe('Documents/JMFDownloads');
   });
 
@@ -33,9 +35,7 @@ describe('parsePickedDirectory', () => {
   });
 
   it('avoids duplicating the app dir', () => {
-    expect(parsePickedDirectory('content://.../tree/primary%3AJMFDownloads')).toBe(
-      'JMFDownloads',
-    );
+    expect(parsePickedDirectory('content://.../tree/primary%3AJMFDownloads')).toBe('JMFDownloads');
   });
 
   it('falls back to app dir on unparseable input', () => {
@@ -83,8 +83,7 @@ describe('resolveItemPaths', () => {
 
   it('keeps old coverPath when it still exists', async () => {
     const it = item('测试', 'JMFMobile/downloads/测试/pages', 'old/cover.jpg');
-    const exists = async (p: string) =>
-      p === 'New/dir/测试/pages' || p === 'old/cover.jpg';
+    const exists = async (p: string) => p === 'New/dir/测试/pages' || p === 'old/cover.jpg';
     const fixed = await resolveItemPaths(it, 'New/dir', exists);
     expect(fixed!.coverPath).toBe('old/cover.jpg');
   });

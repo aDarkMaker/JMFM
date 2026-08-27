@@ -67,7 +67,7 @@ class CapacitorPdfRangeTransport extends pdfjs.PDFDataRangeTransport {
         begin,
         typeof r.data === 'string'
           ? base64ToBytes(r.data)
-          : new Uint8Array(await r.data.arrayBuffer()),
+          : new Uint8Array(await r.data.arrayBuffer())
       );
     } catch {
       this.onDataRange(begin, new Uint8Array(0));
@@ -113,7 +113,10 @@ export async function loadDoc(filePath: string): Promise<DocCacheEntry> {
     }
   }
   const bytes = await readPdfBytes(filePath);
-  const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const data = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  ) as ArrayBuffer;
   const task = pdfjs.getDocument({data});
   const doc = await task.promise;
   const entry: DocCacheEntry = {doc, task, numPages: doc.numPages, page: 1, scale: DEFAULT_SCALE};
@@ -121,7 +124,12 @@ export async function loadDoc(filePath: string): Promise<DocCacheEntry> {
   return entry;
 }
 
-export function persistCacheEntry(filePath: string, doc: pdfjs.PDFDocumentProxy | null, page: number, scale: number): void {
+export function persistCacheEntry(
+  filePath: string,
+  doc: pdfjs.PDFDocumentProxy | null,
+  page: number,
+  scale: number
+): void {
   const entry = docCache.get(filePath);
   if (entry && entry.doc === doc) {
     entry.page = page;
@@ -144,7 +152,7 @@ export function setPageContent(
   s: number,
   seq: number,
   seqOf: () => number,
-  onLowRes?: () => void,
+  onLowRes?: () => void
 ): Promise<void> {
   const run = async () => {
     if (!doc || !canvas) return;

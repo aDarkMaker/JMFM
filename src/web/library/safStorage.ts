@@ -7,10 +7,7 @@ export interface SafEntry {
 
 export interface SafStoragePlugin {
   persistTreeUri(options: {uri: string}): Promise<void>;
-  listDirectory(options: {
-    treeUri: string;
-    relativePath?: string;
-  }): Promise<{entries: SafEntry[]}>;
+  listDirectory(options: {treeUri: string; relativePath?: string}): Promise<{entries: SafEntry[]}>;
   readTextFile(options: {treeUri: string; relativePath: string}): Promise<{data: string}>;
   getEntryUri(options: {treeUri: string; relativePath: string}): Promise<{uri: string}>;
 }
@@ -24,10 +21,7 @@ export async function persistDownloadTreeUri(uri: string): Promise<void> {
   await SafStorageNative.persistTreeUri({uri});
 }
 
-export async function safListDirectory(
-  treeUri: string,
-  relativePath = '',
-): Promise<SafEntry[]> {
+export async function safListDirectory(treeUri: string, relativePath = ''): Promise<SafEntry[]> {
   const {entries} = await SafStorageNative.listDirectory({treeUri, relativePath});
   return entries;
 }

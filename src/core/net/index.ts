@@ -8,7 +8,5 @@ import {FetchHttpClient} from './fetch-http';
 import {NativeHttpClient} from './native-http';
 
 export function createHttpClient(opts: HttpOptions = {}): HttpClient {
-  return Capacitor.isNativePlatform()
-    ? new NativeHttpClient(opts)
-    : new FetchHttpClient(opts);
+  return Capacitor.isNativePlatform() ? new NativeHttpClient(opts) : new FetchHttpClient(opts);
 }

@@ -38,7 +38,7 @@ function createBridge(worker: Worker) {
   };
   return {
     post: (msg: unknown, transfer?: Transferable[]) =>
-      new Promise<WorkerResponse>(resolve => {
+      new Promise<WorkerResponse>((resolve) => {
         resolver = resolve;
         worker.postMessage(msg, transfer ?? []);
       }),
@@ -54,7 +54,7 @@ export async function createWorkerPdf(
   outputDir: string,
   title: string,
   imagePaths: string[],
-  sizes?: PageSize[],
+  sizes?: PageSize[]
 ): Promise<string> {
   const pages = buildPdfPages(imagePaths, sizes);
   const outputPath = `${outputDir}/${buildFileName(title)}`;
@@ -93,7 +93,7 @@ export async function createWorkerPdf(
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
       resp = await bridge.post(
         {type: 'image', index: i, bytes: buf, ext: extFromPath(pages[i].imagePath)},
-        [buf],
+        [buf]
       );
       if (resp.type === 'error') {
         throw new Error(resp.message);

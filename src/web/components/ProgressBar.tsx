@@ -35,9 +35,7 @@ export function ProgressBar({
         />
       </div>
       {showLabel ? (
-        <span className="progress-label">
-          {indeterminate ? '准备中…' : `${clamped}%`}
-        </span>
+        <span className="progress-label">{indeterminate ? '准备中…' : `${clamped}%`}</span>
       ) : null}
     </div>
   );

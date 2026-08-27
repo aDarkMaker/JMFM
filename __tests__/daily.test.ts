@@ -1,10 +1,6 @@
 import {topTags} from '@/web/library/tags';
 import {buildRecommendations, todayKey, isSameLocalDay} from '@/web/library/daily';
-import {
-  isHardBlockedKeyword,
-  isBlockedAlbum,
-  filterBlockedAlbums,
-} from '@/core/model/blocklist';
+import {isHardBlockedKeyword, isBlockedAlbum, filterBlockedAlbums} from '@/core/model/blocklist';
 import type {AlbumSummary} from '@/core/model';
 
 function album(id: number, tags: string[]): AlbumSummary {
@@ -21,11 +17,7 @@ const rng = (() => {
 
 describe('topTags', () => {
   it('counts tag frequency across library items', () => {
-    const items = [
-      {tags: ['校园', '青春']},
-      {tags: ['校园', '恋爱']},
-      {tags: ['校园', '青春']},
-    ];
+    const items = [{tags: ['校园', '青春']}, {tags: ['校园', '恋爱']}, {tags: ['校园', '青春']}];
     expect(topTags(items, 4)).toEqual(['校园', '青春', '恋爱']);
   });
 
@@ -58,7 +50,7 @@ describe('buildRecommendations', () => {
 
   it('prefers albums matching fav tags', () => {
     const picks = buildRecommendations(daily, ['校园'], 6, rng);
-    const matched = picks.filter(a => a.tags.includes('校园'));
+    const matched = picks.filter((a) => a.tags.includes('校园'));
     expect(matched.length).toBeGreaterThanOrEqual(2);
     expect(picks).toHaveLength(6);
     expect(picks[0].tags).toContain('校园');
@@ -77,7 +69,7 @@ describe('buildRecommendations', () => {
 
   it('never returns duplicates', () => {
     const picks = buildRecommendations(daily, ['校园'], 6, rng);
-    const ids = picks.map(a => a.albumId);
+    const ids = picks.map((a) => a.albumId);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -86,47 +78,25 @@ describe('buildRecommendations', () => {
   });
 
   it('prioritizes whitelist hits over fav tag hits', () => {
-    const picks = buildRecommendations(
-      daily,
-      ['校园'],
-      3,
-      rng,
-      {whitelistTags: ['恐怖']},
-    );
+    const picks = buildRecommendations(daily, ['校园'], 3, rng, {whitelistTags: ['恐怖']});
     expect(picks[0].albumId).toBe(7);
   });
 
   it('treats whitelist without fav tags as the top tier', () => {
-    const picks = buildRecommendations(
-      daily,
-      [],
-      3,
-      rng,
-      {whitelistTags: ['恐怖']},
-    );
+    const picks = buildRecommendations(daily, [], 3, rng, {whitelistTags: ['恐怖']});
     expect(picks[0].albumId).toBe(7);
   });
 
   it('ignores language tags when matching favorites', () => {
-    const langDaily = [
-      album(10, ['中文']),
-      album(11, ['校园']),
-      album(12, ['都市']),
-    ];
+    const langDaily = [album(10, ['中文']), album(11, ['校园']), album(12, ['都市'])];
     const picks = buildRecommendations(langDaily, ['中文'], 1, () => 0);
     expect(picks[0].albumId).not.toBe(10);
   });
 
   it('excludes dismissed album ids', () => {
-    const picks = buildRecommendations(
-      daily,
-      ['校园'],
-      6,
-      rng,
-      {excludeIds: new Set([1, 3])},
-    );
-    expect(picks.map(a => a.albumId)).not.toContain(1);
-    expect(picks.map(a => a.albumId)).not.toContain(3);
+    const picks = buildRecommendations(daily, ['校园'], 6, rng, {excludeIds: new Set([1, 3])});
+    expect(picks.map((a) => a.albumId)).not.toContain(1);
+    expect(picks.map((a) => a.albumId)).not.toContain(3);
     expect(picks).toHaveLength(5);
   });
 });
@@ -158,9 +128,7 @@ describe('blocklist', () => {
 
   it('blocks albums by title containing AI', () => {
     const ab = album(1, ['中文']);
-    expect(
-      isBlockedAlbum({...ab, name: '明日方舟 忍冬剧情 [AI Generated]'}, []),
-    ).toBe(true);
+    expect(isBlockedAlbum({...ab, name: '明日方舟 忍冬剧情 [AI Generated]'}, [])).toBe(true);
     expect(isBlockedAlbum(ab, [])).toBe(false);
   });
 
@@ -175,12 +143,8 @@ describe('blocklist', () => {
   });
 
   it('filters blocked albums always applying AI rules', () => {
-    const list = [
-      album(1, ['中文']),
-      album(2, ['AI绘图']),
-      album(3, ['NTR']),
-    ];
+    const list = [album(1, ['中文']), album(2, ['AI绘图']), album(3, ['NTR'])];
     const filtered = filterBlockedAlbums(list, ['NTR']);
-    expect(filtered.map(a => a.albumId)).toEqual([1]);
+    expect(filtered.map((a) => a.albumId)).toEqual([1]);
   });
 });

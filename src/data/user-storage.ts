@@ -24,7 +24,7 @@ class NativeUserStorage implements UserStorage {
 
   async keys(prefix?: string): Promise<string[]> {
     const {keys} = await Preferences.keys();
-    return prefix ? keys.filter(k => k.startsWith(prefix)) : keys;
+    return prefix ? keys.filter((k) => k.startsWith(prefix)) : keys;
   }
 }
 
@@ -62,7 +62,7 @@ export function createUserStorage(): UserStorage {
  */
 export async function migrateFromLocalStorage(
   storage: UserStorage,
-  key: string,
+  key: string
 ): Promise<string | null> {
   if (!Capacitor.isNativePlatform()) {
     return storage.get(key);

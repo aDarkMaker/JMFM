@@ -57,7 +57,9 @@
   color: var(--ink-inverse);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  transition: opacity var(--dur-fast) ease, transform var(--dur-fast) var(--ease-spring);
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-spring);
 }
 
 .album-corner-btn.is-active {

@@ -10,11 +10,7 @@ import {downloadCover} from './cover';
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 
 export type Defect =
-  | {kind: 'path'}
-  | {kind: 'metadata'}
-  | {kind: 'cover'}
-  | {kind: 'pages'}
-  | {kind: 'missing'};
+  {kind: 'path'} | {kind: 'metadata'} | {kind: 'cover'} | {kind: 'pages'} | {kind: 'missing'};
 
 export interface RepairDeps extends PagesContext {
   downloadPath: string;
@@ -45,13 +41,13 @@ function extOf(name: string): string {
 async function listDir(
   path: string,
   treeUri?: string,
-  downloadPath?: string,
+  downloadPath?: string
 ): Promise<{name: string; type: string}[]> {
   if (treeUri && downloadPath) {
     try {
       const rel = toSafRelativePath(path, downloadPath);
       const entries = await safListDirectory(treeUri, rel);
-      return entries.map(e => ({
+      return entries.map((e) => ({
         name: e.name,
         type: e.type === 'directory' ? 'directory' : 'file',
       }));
@@ -64,17 +60,13 @@ async function listDir(
       path,
       directory: Directory.Documents,
     });
-    return r.files.map(f => ({name: f.name, type: f.type ?? 'file'}));
+    return r.files.map((f) => ({name: f.name, type: f.type ?? 'file'}));
   } catch {
     return [];
   }
 }
 
-async function pathExists(
-  path: string,
-  treeUri?: string,
-  downloadPath?: string,
-): Promise<boolean> {
+async function pathExists(path: string, treeUri?: string, downloadPath?: string): Promise<boolean> {
   if (treeUri && downloadPath) {
     return safEntryExists(treeUri, toSafRelativePath(path, downloadPath));
   }
@@ -90,7 +82,7 @@ async function inspectItem(
   item: LibraryItem,
   format: string,
   treeUri?: string,
-  downloadPath?: string,
+  downloadPath?: string
 ): Promise<Defect[]> {
   if (
     !item.pagesDir ||
@@ -106,7 +98,7 @@ async function inspectItem(
   }
   const want = normalizeFormat(format);
   const pageFiles = (await listDir(item.pagesDir, treeUri, downloadPath)).filter(
-    e => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)),
+    (e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name))
   );
   const defects: Defect[] = [];
   const formatOk = (name: string) => {
@@ -114,7 +106,7 @@ async function inspectItem(
     if (!IMAGE_EXTS.has(ext)) return true;
     return (ext === 'jpeg' ? 'jpg' : ext) === want;
   };
-  if (pageFiles.length !== item.pageCount || pageFiles.some(e => !formatOk(e.name))) {
+  if (pageFiles.length !== item.pageCount || pageFiles.some((e) => !formatOk(e.name))) {
     defects.push({kind: 'pages'});
   }
   if (!item.coverPath || !(await pathExists(item.coverPath, treeUri, downloadPath))) {
@@ -130,19 +122,14 @@ export async function scanLibraryRepair(
   items: LibraryItem[],
   format: string,
   downloadPath?: string,
-  downloadTreeUri?: string,
+  downloadTreeUri?: string
 ): Promise<ScanResult> {
   const issues: {item: LibraryItem; defects: Defect[]}[] = [];
   const remapped: LibraryItem[] = [];
   let compliant = 0;
   for (const item of items) {
     if (downloadPath) {
-      const resolved = await resolveItemPaths(
-        item,
-        downloadPath,
-        undefined,
-        downloadTreeUri,
-      );
+      const resolved = await resolveItemPaths(item, downloadPath, undefined, downloadTreeUri);
       if (resolved) {
         remapped.push(resolved);
         compliant += 1;
@@ -167,7 +154,7 @@ export async function scanLibraryRepair(
 export async function repairItem(
   deps: RepairDeps,
   item: LibraryItem,
-  onProgress?: (done: number, total: number) => void,
+  onProgress?: (done: number, total: number) => void
 ): Promise<RepairResult> {
   const {runtime, source, http} = deps;
   if (!item.pagesDir || !(await pathExists(item.pagesDir))) {
@@ -180,18 +167,10 @@ export async function repairItem(
   let pagesAdded = 0;
 
   const pageFiles = (await listDir(item.pagesDir)).filter(
-    e => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)),
+    (e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name))
   );
   if (pageFiles.length !== items.length) {
-    await downloadPages(
-      deps,
-      items,
-      item.pagesDir,
-      0,
-      undefined,
-      undefined,
-      {preferredExt: want},
-    );
+    await downloadPages(deps, items, item.pagesDir, 0, undefined, undefined, {preferredExt: want});
     pagesAdded = Math.max(0, items.length - pageFiles.length);
     done.push('pages');
   }

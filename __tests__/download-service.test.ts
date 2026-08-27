@@ -33,9 +33,8 @@ function makePhoto(photoId: number): PhotoDetail {
 function makeSource(): ContentSource {
   return {
     getAlbum: async () => album,
-    getPhoto: async id => makePhoto(id),
-    buildImageItems: photo =>
-      photo.pageArr.map((name, i) => createImageItem(photo, name, i)),
+    getPhoto: async (id) => makePhoto(id),
+    buildImageItems: (photo) => photo.pageArr.map((name, i) => createImageItem(photo, name, i)),
   };
 }
 
@@ -61,9 +60,9 @@ function makeRuntime(): DownloadRuntime & {
       merged.set(data, prev.length);
       writes.set(path, merged);
     },
-    readFile: async path => writes.get(path) ?? new Uint8Array(),
+    readFile: async (path) => writes.get(path) ?? new Uint8Array(),
     unlink: async () => undefined,
-    exists: async path => writes.has(path),
+    exists: async (path) => writes.has(path),
   };
   return {
     fs,
@@ -101,10 +100,10 @@ describe('DownloadService end-to-end', () => {
     });
 
     const events: DownloadEvent[] = [];
-    const albumDir = await service.downloadAlbum(123, e => events.push(e));
+    const albumDir = await service.downloadAlbum(123, (e) => events.push(e));
 
     expect(albumDir).toBe('/downloads/测试本子');
-    expect(events.map(e => e.type)).toEqual([
+    expect(events.map((e) => e.type)).toEqual([
       'album-parsed',
       'chapter',
       'image',
@@ -114,7 +113,7 @@ describe('DownloadService end-to-end', () => {
       'image',
       'done',
     ]);
-    const albumParsed = events.find(e => e.type === 'album-parsed');
+    const albumParsed = events.find((e) => e.type === 'album-parsed');
     expect(albumParsed?.title).toBe('测试本子');
     expect(albumParsed?.chapters).toBe(2);
     expect(runtime.writes.size).toBe(5);
@@ -141,10 +140,10 @@ describe('DownloadService end-to-end', () => {
     });
 
     const events: DownloadEvent[] = [];
-    await expect(
-      service.downloadAlbum(123, e => events.push(e)),
-    ).rejects.toThrow('failed to fetch album');
-    expect(events.some(e => e.type === 'error')).toBe(true);
+    await expect(service.downloadAlbum(123, (e) => events.push(e))).rejects.toThrow(
+      'failed to fetch album'
+    );
+    expect(events.some((e) => e.type === 'error')).toBe(true);
   });
 
   it('skips existing files on resume', async () => {
@@ -163,13 +162,13 @@ describe('DownloadService end-to-end', () => {
     runtime.writes.set('/downloads/测试本子/pages/0002.webp', new Uint8Array([9, 9, 9]));
 
     const events: DownloadEvent[] = [];
-    await service.downloadAlbum(123, e => events.push(e));
+    await service.downloadAlbum(123, (e) => events.push(e));
 
     expect(http.getBytes).toHaveBeenCalledTimes(2);
     expect(runtime.calls.decode).toBe(2);
     expect(runtime.writes.size).toBe(5);
-    expect(events.filter(e => e.type === 'image').length).toBe(4);
-    expect(events.filter(e => e.type === 'done').length).toBe(1);
+    expect(events.filter((e) => e.type === 'image').length).toBe(4);
+    expect(events.filter((e) => e.type === 'done').length).toBe(1);
   });
 
   it('cancels when controller is set', async () => {
@@ -184,7 +183,12 @@ describe('DownloadService end-to-end', () => {
       cpuCount: 4,
     });
 
-    const controller = {paused: false, cancel() { this.paused = true; }};
+    const controller = {
+      paused: false,
+      cancel() {
+        this.paused = true;
+      },
+    };
     const events: DownloadEvent[] = [];
 
     let cancelled = false;
@@ -198,12 +202,12 @@ describe('DownloadService end-to-end', () => {
       return r;
     });
 
-    await expect(
-      service.downloadAlbum(123, e => events.push(e), {controller}),
-    ).rejects.toThrow('canceled');
+    await expect(service.downloadAlbum(123, (e) => events.push(e), {controller})).rejects.toThrow(
+      'canceled'
+    );
 
-    expect(events.some(e => e.type === 'canceled')).toBe(true);
-    expect(events.some(e => e.type === 'done')).toBe(false);
+    expect(events.some((e) => e.type === 'canceled')).toBe(true);
+    expect(events.some((e) => e.type === 'done')).toBe(false);
   });
 
   it('isCanceledError detects cancellation', () => {
@@ -217,7 +221,7 @@ describe('DownloadService end-to-end', () => {
 
     return service
       .downloadAlbum(123, () => {}, {controller})
-      .catch(e => {
+      .catch((e) => {
         expect(isCanceledError(e)).toBe(true);
       });
   });

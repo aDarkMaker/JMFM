@@ -43,7 +43,7 @@ describe('pdf buildPdfPages', () => {
       [
         {width: 200, height: 300},
         {width: 400, height: 600},
-      ],
+      ]
     );
     expect(pages[0]).toEqual({
       imagePath: '/a.jpg',
@@ -67,7 +67,7 @@ describe('pdf buildPdfPages', () => {
       [
         {width: 0, height: 0},
         {width: 200, height: 300},
-      ],
+      ]
     );
     expect(pages[0].imageFit).toBe('contain');
     expect(pages[0].width).toBe(595);
@@ -122,8 +122,6 @@ describe('download mapWithConcurrency', () => {
   });
 
   it('handles empty list', async () => {
-    await expect(
-      mapWithConcurrency([], 2, async () => undefined),
-    ).resolves.toBeUndefined();
+    await expect(mapWithConcurrency([], 2, async () => undefined)).resolves.toBeUndefined();
   });
 });

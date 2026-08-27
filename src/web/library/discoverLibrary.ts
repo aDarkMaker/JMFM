@@ -39,8 +39,7 @@ export function parseLocalMeta(raw: string): LocalAlbumMeta | null {
       title,
       author: typeof data.author === 'string' ? data.author : undefined,
       tags: Array.isArray(data.tags) ? data.tags.map(String) : undefined,
-      chapterCount:
-        typeof data.chapterCount === 'number' ? data.chapterCount : undefined,
+      chapterCount: typeof data.chapterCount === 'number' ? data.chapterCount : undefined,
       pageCount: typeof data.pageCount === 'number' ? data.pageCount : undefined,
       coverPath: typeof data.coverPath === 'string' ? data.coverPath : undefined,
     };
@@ -54,10 +53,7 @@ function extOf(name: string): string {
 }
 
 /** Merge discovered items with existing ones, deduped by pagesDir or real albumId. */
-export function mergeDiscovered(
-  existing: LibraryItem[],
-  discovered: LibraryItem[],
-): LibraryItem[] {
+export function mergeDiscovered(existing: LibraryItem[], discovered: LibraryItem[]): LibraryItem[] {
   const byPagesDir = new Map<string, LibraryItem>();
   const byRealId = new Map<number, LibraryItem>();
   for (const item of existing) {
@@ -89,7 +85,7 @@ function safScanner(treeUri: string, downloadPath: string): LibraryScanner {
       try {
         const rel = toSafRelativePath(path, downloadPath);
         const entries = await safListDirectory(treeUri, rel);
-        return entries.filter(e => e.type === 'directory').map(e => e.name);
+        return entries.filter((e) => e.type === 'directory').map((e) => e.name);
       } catch {
         return [];
       }
@@ -99,8 +95,8 @@ function safScanner(treeUri: string, downloadPath: string): LibraryScanner {
         const rel = toSafRelativePath(path, downloadPath);
         const entries = await safListDirectory(treeUri, rel);
         return entries
-          .filter(e => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)))
-          .map(e => e.name);
+          .filter((e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)))
+          .map((e) => e.name);
       } catch {
         return [];
       }
@@ -122,9 +118,7 @@ function nativeScanner(): LibraryScanner {
     async listDirs(path) {
       try {
         const r = await Filesystem.readdir({path, directory: Directory.Documents});
-        return r.files
-          .filter(f => f.type !== 'file')
-          .map(f => f.name);
+        return r.files.filter((f) => f.type !== 'file').map((f) => f.name);
       } catch {
         return [];
       }
@@ -133,8 +127,8 @@ function nativeScanner(): LibraryScanner {
       try {
         const r = await Filesystem.readdir({path, directory: Directory.Documents});
         return r.files
-          .filter(f => f.type !== 'directory' && IMAGE_EXTS.has(extOf(f.name)))
-          .map(f => f.name);
+          .filter((f) => f.type !== 'directory' && IMAGE_EXTS.has(extOf(f.name)))
+          .map((f) => f.name);
       } catch {
         return [];
       }
@@ -160,7 +154,7 @@ async function discoverUnderBase(
   base: string,
   existingByDir: Set<string>,
   existingByRealId: Set<number>,
-  scanner: LibraryScanner,
+  scanner: LibraryScanner
 ): Promise<LibraryItem[]> {
   const dirs = await scanner.listDirs(base);
   const found: LibraryItem[] = [];
@@ -196,16 +190,15 @@ export async function discoverLibraryFromDisk(
   items: LibraryItem[],
   downloadPath: string,
   scanner?: LibraryScanner,
-  downloadTreeUri?: string,
+  downloadTreeUri?: string
 ): Promise<LibraryItem[]> {
   const effectiveScanner =
-    scanner ??
-    (downloadTreeUri ? safScanner(downloadTreeUri, downloadPath) : nativeScanner());
+    scanner ?? (downloadTreeUri ? safScanner(downloadTreeUri, downloadPath) : nativeScanner());
   const existingByDir = new Set(
-    items.map(i => i.pagesDir).filter((p): p is string => Boolean(p)),
+    items.map((i) => i.pagesDir).filter((p): p is string => Boolean(p))
   );
   const existingByRealId = new Set(
-    items.filter(i => i.albumId > 0 && i.albumId < LOCAL_ID_OFFSET).map(i => i.albumId),
+    items.filter((i) => i.albumId > 0 && i.albumId < LOCAL_ID_OFFSET).map((i) => i.albumId)
   );
   const bases = [downloadPath, ...LEGACY_PREFIXES];
   const found: LibraryItem[] = [];
@@ -214,7 +207,7 @@ export async function discoverLibraryFromDisk(
       base,
       existingByDir,
       existingByRealId,
-      effectiveScanner,
+      effectiveScanner
     );
     for (const item of discovered) {
       found.push(item);

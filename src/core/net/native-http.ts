@@ -14,40 +14,34 @@ export class NativeHttpClient implements HttpClient {
   async getHtml(
     path: string,
     domains: readonly string[] = HTML_DOMAINS,
-    headers?: Record<string, string>,
+    headers?: Record<string, string>
   ): Promise<FetchResult> {
     const urls = buildBaseUrls(domains, path);
     return this.request(urls, headers, false);
   }
 
-  async getBytes(
-    url: string,
-    headers?: Record<string, string>,
-  ): Promise<FetchResult> {
+  async getBytes(url: string, headers?: Record<string, string>): Promise<FetchResult> {
     return this.request([url], headers, true);
   }
 
-  async getBytesWithUrls(
-    urls: string[],
-    headers?: Record<string, string>,
-  ): Promise<FetchResult> {
+  async getBytesWithUrls(urls: string[], headers?: Record<string, string>): Promise<FetchResult> {
     return this.request(urls, headers, true);
   }
 
   private request(
     urls: string[],
     headers: Record<string, string> | undefined,
-    binary: boolean,
+    binary: boolean
   ): Promise<FetchResult> {
-    return requestWithRetry(urls, this.opts.maxRetries, url =>
-      this.tryOnce(url, headers, binary),
+    return requestWithRetry(urls, this.opts.maxRetries, (url) =>
+      this.tryOnce(url, headers, binary)
     );
   }
 
   private async tryOnce(
     url: string,
     headers: Record<string, string> | undefined,
-    binary: boolean,
+    binary: boolean
   ): Promise<FetchResult> {
     const host = this.hostOf(url);
     try {

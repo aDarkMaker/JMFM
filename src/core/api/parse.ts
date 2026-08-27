@@ -38,9 +38,7 @@ export function parseAlbumList(data: Record<string, unknown>): {
   total: number;
 } {
   const content = Array.isArray(data.content) ? (data.content as ListItem[]) : [];
-  const albums = content
-    .map(parseSummary)
-    .filter((a): a is AlbumSummary => a != null);
+  const albums = content.map(parseSummary).filter((a): a is AlbumSummary => a != null);
   const total = Number(data.total ?? albums.length);
   return {albums, total: Number.isFinite(total) ? total : albums.length};
 }

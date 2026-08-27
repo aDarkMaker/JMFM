@@ -10,7 +10,7 @@ export function getNum(scrambleId: number, aid: number, fileName: string): numbe
   }
   const x = aid < SCRAMBLE.SCRAMBLE_421926 ? 10 : 8;
   const s = md5Hex(`${aid}${fileName}`);
-  const v = s.charCodeAt(s.length - 1) % x * 2 + 2;
+  const v = (s.charCodeAt(s.length - 1) % x) * 2 + 2;
   return v;
 }
 

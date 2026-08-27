@@ -34,9 +34,10 @@ export function ListTile({
   return (
     <button
       className={`list-tile${isInput ? ' list-tile--input' : ''}${isToggle ? ' list-tile--toggle' : ''}`}
-      onClick={isInput || isToggle ? undefined : onClick}>
+      onClick={isInput || isToggle ? undefined : onClick}
+    >
       {isInput ? (
-        <div className="list-tile-header" onClick={e => e.stopPropagation()}>
+        <div className="list-tile-header" onClick={(e) => e.stopPropagation()}>
           <span className="list-tile-icon">
             <Icon name={icon} size={22} />
           </span>
@@ -60,8 +61,8 @@ export function ListTile({
           value={inputValue}
           placeholder={inputPlaceholder}
           readOnly={inputReadOnly}
-          onChange={e => onInputChange?.(e.target.value)}
-          onClick={e => {
+          onChange={(e) => onInputChange?.(e.target.value)}
+          onClick={(e) => {
             e.stopPropagation();
             if (inputReadOnly) {
               onClick?.();
@@ -70,11 +71,11 @@ export function ListTile({
         />
       ) : null}
       {isToggle ? (
-        <label className="toggle" onClick={e => e.stopPropagation()}>
+        <label className="toggle" onClick={(e) => e.stopPropagation()}>
           <input
             type="checkbox"
             checked={toggleValue}
-            onChange={e => onToggleChange?.(e.target.checked)}
+            onChange={(e) => onToggleChange?.(e.target.checked)}
           />
           <span className="toggle-track">
             <span className="toggle-thumb" />

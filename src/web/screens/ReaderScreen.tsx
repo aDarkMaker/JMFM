@@ -22,7 +22,7 @@ export function ReaderScreen({
   onClose: () => void;
   closing?: boolean;
 }) {
-  const readerMode = useSettingsStore(s => s.settings.readerMode);
+  const readerMode = useSettingsStore((s) => s.settings.readerMode);
   const isScroll = readerMode === 'scroll';
   const isImageMode = target.pagesDir != null;
   const cachedEntry = useRef(getDocCache(target.filePath)).current;
@@ -201,7 +201,7 @@ export function ReaderScreen({
           pageNumRef.current,
           scaleRef.current,
           seq,
-          () => renderSeqRef.current,
+          () => renderSeqRef.current
         );
         paged.positionCanvas(area, canvas);
         back.style.visibility = 'hidden';
@@ -268,7 +268,7 @@ export function ReaderScreen({
     }
     scaleRef.current = clamp(scaleRef.current * factor, SCALE_MIN, SCALE_MAX);
     if (isScroll) {
-      scroll.scaleScrollWithAnchor(scrollCtx, fn => scroll.renderAllPages(scrollCtx, false, fn));
+      scroll.scaleScrollWithAnchor(scrollCtx, (fn) => scroll.renderAllPages(scrollCtx, false, fn));
     } else {
       void paged.reRenderPaged(pagedCtx);
     }
@@ -280,7 +280,7 @@ export function ReaderScreen({
       return;
     }
     if (isScroll) {
-      scroll.scaleScrollWithAnchor(scrollCtx, fn => scroll.renderAllPages(scrollCtx, true, fn));
+      scroll.scaleScrollWithAnchor(scrollCtx, (fn) => scroll.renderAllPages(scrollCtx, true, fn));
       return;
     }
     const doc = docRef.current;
@@ -298,14 +298,14 @@ export function ReaderScreen({
       pagesRef.current = total;
       syncImageToolbarPage(pageNumRef.current);
     },
-    [syncImageToolbarPage],
+    [syncImageToolbarPage]
   );
 
   const handleImagePageChange = useCallback(
     (p: number) => {
       syncImageToolbarPage(p);
     },
-    [syncImageToolbarPage],
+    [syncImageToolbarPage]
   );
 
   const handleImageError = useCallback((e: string | null) => {
@@ -349,7 +349,7 @@ export function ReaderScreen({
               type="text"
               inputMode="numeric"
               defaultValue={page}
-              onChange={e => {
+              onChange={(e) => {
                 const v = Number(e.target.value.replace(/\D/g, ''));
                 if (v >= 1) {
                   goTo(v);
@@ -362,7 +362,7 @@ export function ReaderScreen({
               type="text"
               inputMode="numeric"
               value={page}
-              onChange={e => {
+              onChange={(e) => {
                 const v = Number(e.target.value.replace(/\D/g, ''));
                 if (v >= 1) {
                   goTo(v);
@@ -410,7 +410,7 @@ export function ReaderScreen({
               {Array.from({length: pages}).map((_, i) => (
                 <div className="reader-scroll-page" key={i}>
                   <canvas
-                    ref={el => {
+                    ref={(el) => {
                       pageCanvasesRef.current[i] = el;
                     }}
                     className="reader-canvas"
@@ -419,21 +419,21 @@ export function ReaderScreen({
               ))}
             </div>
           ) : null}
-          {error ? (
-            <div className="reader-error">无法打开 PDF：{error}</div>
-          ) : null}
+          {error ? <div className="reader-error">无法打开 PDF：{error}</div> : null}
         </div>
       ) : (
         <div className="reader-paged-area" ref={pagedAreaRef}>
           {pages > 0 ? (
             <>
               <canvas ref={frontRef} className="reader-canvas reader-canvas-paged" />
-              <canvas ref={backRef} className="reader-canvas reader-canvas-paged" style={{visibility: 'hidden'}} />
+              <canvas
+                ref={backRef}
+                className="reader-canvas reader-canvas-paged"
+                style={{visibility: 'hidden'}}
+              />
             </>
           ) : null}
-          {error ? (
-            <div className="reader-error">无法打开 PDF：{error}</div>
-          ) : null}
+          {error ? <div className="reader-error">无法打开 PDF：{error}</div> : null}
         </div>
       )}
     </div>

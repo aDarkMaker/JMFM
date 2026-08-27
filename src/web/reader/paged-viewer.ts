@@ -20,7 +20,7 @@ export interface PagedViewerCtx {
 
 export function positionCanvas(
   area: HTMLDivElement | null,
-  canvas: HTMLCanvasElement | null,
+  canvas: HTMLCanvasElement | null
 ): void {
   if (!area || !canvas) return;
   const w = canvas.offsetWidth || parseInt(canvas.style.width, 10) || 0;
@@ -29,10 +29,7 @@ export function positionCanvas(
   canvas.style.top = `${Math.max((area.clientHeight - h) / 2, 0)}px`;
 }
 
-function swapCanvases(
-  ctx: PagedViewerCtx,
-  opts?: {outgoingTransform?: string},
-): void {
+function swapCanvases(ctx: PagedViewerCtx, opts?: {outgoingTransform?: string}): void {
   const front = ctx.frontRef.current;
   const back = ctx.backRef.current;
   if (!front || !back) return;
@@ -55,7 +52,14 @@ export async function prefetchNext(ctx: PagedViewerCtx, n: number): Promise<void
   const back = ctx.backRef.current;
   const total = ctx.docRef.current?.numPages ?? 0;
   if (!back || n >= total) return;
-  await setPageContent(back, ctx.docRef.current, n + 1, ctx.scaleRef.current, seq, () => ctx.renderSeqRef.current);
+  await setPageContent(
+    back,
+    ctx.docRef.current,
+    n + 1,
+    ctx.scaleRef.current,
+    seq,
+    () => ctx.renderSeqRef.current
+  );
   back.style.visibility = 'hidden';
   ctx.backPageRef.current = {page: n + 1, scale: ctx.scaleRef.current};
 }
@@ -72,7 +76,14 @@ export async function reRenderPaged(ctx: PagedViewerCtx): Promise<void> {
     back.style.transform = 'none';
     back.style.visibility = 'hidden';
     const oldScale = ctx.renderedScaleRef.current;
-    await setPageContent(back, ctx.docRef.current, ctx.pageNumRef.current, ctx.scaleRef.current, seq, () => ctx.renderSeqRef.current);
+    await setPageContent(
+      back,
+      ctx.docRef.current,
+      ctx.pageNumRef.current,
+      ctx.scaleRef.current,
+      seq,
+      () => ctx.renderSeqRef.current
+    );
     if (!ctx.mountedRef.current || seq !== ctx.renderSeqRef.current) return;
     positionCanvas(ctx.pagedAreaRef.current, back);
     swapCanvases(ctx, {outgoingTransform});
@@ -96,7 +107,14 @@ export async function flipPaged(ctx: PagedViewerCtx, n: number, dir: 1 | -1): Pr
   try {
     const cached = ctx.backPageRef.current;
     if (!cached || cached.page !== n || cached.scale !== ctx.scaleRef.current) {
-      await setPageContent(back, ctx.docRef.current, n, ctx.scaleRef.current, seq, () => ctx.renderSeqRef.current);
+      await setPageContent(
+        back,
+        ctx.docRef.current,
+        n,
+        ctx.scaleRef.current,
+        seq,
+        () => ctx.renderSeqRef.current
+      );
       if (seq !== ctx.renderSeqRef.current) return;
     }
     const oldPage = ctx.pageNumRef.current;
@@ -115,20 +133,14 @@ export async function flipPaged(ctx: PagedViewerCtx, n: number, dir: 1 | -1): Pr
 
     const easing = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
     const backAnim = back.animate(
-      [
-        {transform: `translate3d(${dir * 100}%, 0, 0)`},
-        {transform: 'translate3d(0, 0, 0)'},
-      ],
-      {duration: FLIP_DURATION_MS, easing, fill: 'both'},
+      [{transform: `translate3d(${dir * 100}%, 0, 0)`}, {transform: 'translate3d(0, 0, 0)'}],
+      {duration: FLIP_DURATION_MS, easing, fill: 'both'}
     );
     const frontAnim = front.animate(
-      [
-        {transform: 'translate3d(0, 0, 0)'},
-        {transform: `translate3d(${-dir * 100}%, 0, 0)`},
-      ],
-      {duration: FLIP_DURATION_MS, easing, fill: 'both'},
+      [{transform: 'translate3d(0, 0, 0)'}, {transform: `translate3d(${-dir * 100}%, 0, 0)`}],
+      {duration: FLIP_DURATION_MS, easing, fill: 'both'}
     );
-    await Promise.all([backAnim.finished, frontAnim.finished].map(p => p.catch(() => {})));
+    await Promise.all([backAnim.finished, frontAnim.finished].map((p) => p.catch(() => {})));
     if (!ctx.mountedRef.current || seq !== ctx.renderSeqRef.current) return;
     try {
       backAnim.commitStyles();

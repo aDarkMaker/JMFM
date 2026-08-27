@@ -1,11 +1,5 @@
 import type {PdfPage} from './index';
-import {
-  buildFooter,
-  buildHeader,
-  buildPage,
-  createWriterState,
-  WriterState,
-} from './writer';
+import {buildFooter, buildHeader, buildPage, createWriterState, WriterState} from './writer';
 
 type WorkerMessage =
   | {type: 'init'; pages: PdfPage[]}
@@ -29,7 +23,7 @@ async function toJpegBytes(
   bytes: Uint8Array,
   width: number,
   height: number,
-  background: string,
+  background: string
 ): Promise<Uint8Array | null> {
   if (!supportsOffscreenCanvas()) {
     return null;
@@ -78,10 +72,9 @@ async function handleMsg(msg: WorkerMessage): Promise<void> {
       throw new Error('offscreen canvas unavailable');
     }
     const chunk = buildPage(writerState, msg.index, page, jpeg);
-    ctx.postMessage(
-      {type: 'chunk', index: msg.index, bytes: chunk.buffer as ArrayBuffer},
-      [chunk.buffer],
-    );
+    ctx.postMessage({type: 'chunk', index: msg.index, bytes: chunk.buffer as ArrayBuffer}, [
+      chunk.buffer,
+    ]);
     return;
   }
   if (msg.type === 'save') {
@@ -95,10 +88,12 @@ async function handleMsg(msg: WorkerMessage): Promise<void> {
 
 ctx.onmessage = (e: MessageEvent) => {
   const msg = e.data as WorkerMessage;
-  queue = queue.then(() => handleMsg(msg)).catch(err => {
-    ctx.postMessage({
-      type: 'error',
-      message: err instanceof Error ? err.message : String(err),
+  queue = queue
+    .then(() => handleMsg(msg))
+    .catch((err) => {
+      ctx.postMessage({
+        type: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
     });
-  });
 };

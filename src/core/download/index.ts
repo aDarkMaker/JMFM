@@ -1,4 +1,10 @@
-import {CanceledError, PagesContext, collectAlbumPages, downloadPages, isCanceledError} from './pages';
+import {
+  CanceledError,
+  PagesContext,
+  collectAlbumPages,
+  downloadPages,
+  isCanceledError,
+} from './pages';
 import {DownloadController} from './types';
 
 export type {DownloadRuntime, FileSystem, DecodedImage} from './types';
@@ -28,7 +34,7 @@ export class DownloadService {
   async downloadAlbum(
     albumId: number,
     onEvent: (e: DownloadEvent) => void,
-    opts?: {controller?: DownloadController},
+    opts?: {controller?: DownloadController}
   ): Promise<string> {
     const {runtime, source} = this.deps;
     const controller = opts?.controller;
@@ -36,7 +42,13 @@ export class DownloadService {
     try {
       const {album} = await collectAlbumPages(source, albumId);
       this.checkCanceled(controller);
-      onEvent({type: 'album-parsed', title: album.name, chapters: album.episodes.length, author: album.author, tags: album.tags});
+      onEvent({
+        type: 'album-parsed',
+        title: album.name,
+        chapters: album.episodes.length,
+        author: album.author,
+        tags: album.tags,
+      });
 
       const safeName = album.name.replace(/[/\\:*?"<>|]/g, '_');
       const albumDir = `${this.deps.downloadPath}/${safeName}`;
@@ -69,14 +81,14 @@ export class DownloadService {
           pagesDir,
           albumDone,
           controller,
-          p =>
+          (p) =>
             onEvent({
               type: 'image',
               downloaded: p.done,
               total: imageItems.length,
               albumDone: albumDone + p.done,
               albumTotal,
-            }),
+            })
         );
         albumDone += done;
       }

@@ -71,12 +71,14 @@ export function TagFilterPanel({
       <div className="theme-segmented tag-filter-segmented">
         <button
           className={`theme-segmented-item${mode === 'blacklist' ? ' is-active' : ''}`}
-          onClick={() => onModeChange('blacklist')}>
+          onClick={() => onModeChange('blacklist')}
+        >
           黑名单 ({blacklistCount})
         </button>
         <button
           className={`theme-segmented-item${mode === 'whitelist' ? ' is-active' : ''}`}
-          onClick={() => onModeChange('whitelist')}>
+          onClick={() => onModeChange('whitelist')}
+        >
           白名单 ({whitelistCount})
         </button>
       </div>
@@ -85,12 +87,13 @@ export function TagFilterPanel({
         <span className="tag-filter-empty">{hint}</span>
       ) : (
         <div className="tag-filter-list">
-          {tags.map(tag => (
+          {tags.map((tag) => (
             <button
               key={tag}
               className={`tag-filter-chip tag-filter-chip-${mode}`}
               onClick={() => onRemove(tag)}
-              aria-label={`移除 ${tag}`}>
+              aria-label={`移除 ${tag}`}
+            >
               {tag} <span className="tag-filter-chip-x">×</span>
             </button>
           ))}
@@ -101,11 +104,8 @@ export function TagFilterPanel({
         <div className="tag-filter-suggest">
           <span className="tag-filter-suggest-title">从漫画库推荐</span>
           <div className="tag-filter-suggest-list">
-            {suggestions.map(tag => (
-              <button
-                key={tag}
-                className="tag-filter-suggest-chip"
-                onClick={() => onAdd(tag)}>
+            {suggestions.map((tag) => (
+              <button key={tag} className="tag-filter-suggest-chip" onClick={() => onAdd(tag)}>
                 {tag}
               </button>
             ))}
@@ -119,8 +119,8 @@ export function TagFilterPanel({
           type="text"
           placeholder={placeholder}
           value={value}
-          onChange={e => setValue(e.target.value)}
-          onKeyDown={e => {
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               submit();
             }

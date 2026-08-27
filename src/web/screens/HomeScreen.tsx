@@ -12,20 +12,20 @@ import {buildRecommendations} from '../library/daily';
 import {filterBlockedAlbums, isBlockedAlbum} from '../../core/model/blocklist';
 
 export function HomeScreen() {
-  const albums = useDailyStore(s => s.albums);
-  const dismissed = useDailyStore(s => s.dismissed);
-  const loading = useDailyStore(s => s.loading);
-  const error = useDailyStore(s => s.error);
-  const load = useDailyStore(s => s.load);
-  const refresh = useDailyStore(s => s.refresh);
-  const dismiss = useDailyStore(s => s.dismiss);
-  const resetDismissed = useDailyStore(s => s.resetDismissed);
-  const fetchAlbumTags = useDailyStore(s => s.fetchAlbumTags);
+  const albums = useDailyStore((s) => s.albums);
+  const dismissed = useDailyStore((s) => s.dismissed);
+  const loading = useDailyStore((s) => s.loading);
+  const error = useDailyStore((s) => s.error);
+  const load = useDailyStore((s) => s.load);
+  const refresh = useDailyStore((s) => s.refresh);
+  const dismiss = useDailyStore((s) => s.dismiss);
+  const resetDismissed = useDailyStore((s) => s.resetDismissed);
+  const fetchAlbumTags = useDailyStore((s) => s.fetchAlbumTags);
 
-  const libraryItems = useLibraryStore(s => s.items);
-  const tasks = useDownloadStore(s => s.tasks);
-  const blacklistTags = useSettingsStore(s => s.settings.blacklistTags);
-  const whitelistTags = useSettingsStore(s => s.settings.whitelistTags);
+  const libraryItems = useLibraryStore((s) => s.items);
+  const tasks = useDownloadStore((s) => s.tasks);
+  const blacklistTags = useSettingsStore((s) => s.settings.blacklistTags);
+  const whitelistTags = useSettingsStore((s) => s.settings.whitelistTags);
   const {enqueueAlbum} = useDownloadTask();
 
   const [extraTags, setExtraTags] = useState<Record<number, string[]>>({});
@@ -46,22 +46,19 @@ export function HomeScreen() {
           whitelistTags,
           excludeIds: dismissedSet,
         }),
-        blacklistTags,
+        blacklistTags
       ),
-    [albums, favTags, blacklistTags, whitelistTags, dismissedSet],
+    [albums, favTags, blacklistTags, whitelistTags, dismissedSet]
   );
 
-  const recommendationIds = useMemo(
-    () => recommendations.map(a => a.albumId),
-    [recommendations],
-  );
+  const recommendationIds = useMemo(() => recommendations.map((a) => a.albumId), [recommendations]);
 
   useEffect(() => {
-    const ids = recommendationIds.filter(id => !enrichedRef.current.has(id));
+    const ids = recommendationIds.filter((id) => !enrichedRef.current.has(id));
     if (ids.length === 0) return;
-    ids.forEach(id => enrichedRef.current.add(id));
-    void fetchAlbumTags(ids).then(tagsMap => {
-      setExtraTags(prev => {
+    ids.forEach((id) => enrichedRef.current.add(id));
+    void fetchAlbumTags(ids).then((tagsMap) => {
+      setExtraTags((prev) => {
         const next = {...prev};
         for (const [id, tags] of tagsMap) {
           next[id] = tags;
@@ -72,7 +69,7 @@ export function HomeScreen() {
   }, [recommendationIds, fetchAlbumTags]);
 
   const queuedIds = useMemo(() => {
-    const ids = new Set(tasks.map(t => t.albumId));
+    const ids = new Set(tasks.map((t) => t.albumId));
     for (const item of libraryItems) {
       ids.add(item.albumId);
     }
@@ -85,14 +82,14 @@ export function HomeScreen() {
       if (isBlockedAlbum(album, blacklistTags)) return;
       enqueueAlbum(album.albumId, album.title);
     },
-    [queuedIds, blacklistTags, enqueueAlbum],
+    [queuedIds, blacklistTags, enqueueAlbum]
   );
 
   const handleDismiss = useCallback(
     (album: AlbumCardData) => {
       void dismiss(album.albumId);
     },
-    [dismiss],
+    [dismiss]
   );
 
   const handleRefresh = useCallback(() => {
@@ -107,10 +104,7 @@ export function HomeScreen() {
     }
   }, [albums.length, dismissed.length, resetDismissed, refresh]);
 
-  const subtitle =
-    favTags.length > 0
-      ? `偏爱 · ${favTags.join(' / ')}`
-      : '每日推荐 · 精选漫画';
+  const subtitle = favTags.length > 0 ? `偏爱 · ${favTags.join(' / ')}` : '每日推荐 · 精选漫画';
 
   return (
     <div className="app-screen">
@@ -127,11 +121,7 @@ export function HomeScreen() {
       />
       {error && albums.length === 0 ? (
         <div className="app-empty">
-          <EmptyState
-            icon="cloud-off"
-            title="推荐加载失败"
-            hint={error}
-          />
+          <EmptyState icon="cloud-off" title="推荐加载失败" hint={error} />
           <button className="home-retry" type="button" onClick={() => void refresh()}>
             重试
           </button>
@@ -149,19 +139,14 @@ export function HomeScreen() {
         </div>
       ) : (
         <div className={`home-grid${loading ? ' is-refreshing' : ''}`}>
-          {recommendations.map(album => (
+          {recommendations.map((album) => (
             <AlbumCard
               key={album.albumId}
               album={{
                 albumId: album.albumId,
                 title: album.name,
                 author: album.author,
-                tags: [
-                  ...new Set([
-                    ...(album.tags ?? []),
-                    ...(extraTags[album.albumId] ?? []),
-                  ]),
-                ],
+                tags: [...new Set([...(album.tags ?? []), ...(extraTags[album.albumId] ?? [])])],
                 coverPath: album.coverUrl,
               }}
               onDownload={handleDownload}

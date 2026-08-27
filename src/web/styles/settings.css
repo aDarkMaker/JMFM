@@ -163,7 +163,9 @@
   color: var(--ink-secondary);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
-  transition: color var(--dur-fast) ease, background var(--dur-fast) ease;
+  transition:
+    color var(--dur-fast) ease,
+    background var(--dur-fast) ease;
 }
 
 .theme-segmented-item.is-active {

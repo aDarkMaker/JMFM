@@ -27,13 +27,14 @@ type DialogState =
   | {mode: 'update'; title: string; message: string};
 
 export function SettingsScreen() {
-  const loaded = useSettingsStore(s => s.loaded);
-  const load = useSettingsStore(s => s.load);
-  const settings = useSettingsStore(s => s.settings);
-  const update = useSettingsStore(s => s.update);
-  const libraryItems = useLibraryStore(s => s.items);
-  const {repairing, repairProgress, runRepair, handleRepair} =
-    useLibraryRepair(settings.imageFormat);
+  const loaded = useSettingsStore((s) => s.loaded);
+  const load = useSettingsStore((s) => s.load);
+  const settings = useSettingsStore((s) => s.settings);
+  const update = useSettingsStore((s) => s.update);
+  const libraryItems = useLibraryStore((s) => s.items);
+  const {repairing, repairProgress, runRepair, handleRepair} = useLibraryRepair(
+    settings.imageFormat
+  );
   const {
     currentVersion,
     status: updateStatus,
@@ -93,7 +94,7 @@ export function SettingsScreen() {
         ? settings.blacklistTags
         : [...settings.blacklistTags, tag];
       const whitelistTags = settings.whitelistTags.filter(
-        t => t.toLowerCase() !== tag.toLowerCase(),
+        (t) => t.toLowerCase() !== tag.toLowerCase()
       );
       void update({blacklistTags, whitelistTags});
       return;
@@ -102,26 +103,26 @@ export function SettingsScreen() {
       ? settings.whitelistTags
       : [...settings.whitelistTags, tag];
     const blacklistTags = settings.blacklistTags.filter(
-      t => t.toLowerCase() !== tag.toLowerCase(),
+      (t) => t.toLowerCase() !== tag.toLowerCase()
     );
     void update({blacklistTags, whitelistTags});
   };
 
   const handleRemoveFilterTag = (tag: string) => {
     if (filterMode === 'blacklist') {
-      void update({blacklistTags: settings.blacklistTags.filter(t => t !== tag)});
+      void update({blacklistTags: settings.blacklistTags.filter((t) => t !== tag)});
       return;
     }
-    void update({whitelistTags: settings.whitelistTags.filter(t => t !== tag)});
+    void update({whitelistTags: settings.whitelistTags.filter((t) => t !== tag)});
   };
 
   const suggestions = useMemo(
     () =>
       suggestFilterTags(
         libraryItems,
-        filterMode === 'blacklist' ? settings.blacklistTags : settings.whitelistTags,
+        filterMode === 'blacklist' ? settings.blacklistTags : settings.whitelistTags
       ),
-    [libraryItems, filterMode, settings.blacklistTags, settings.whitelistTags],
+    [libraryItems, filterMode, settings.blacklistTags, settings.whitelistTags]
   );
 
   const applyRepairOutcome = (outcome: RepairOutcome) => {
@@ -206,12 +207,14 @@ export function SettingsScreen() {
               <div className="theme-segmented">
                 <button
                   className={`theme-segmented-item${settings.theme === 'light' ? ' is-active' : ''}`}
-                  onClick={() => void update({theme: 'light'})}>
+                  onClick={() => void update({theme: 'light'})}
+                >
                   Light
                 </button>
                 <button
                   className={`theme-segmented-item${settings.theme === 'dark' ? ' is-active' : ''}`}
-                  onClick={() => void update({theme: 'dark'})}>
+                  onClick={() => void update({theme: 'dark'})}
+                >
                   Dark
                 </button>
               </div>
@@ -224,12 +227,14 @@ export function SettingsScreen() {
               <div className="theme-segmented">
                 <button
                   className={`theme-segmented-item${settings.readerMode === 'scroll' ? ' is-active' : ''}`}
-                  onClick={() => void update({readerMode: 'scroll'})}>
+                  onClick={() => void update({readerMode: 'scroll'})}
+                >
                   上下滚动
                 </button>
                 <button
                   className={`theme-segmented-item${settings.readerMode === 'paged' ? ' is-active' : ''}`}
-                  onClick={() => void update({readerMode: 'paged'})}>
+                  onClick={() => void update({readerMode: 'paged'})}
+                >
                   左右滑动
                 </button>
               </div>
@@ -245,12 +250,10 @@ export function SettingsScreen() {
             inputPlaceholder="JMFMobile/downloads"
             inputReadOnly
             onClick={() => void handlePickDirectory()}
-            onInputChange={v => void update({downloadPath: v})}
+            onInputChange={(v) => void update({downloadPath: v})}
           />
           {!settings.downloadTreeUri ? (
-            <span className="settings-hint">
-              选择解析&下载路径
-            </span>
+            <span className="settings-hint">选择解析&下载路径</span>
           ) : null}
         </div>
         <div className="settings-group">
@@ -260,7 +263,7 @@ export function SettingsScreen() {
             title="启用代理"
             subtitle="通过代理服务器访问"
             toggleValue={settings.proxyEnabled}
-            onToggleChange={v => void update({proxyEnabled: v})}
+            onToggleChange={(v) => void update({proxyEnabled: v})}
           />
           <div className="domain-list">
             {settings.domains.map((domain, index) => (
@@ -270,7 +273,7 @@ export function SettingsScreen() {
                   type="text"
                   value={domain}
                   disabled={index < 5}
-                  onChange={e => handleDomainChange(index, e.target.value)}
+                  onChange={(e) => handleDomainChange(index, e.target.value)}
                 />
                 {index >= 5 ? (
                   <button
@@ -278,7 +281,8 @@ export function SettingsScreen() {
                     onClick={() => {
                       const next = settings.domains.filter((_, i) => i !== index);
                       void update({domains: next});
-                    }}>
+                    }}
+                  >
                     ×
                   </button>
                 ) : (
@@ -292,8 +296,8 @@ export function SettingsScreen() {
                 type="text"
                 placeholder="添加自定义网址"
                 value={newDomain}
-                onChange={e => setNewDomain(e.target.value)}
-                onKeyDown={e => {
+                onChange={(e) => setNewDomain(e.target.value)}
+                onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleAddDomain();
                   }
@@ -307,19 +311,13 @@ export function SettingsScreen() {
         </div>
         <div className="settings-group">
           <span className="settings-group-title">内容过滤</span>
-          <span className="settings-hint">
-            黑名单命中不会出现或被下载；白名单优先推荐
-          </span>
+          <span className="settings-hint">黑名单命中不会出现或被下载；白名单优先推荐</span>
           <TagFilterPanel
             mode={filterMode}
             blacklistCount={settings.blacklistTags.length}
             whitelistCount={settings.whitelistTags.length}
             onModeChange={setFilterMode}
-            tags={
-              filterMode === 'blacklist'
-                ? settings.blacklistTags
-                : settings.whitelistTags
-            }
+            tags={filterMode === 'blacklist' ? settings.blacklistTags : settings.whitelistTags}
             suggestions={suggestions}
             onAdd={handleAddFilterTag}
             onRemove={handleRemoveFilterTag}
@@ -328,9 +326,7 @@ export function SettingsScreen() {
                 ? '暂无黑名单标签，可从下方推荐快速添加'
                 : '暂无白名单标签，可从下方推荐快速添加'
             }
-            placeholder={
-              filterMode === 'blacklist' ? '添加黑名单标签' : '添加白名单标签'
-            }
+            placeholder={filterMode === 'blacklist' ? '添加黑名单标签' : '添加白名单标签'}
           />
         </div>
         <div className="settings-group">
@@ -363,11 +359,7 @@ export function SettingsScreen() {
               />
             </div>
           )}
-          <ListTile
-            icon="info"
-            title="关于"
-            subtitle={`JMFM v${currentVersion || '…'}`}
-          />
+          <ListTile icon="info" title="关于" subtitle={`JMFM v${currentVersion || '…'}`} />
         </div>
       </div>
       <ConfirmDialog
@@ -376,7 +368,7 @@ export function SettingsScreen() {
         message={dialog?.message ?? ''}
         confirmLabel={
           dialog?.mode === 'confirm'
-            ? dialog.confirmLabel ?? '确定'
+            ? (dialog.confirmLabel ?? '确定')
             : dialog?.mode === 'update'
               ? '下载并安装'
               : '确定'
@@ -392,7 +384,7 @@ export function SettingsScreen() {
           }
           if (dialog?.mode === 'update') {
             setDialog(null);
-            void downloadAndInstall().catch(err => {
+            void downloadAndInstall().catch((err) => {
               setDialog({
                 mode: 'alert',
                 title: '更新失败',

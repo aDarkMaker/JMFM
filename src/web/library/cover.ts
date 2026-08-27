@@ -6,13 +6,13 @@ export async function downloadCover(
   http: HttpClient,
   fs: FileSystem,
   albumId: number,
-  albumDir: string,
+  albumDir: string
 ): Promise<string | undefined> {
   for (const domain of CDN_DOMAINS) {
-    const resp = await http.getBytes(
-      `https://${domain}/media/albums/${albumId}_3x4.jpg`,
-      {Referer: REQUEST.REFERER, Accept: REQUEST.ACCEPT_IMAGE},
-    );
+    const resp = await http.getBytes(`https://${domain}/media/albums/${albumId}_3x4.jpg`, {
+      Referer: REQUEST.REFERER,
+      Accept: REQUEST.ACCEPT_IMAGE,
+    });
     if (!resp.ok || !resp.bytes) {
       continue;
     }

@@ -54,7 +54,9 @@
   border-radius: var(--radius-pill);
   font-size: var(--text-sm);
   font-weight: 600;
-  transition: opacity var(--dur-fast) ease, background var(--dur-fast) ease;
+  transition:
+    opacity var(--dur-fast) ease,
+    background var(--dur-fast) ease;
 }
 
 .confirm-btn:active {

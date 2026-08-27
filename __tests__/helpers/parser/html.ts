@@ -126,7 +126,7 @@ function extractTotalPics(html: string): number {
 
 function extractCdnBase(
   html: string,
-  root: ReturnType<typeof parse>,
+  root: ReturnType<typeof parse>
 ): {cdnBaseUrl: string; queryParams: string} {
   const firstImg = root.querySelector('img[data-original]');
   const raw = firstImg?.getAttribute('data-original') ?? '';

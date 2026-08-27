@@ -33,9 +33,30 @@ interface StrategyResult {
 const IMAGE_RE = /\.(jpe?g|png|webp)$/i;
 
 const STRATEGIES: Strategy[] = [
-  {name: 'current_pm1_p3_c2', back: 1, front: 3, decodeConcurrency: 2, warmAhead: 4, prewarmPages: 0},
-  {name: 'smaller_pm1_p2_c1', back: 1, front: 2, decodeConcurrency: 1, warmAhead: 2, prewarmPages: 0},
-  {name: 'prewarm12_pm1_p3_c2', back: 1, front: 3, decodeConcurrency: 2, warmAhead: 4, prewarmPages: 12},
+  {
+    name: 'current_pm1_p3_c2',
+    back: 1,
+    front: 3,
+    decodeConcurrency: 2,
+    warmAhead: 4,
+    prewarmPages: 0,
+  },
+  {
+    name: 'smaller_pm1_p2_c1',
+    back: 1,
+    front: 2,
+    decodeConcurrency: 1,
+    warmAhead: 2,
+    prewarmPages: 0,
+  },
+  {
+    name: 'prewarm12_pm1_p3_c2',
+    back: 1,
+    front: 3,
+    decodeConcurrency: 2,
+    warmAhead: 4,
+    prewarmPages: 12,
+  },
 ];
 
 function percentile(sorted: number[], p: number): number {
@@ -59,23 +80,27 @@ function findAlbumRoot(albumId: string): {albumDir: string; pagesDir: string; pd
   if (argPath && existsSync(argPath)) {
     const pagesDir = argPath.endsWith('pages') ? argPath : join(argPath, 'pages');
     const albumDir = dirname(pagesDir);
-    const pdf = readdirSync(albumDir).find(n => n.endsWith('.pdf'));
+    const pdf = readdirSync(albumDir).find((n) => n.endsWith('.pdf'));
     return {albumDir, pagesDir, pdfPath: pdf ? join(albumDir, pdf) : ''};
   }
-  const dirs = readdirSync(temp, {withFileTypes: true}).filter(d => d.isDirectory());
+  const dirs = readdirSync(temp, {withFileTypes: true}).filter((d) => d.isDirectory());
   for (const d of dirs) {
     const albumDir = join(temp, d.name);
     const pagesDir = join(albumDir, 'pages');
     if (!existsSync(pagesDir)) continue;
-    const pdf = readdirSync(albumDir).find(n => n.endsWith('.pdf'));
-    if (albumId === 'auto' || d.name.includes(albumId) || existsSync(join(temp, `${albumId}_cover.jpg`))) {
+    const pdf = readdirSync(albumDir).find((n) => n.endsWith('.pdf'));
+    if (
+      albumId === 'auto' ||
+      d.name.includes(albumId) ||
+      existsSync(join(temp, `${albumId}_cover.jpg`))
+    ) {
       return {albumDir, pagesDir, pdfPath: pdf ? join(albumDir, pdf) : ''};
     }
   }
   if (dirs.length === 1) {
     const albumDir = join(temp, dirs[0].name);
     const pagesDir = join(albumDir, 'pages');
-    const pdf = readdirSync(albumDir).find(n => n.endsWith('.pdf'));
+    const pdf = readdirSync(albumDir).find((n) => n.endsWith('.pdf'));
     return {albumDir, pagesDir, pdfPath: pdf ? join(albumDir, pdf) : ''};
   }
   throw new Error(`pages dir not found in temp/ (album=${albumId})`);
@@ -83,9 +108,9 @@ function findAlbumRoot(albumId: string): {albumDir: string; pagesDir: string; pd
 
 function listPages(pagesDir: string): string[] {
   return readdirSync(pagesDir)
-    .filter(n => IMAGE_RE.test(n))
+    .filter((n) => IMAGE_RE.test(n))
     .sort((a, b) => (Number.parseInt(a, 10) || 0) - (Number.parseInt(b, 10) || 0))
-    .map(n => join(pagesDir, n));
+    .map((n) => join(pagesDir, n));
 }
 
 function decodeCost(path: string, displayWidth = 400): {ioMs: number; decodeMs: number} {
@@ -93,11 +118,9 @@ function decodeCost(path: string, displayWidth = 400): {ioMs: number; decodeMs: 
   const buf = readFileSync(path);
   const ioMs = performance.now() - t0;
   const t1 = performance.now();
-  const r = spawnSync(
-    'magick',
-    [path, '-resize', `${displayWidth}x`, '-quality', '85', 'null:'],
-    {encoding: 'utf8'},
-  );
+  const r = spawnSync('magick', [path, '-resize', `${displayWidth}x`, '-quality', '85', 'null:'], {
+    encoding: 'utf8',
+  });
   if (r.status !== 0) {
     throw new Error(`decode failed: ${r.stderr || path}`);
   }
@@ -131,7 +154,7 @@ async function runStrategy(paths: string[], strategy: Strategy): Promise<Strateg
           decodeSamples.push(decodeMs);
           decoded.add(i);
           active -= 1;
-        })(),
+        })()
       );
     }
     if (jobs.length) await Promise.all(jobs);
@@ -236,7 +259,7 @@ async function main(): Promise<void> {
   let totalBytes = 0;
   for (const p of paths) totalBytes += statSync(p).size;
   console.log(
-    `[bench] pages=${paths.length} totalBytes=${totalBytes} avgBytes=${Math.round(totalBytes / Math.max(1, paths.length))} listMs=${listMs.toFixed(1)}`,
+    `[bench] pages=${paths.length} totalBytes=${totalBytes} avgBytes=${Math.round(totalBytes / Math.max(1, paths.length))} listMs=${listMs.toFixed(1)}`
   );
 
   const pdfOpenMs = await benchPdf(pdfPath);
@@ -248,7 +271,7 @@ async function main(): Promise<void> {
     const r = await runStrategy(paths, s);
     results.push(r);
     console.log(
-      `[bench] ${s.name}: firstPaint=${r.firstPaintMs}ms firstScroll=${r.firstScrollMs}ms scrollTotal=${r.scrollTotalMs}ms mounts=${r.windowMountCount} decode(p50/p95/max)=${r.decodeMs.p50}/${r.decodeMs.p95}/${r.decodeMs.max} io=${r.ioReadMs}ms`,
+      `[bench] ${s.name}: firstPaint=${r.firstPaintMs}ms firstScroll=${r.firstScrollMs}ms scrollTotal=${r.scrollTotalMs}ms mounts=${r.windowMountCount} decode(p50/p95/max)=${r.decodeMs.p50}/${r.decodeMs.p95}/${r.decodeMs.max} io=${r.ioReadMs}ms`
     );
   }
 
@@ -270,11 +293,11 @@ async function main(): Promise<void> {
     strategies: results,
     winner: winner.name,
     recommendation: {
-      back: STRATEGIES.find(s => s.name === winner.name)!.back,
-      front: STRATEGIES.find(s => s.name === winner.name)!.front,
-      decodeConcurrency: STRATEGIES.find(s => s.name === winner.name)!.decodeConcurrency,
-      warmAhead: STRATEGIES.find(s => s.name === winner.name)!.warmAhead,
-      prewarmPages: STRATEGIES.find(s => s.name === winner.name)!.prewarmPages,
+      back: STRATEGIES.find((s) => s.name === winner.name)!.back,
+      front: STRATEGIES.find((s) => s.name === winner.name)!.front,
+      decodeConcurrency: STRATEGIES.find((s) => s.name === winner.name)!.decodeConcurrency,
+      warmAhead: STRATEGIES.find((s) => s.name === winner.name)!.warmAhead,
+      prewarmPages: STRATEGIES.find((s) => s.name === winner.name)!.prewarmPages,
     },
   };
 
@@ -285,7 +308,7 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(report.recommendation, null, 2));
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error(e);
   process.exitCode = 1;
 });

@@ -93,7 +93,9 @@ html {
 }
 
 body {
-  transition: background var(--dur-base) ease, color var(--dur-base) ease;
+  transition:
+    background var(--dur-base) ease,
+    color var(--dur-base) ease;
   overflow-x: hidden;
   width: 100%;
 }

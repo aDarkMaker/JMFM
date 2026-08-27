@@ -25,7 +25,7 @@ export function useTouchGestures(ctx: GestureViewerCtx, el: HTMLElement | null):
         if (c.animatingRef.current) return;
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY,
+          e.touches[0].clientY - e.touches[1].clientY
         );
         c.touchStateRef.current = {
           type: 'pinch',
@@ -75,7 +75,7 @@ export function useTouchGestures(ctx: GestureViewerCtx, el: HTMLElement | null):
         e.preventDefault();
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY,
+          e.touches[0].clientY - e.touches[1].clientY
         );
         const s = clamp(st.scale * (dist / st.dist), SCALE_MIN, SCALE_MAX);
         if (Math.abs(s - c.scaleRef.current) > 0.02) {
@@ -100,7 +100,7 @@ export function useTouchGestures(ctx: GestureViewerCtx, el: HTMLElement | null):
         if (Math.abs(c.scaleRef.current - c.renderedScaleRef.current) > 0.02) {
           applyScale(c.scaleRef.current);
           if (c.isScroll) {
-            scroll.scaleScrollWithAnchor(c, fn => scroll.renderAllPages(c, false, fn), st.focalY);
+            scroll.scaleScrollWithAnchor(c, (fn) => scroll.renderAllPages(c, false, fn), st.focalY);
           } else {
             void paged.reRenderPaged(c);
           }

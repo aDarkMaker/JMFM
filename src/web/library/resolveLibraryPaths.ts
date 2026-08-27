@@ -18,7 +18,7 @@ export function safeTitle(title: string): string {
 async function defaultPathExists(
   path: string,
   treeUri?: string,
-  downloadPath?: string,
+  downloadPath?: string
 ): Promise<boolean> {
   if (treeUri && downloadPath) {
     return safEntryExists(treeUri, toSafRelativePath(path, downloadPath));
@@ -40,7 +40,7 @@ export function parsePickedDirectory(path: string, appDir = 'JMFDownloads'): str
   try {
     const decoded = decodeURIComponent(path);
     const parts = decoded.split('/').filter(Boolean);
-    const treeIdx = parts.findIndex(p => p === 'tree');
+    const treeIdx = parts.findIndex((p) => p === 'tree');
     if (treeIdx >= 0 && treeIdx + 1 < parts.length) {
       const storagePath = parts.slice(treeIdx + 1).join('/');
       const colonIdx = storagePath.indexOf(':');
@@ -76,7 +76,7 @@ export async function resolveItemPaths(
   item: LibraryItem,
   downloadPath: string,
   exists: (path: string) => Promise<boolean> = defaultPathExists,
-  downloadTreeUri?: string,
+  downloadTreeUri?: string
 ): Promise<LibraryItem | null> {
   const checkExists = downloadTreeUri
     ? (path: string) => defaultPathExists(path, downloadTreeUri, downloadPath)
@@ -92,8 +92,7 @@ export async function resolveItemPaths(
       const albumDir = `${base}/${safe}`;
       const newCover = `${albumDir}/cover.jpg`;
       const coverExists = await checkExists(newCover);
-      const oldCoverOk =
-        item.coverPath != null && (await checkExists(item.coverPath));
+      const oldCoverOk = item.coverPath != null && (await checkExists(item.coverPath));
       return {
         ...item,
         filePath: albumDir,
@@ -109,7 +108,7 @@ export async function resolveLibraryPaths(
   items: LibraryItem[],
   downloadPath: string,
   exists: (path: string) => Promise<boolean> = defaultPathExists,
-  downloadTreeUri?: string,
+  downloadTreeUri?: string
 ): Promise<LibraryItem[]> {
   const fixed: LibraryItem[] = [];
   for (const item of items) {

@@ -12,7 +12,7 @@ const JPEG_B64 =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==';
 
 function tinyJpeg(): Uint8Array {
-  return Uint8Array.from(atob(JPEG_B64), c => c.charCodeAt(0));
+  return Uint8Array.from(atob(JPEG_B64), (c) => c.charCodeAt(0));
 }
 
 function buildPdf(pages: PdfPage[]): Uint8Array {
@@ -46,7 +46,7 @@ describe('pdf writer', () => {
     const pdf = buildPdf([page(100, 200), page(100, 200), page(200, 100)]);
     const doc = await PDFDocument.load(pdf);
     expect(doc.getPageCount()).toBe(3);
-    const sizes = doc.getPages().map(p => [p.getWidth(), p.getHeight()]);
+    const sizes = doc.getPages().map((p) => [p.getWidth(), p.getHeight()]);
     expect(sizes).toEqual([
       [100, 200],
       [100, 200],

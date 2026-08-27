@@ -29,30 +29,24 @@ export class AxiosHttpClient implements HttpClient {
   async getHtml(
     path: string,
     domains: readonly string[] = HTML_DOMAINS,
-    headers?: Record<string, string>,
+    headers?: Record<string, string>
   ): Promise<FetchResult> {
     const urls = buildBaseUrls(domains, path);
     return this.request(urls, headers, false);
   }
 
-  async getBytes(
-    url: string,
-    headers?: Record<string, string>,
-  ): Promise<FetchResult> {
+  async getBytes(url: string, headers?: Record<string, string>): Promise<FetchResult> {
     return this.request([url], headers, true);
   }
 
-  async getBytesWithUrls(
-    urls: string[],
-    headers?: Record<string, string>,
-  ): Promise<FetchResult> {
+  async getBytesWithUrls(urls: string[], headers?: Record<string, string>): Promise<FetchResult> {
     return this.request(urls, headers, true);
   }
 
   private async request(
     urls: string[],
     headers: Record<string, string> | undefined,
-    binary: boolean,
+    binary: boolean
   ): Promise<FetchResult> {
     const client = buildClient(this.opts);
     const maxRetries = this.opts.maxRetries ?? REQUEST.MAX_RETRIES;
@@ -76,7 +70,7 @@ export class AxiosHttpClient implements HttpClient {
     client: AxiosInstance,
     url: string,
     headers: Record<string, string> | undefined,
-    binary: boolean,
+    binary: boolean
   ): Promise<FetchResult> {
     try {
       const resp = await client.get(url, {

@@ -38,7 +38,7 @@ export function isCanceledError(e: unknown): boolean {
 export function fetchImageBytes(
   http: HttpClient,
   item: ImageItem,
-  checkCanceled?: () => void,
+  checkCanceled?: () => void
 ): Promise<Uint8Array> {
   return (async () => {
     let last: unknown;
@@ -63,7 +63,7 @@ export function fetchImageBytes(
 
 export async function findExisting(
   fs: DownloadRuntime['fs'],
-  base: string,
+  base: string
 ): Promise<string | null> {
   for (const ext of SUPPORTED_EXTS) {
     const p = `${base}.${ext}`;
@@ -81,7 +81,7 @@ export async function findExisting(
 /** Collects every page item of an album across all episodes, in order. */
 export async function collectAlbumPages(
   source: ContentSource,
-  albumId: number,
+  albumId: number
 ): Promise<{album: AlbumDetail; items: ImageItem[]}> {
   const album = await source.getAlbum(albumId);
   const items: ImageItem[] = [];
@@ -112,7 +112,7 @@ export async function downloadPages(
   offset: number,
   controller?: DownloadController,
   onProgress?: (p: PageProgress) => void,
-  opts?: DownloadPagesOptions,
+  opts?: DownloadPagesOptions
 ): Promise<number> {
   const {runtime} = ctx;
   const limit = calcConcurrency(items.length, ctx.cpuCount ?? 4, ctx.concurrency);
@@ -142,12 +142,7 @@ export async function downloadPages(
     if (strategy === 'raw') {
       await runtime.fs.writeFile(`${base}.${item.suffix}`, bytes);
     } else {
-      const decoded = await runtime.decodeAndSave(
-        num,
-        bytes,
-        item.suffix,
-        ctx.imageFormat,
-      );
+      const decoded = await runtime.decodeAndSave(num, bytes, item.suffix, ctx.imageFormat);
       await runtime.fs.writeFile(`${base}.${decoded.ext}`, decoded.bytes);
     }
     done += 1;

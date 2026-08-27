@@ -10,11 +10,7 @@ export function computeUniformWidth(widths: number[], maxWidth: number): number 
   return Math.min(Math.max(...widths), maxWidth);
 }
 
-export function scaleSize(
-  width: number,
-  height: number,
-  targetWidth: number,
-): PageSize {
+export function scaleSize(width: number, height: number, targetWidth: number): PageSize {
   const scale = width > 0 ? targetWidth / width : 1;
   return {
     width: Math.round(width * scale),

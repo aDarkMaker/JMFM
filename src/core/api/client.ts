@@ -3,11 +3,7 @@ import {HttpClient} from '../net';
 import {AlbumDetail, AlbumSummary, ImageItem, PhotoDetail, createImageItem} from '../model';
 import {aesEcbDecrypt, md5Hex} from '../crypto';
 import {utf8Decode} from '../util/utf8';
-import {
-  parseAlbumDetail,
-  parseAlbumList,
-  parsePhotoDetail,
-} from './parse';
+import {parseAlbumDetail, parseAlbumList, parsePhotoDetail} from './parse';
 
 function stripNonAsciiPrefix(text: string): string {
   let s = text;
@@ -64,7 +60,7 @@ export class ApiClient {
   /** Latest / filtered album list. Default o=mr_t = today by latest. */
   async getLatestAlbums(
     page = 1,
-    opts?: {order?: string; category?: string},
+    opts?: {order?: string; category?: string}
   ): Promise<{albums: AlbumSummary[]; total: number}> {
     const data = await this.req('/categories/filter', {
       page,
@@ -75,10 +71,7 @@ export class ApiClient {
     return parseAlbumList(data);
   }
 
-  async searchAlbums(
-    query: string,
-    page = 1,
-  ): Promise<{albums: AlbumSummary[]; total: number}> {
+  async searchAlbums(query: string, page = 1): Promise<{albums: AlbumSummary[]; total: number}> {
     const data = await this.req('/search', {
       search_query: query,
       page,
@@ -92,13 +85,13 @@ export class ApiClient {
 
   private async req(
     path: string,
-    params: Record<string, string | number>,
+    params: Record<string, string | number>
   ): Promise<Record<string, unknown>> {
     const domains = await this.refreshDomains();
     const query = Object.entries(params)
       .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
       .join('&');
-    const urls = domains.map(d => `https://${d}${path}?${query}`);
+    const urls = domains.map((d) => `https://${d}${path}?${query}`);
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const ts = String(Math.floor(Date.now() / 1000));
@@ -117,10 +110,9 @@ export class ApiClient {
       try {
         body = JSON.parse(text) as {code: number; data: unknown};
       } catch (e) {
-        throw new Error(
-          `api response parse failed: ${path} (${resp.bytes?.length ?? 0} bytes)`,
-          {cause: e},
-        );
+        throw new Error(`api response parse failed: ${path} (${resp.bytes?.length ?? 0} bytes)`, {
+          cause: e,
+        });
       }
       if (body.code !== 200) {
         throw new Error(`api error code ${body.code}`);
@@ -130,7 +122,7 @@ export class ApiClient {
       // corrupted ciphertext; wait out the window and retry
       if (!data) {
         if (attempt < maxRetries - 1) {
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
         throw new Error(`api empty data: ${path} (${resp.bytes?.length ?? 0} bytes)`);
@@ -139,13 +131,10 @@ export class ApiClient {
         return JSON.parse(aesEcbDecrypt(data, `${ts}${config.app.dataSecret}`));
       } catch (e) {
         if (attempt < maxRetries - 1) {
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
-        throw new Error(
-          `api decrypt failed: ${path} (data ${data.length} chars)`,
-          {cause: e},
-        );
+        throw new Error(`api decrypt failed: ${path} (data ${data.length} chars)`, {cause: e});
       }
     }
     throw new Error(`api request failed: ${path}`);

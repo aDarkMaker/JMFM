@@ -15,7 +15,7 @@ export function createAlbumPdf(
   outputDir: string,
   title: string,
   imagePaths: string[],
-  sizes?: PageSize[],
+  sizes?: PageSize[]
 ): Promise<string> {
   return (async () => {
     if (typeof Worker !== 'undefined') {
@@ -35,7 +35,7 @@ export function createAlbumPdf(
 
 export function createNativeRuntime(): DownloadRuntime {
   const fs: FileSystem = {
-    mkdir: path =>
+    mkdir: (path) =>
       Filesystem.mkdir({
         path,
         directory: Directory.Documents,
@@ -56,7 +56,7 @@ export function createNativeRuntime(): DownloadRuntime {
         directory: Directory.Documents,
       });
     },
-    readFile: async path => {
+    readFile: async (path) => {
       const r = await Filesystem.readFile({
         path,
         directory: Directory.Documents,
@@ -66,7 +66,7 @@ export function createNativeRuntime(): DownloadRuntime {
       }
       return base64ToBytes(r.data);
     },
-    unlink: async path => {
+    unlink: async (path) => {
       try {
         await Filesystem.deleteFile({path, directory: Directory.Documents});
       } catch {
@@ -77,7 +77,7 @@ export function createNativeRuntime(): DownloadRuntime {
         });
       }
     },
-    exists: async path => {
+    exists: async (path) => {
       try {
         await Filesystem.stat({path, directory: Directory.Documents});
         return true;
@@ -89,8 +89,7 @@ export function createNativeRuntime(): DownloadRuntime {
   return {
     fs,
     decodeAndSave,
-    createAlbumPdf: (dir, title, paths, sizes) =>
-      createAlbumPdf(fs, dir, title, paths, sizes),
+    createAlbumPdf: (dir, title, paths, sizes) => createAlbumPdf(fs, dir, title, paths, sizes),
   };
 }
 
@@ -112,28 +111,25 @@ export function createWebRuntime(): DownloadRuntime {
       merged.set(data, prev.length);
       mem.set(path, merged);
     },
-    readFile: async path => {
+    readFile: async (path) => {
       const data = mem.get(path);
       if (!data) {
         throw new Error(`file not found: ${path}`);
       }
       return data;
     },
-    unlink: async path => {
+    unlink: async (path) => {
       mem.delete(path);
     },
-    exists: async path => mem.has(path),
+    exists: async (path) => mem.has(path),
   };
   return {
     fs,
     decodeAndSave,
-    createAlbumPdf: (dir, title, paths, sizes) =>
-      createAlbumPdf(fs, dir, title, paths, sizes),
+    createAlbumPdf: (dir, title, paths, sizes) => createAlbumPdf(fs, dir, title, paths, sizes),
   };
 }
 
 export function createRuntime(): DownloadRuntime {
-  return Capacitor.isNativePlatform()
-    ? createNativeRuntime()
-    : createWebRuntime();
+  return Capacitor.isNativePlatform() ? createNativeRuntime() : createWebRuntime();
 }

@@ -89,17 +89,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         items,
         settings.downloadPath,
         undefined,
-        settings.downloadTreeUri,
+        settings.downloadTreeUri
       );
       if (fixed.length > 0) {
-        const byAlbum = new Map(fixed.map(i => [i.albumId, i]));
-        items = items.map(i => byAlbum.get(i.albumId) ?? i);
+        const byAlbum = new Map(fixed.map((i) => [i.albumId, i]));
+        items = items.map((i) => byAlbum.get(i.albumId) ?? i);
       }
       const discovered = await discoverLibraryFromDisk(
         items,
         settings.downloadPath,
         undefined,
-        settings.downloadTreeUri,
+        settings.downloadTreeUri
       );
       if (discovered.length > 0) {
         items = mergeDiscovered(items, discovered);
@@ -115,46 +115,47 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({items, loaded: true});
   },
   add(item) {
-    const items = [{...item, downloadedAt: Date.now()}, ...get().items.filter(i => i.albumId !== item.albumId)];
+    const items = [
+      {...item, downloadedAt: Date.now()},
+      ...get().items.filter((i) => i.albumId !== item.albumId),
+    ];
     set({items});
     scheduleSave(items);
   },
   remove(albumId) {
-    const items = get().items.filter(i => i.albumId !== albumId);
+    const items = get().items.filter((i) => i.albumId !== albumId);
     set({items});
     scheduleSave(items);
   },
   patchItem(albumId, patch) {
-    const items = get().items.map(i =>
-      i.albumId === albumId ? {...i, ...patch} : i,
-    );
+    const items = get().items.map((i) => (i.albumId === albumId ? {...i, ...patch} : i));
     set({items});
     scheduleSave(items);
   },
   toggleFavorite(albumId) {
-    const items = get().items.map(i =>
-      i.albumId === albumId ? {...i, favorite: !i.favorite} : i,
+    const items = get().items.map((i) =>
+      i.albumId === albumId ? {...i, favorite: !i.favorite} : i
     );
     set({items});
     scheduleSave(items);
   },
   markOpened(albumId) {
-    const items = get().items.map(i =>
-      i.albumId === albumId ? {...i, lastOpenedAt: Date.now()} : i,
+    const items = get().items.map((i) =>
+      i.albumId === albumId ? {...i, lastOpenedAt: Date.now()} : i
     );
     set({items});
     scheduleSave(items);
   },
 }));
 
-  /** Await library load so consumers never read a half-initialized store. */
+/** Await library load so consumers never read a half-initialized store. */
 export function waitForLibraryLoaded(): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (useLibraryStore.getState().loaded) {
       resolve();
       return;
     }
-    const unsubscribe = useLibraryStore.subscribe(state => {
+    const unsubscribe = useLibraryStore.subscribe((state) => {
       if (state.loaded) {
         unsubscribe();
         resolve();

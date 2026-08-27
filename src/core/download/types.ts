@@ -12,13 +12,13 @@ export interface DownloadRuntime {
     num: number,
     encoded: Uint8Array,
     ext: string,
-    format?: DecodeFormat,
+    format?: DecodeFormat
   ): Promise<DecodedImage>;
   createAlbumPdf(
     outputDir: string,
     title: string,
     imagePaths: string[],
-    sizes?: PageSize[],
+    sizes?: PageSize[]
   ): Promise<string>;
 }
 

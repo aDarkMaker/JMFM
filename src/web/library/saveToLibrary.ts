@@ -35,7 +35,7 @@ export async function saveToLibrary(
   albumDir: string,
   http: HttpClient,
   runtime: DownloadRuntime,
-  writer: LibraryWriter,
+  writer: LibraryWriter
 ): Promise<void> {
   let coverPath: string | undefined;
   try {
@@ -72,12 +72,9 @@ export async function saveToLibrary(
 function persistLocalMeta(
   runtime: DownloadRuntime,
   albumDir: string,
-  meta: LocalAlbumMeta,
+  meta: LocalAlbumMeta
 ): Promise<void> {
   const text = JSON.stringify(meta);
   const bytes = new TextEncoder().encode(text);
-  return runtime.fs
-    .writeFile(`${albumDir}/${META_FILE}`, bytes)
-    .catch(() => undefined);
+  return runtime.fs.writeFile(`${albumDir}/${META_FILE}`, bytes).catch(() => undefined);
 }
-

@@ -56,7 +56,7 @@ export function useReaderLifecycle() {
         void CapacitorApp.minimizeApp();
       }
     });
-    return () => void h.then(x => x.remove());
+    return () => void h.then((x) => x.remove());
   }, [closeReader]);
 
   return {reader, readerClosing, openReader, closeReader};

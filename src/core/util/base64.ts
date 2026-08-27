@@ -1,6 +1,5 @@
 /* eslint-disable no-bitwise */
-const B64_CHARS =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 export function bytesToBase64(bytes: Uint8Array): string {
   let out = '';

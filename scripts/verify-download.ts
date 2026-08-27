@@ -25,7 +25,7 @@ function summarizePages(pagesDir: string): {
   if (!existsSync(pagesDir)) {
     return {pageCount: 0, totalBytes: 0, avgBytes: 0};
   }
-  const files = readdirSync(pagesDir).filter(n => /\.(jpe?g|png|webp)$/i.test(n));
+  const files = readdirSync(pagesDir).filter((n) => /\.(jpe?g|png|webp)$/i.test(n));
   let totalBytes = 0;
   for (const name of files) {
     totalBytes += statSync(join(pagesDir, name)).size;
@@ -69,7 +69,7 @@ async function main(): Promise<void> {
     imageFormat: process.env.JMF_IMAGE_FORMAT === 'jpg' ? 'jpg' : 'webp',
   });
 
-  const albumDir = await service.downloadAlbum(ALBUM_ID, e => {
+  const albumDir = await service.downloadAlbum(ALBUM_ID, (e) => {
     switch (e.type) {
       case 'album-parsed':
         albumParsedAt = performance.now();
@@ -78,13 +78,16 @@ async function main(): Promise<void> {
         chapters = e.chapters;
         lastChapterAt = albumParsedAt;
         log('album', `parsed in ${tAlbum.toFixed(0)}ms`);
-        log('album-meta', JSON.stringify({
-          albumId: ALBUM_ID,
-          title: e.title,
-          author: e.author,
-          tags: e.tags,
-          chapters: e.chapters,
-        }));
+        log(
+          'album-meta',
+          JSON.stringify({
+            albumId: ALBUM_ID,
+            title: e.title,
+            author: e.author,
+            tags: e.tags,
+            chapters: e.chapters,
+          })
+        );
         break;
       case 'chapter': {
         const now = performance.now();
@@ -130,17 +133,17 @@ async function main(): Promise<void> {
         images: Math.round(tImages),
         total: Math.round(performance.now() - tAll),
       },
-    }),
+    })
   );
 
   const coverUrl = `https://${CDN_DOMAINS[0]}/media/albums/${ALBUM_ID}_3x4.jpg`;
   log('cover', `fetching ${coverUrl}`);
   let coverResp;
   for (const domain of CDN_DOMAINS) {
-    coverResp = await http.getBytes(
-      `https://${domain}/media/albums/${ALBUM_ID}_3x4.jpg`,
-      {Referer: REQUEST.REFERER, Accept: REQUEST.ACCEPT_IMAGE},
-    );
+    coverResp = await http.getBytes(`https://${domain}/media/albums/${ALBUM_ID}_3x4.jpg`, {
+      Referer: REQUEST.REFERER,
+      Accept: REQUEST.ACCEPT_IMAGE,
+    });
     if (coverResp.ok && coverResp.bytes) {
       break;
     }
@@ -150,12 +153,15 @@ async function main(): Promise<void> {
     writeFileSync(coverPath, coverResp.bytes);
     log('cover', `ok (${coverResp.bytes.length} bytes) -> ${coverPath}`);
   } else {
-    log('cover', `failed status=${coverResp?.status}${coverResp?.error ? ` err=${coverResp.error}` : ''}`);
+    log(
+      'cover',
+      `failed status=${coverResp?.status}${coverResp?.error ? ` err=${coverResp.error}` : ''}`
+    );
   }
   log('finish', ms(tAll));
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error(e);
   process.exitCode = 1;
 });

@@ -8,11 +8,7 @@ export function decideImageStrategy(num: number, ext: string): ImageStrategy {
   return 'reassemble';
 }
 
-export function calcConcurrency(
-  total: number,
-  cpuCount: number,
-  override?: number,
-): number {
+export function calcConcurrency(total: number, cpuCount: number, override?: number): number {
   if (override && override > 0) {
     return Math.min(override, total > 0 ? total : override);
   }
@@ -23,7 +19,7 @@ export function calcConcurrency(
 export async function mapWithConcurrency<T>(
   items: T[],
   limit: number,
-  fn: (item: T, index: number) => Promise<void>,
+  fn: (item: T, index: number) => Promise<void>
 ): Promise<void> {
   let cursor = 0;
   const workers = Array.from({length: Math.min(limit, items.length)}, async () => {

@@ -23,10 +23,7 @@ function encodeParams(format: DecodeFormat): {mime: string; quality: number; ext
   return {mime: 'image/jpeg', quality: JPEG_QUALITY, ext: 'jpg'};
 }
 
-async function bitmapToBytes(
-  bitmap: ImageBitmap,
-  format: DecodeFormat,
-): Promise<DecodedImage> {
+async function bitmapToBytes(bitmap: ImageBitmap, format: DecodeFormat): Promise<DecodedImage> {
   const canvas = document.createElement('canvas');
   const dim = scaleDim(bitmap.width, bitmap.height);
   canvas.width = dim.width;
@@ -37,9 +34,7 @@ async function bitmapToBytes(
   }
   ctx.drawImage(bitmap, 0, 0, dim.width, dim.height);
   const {mime, quality, ext} = encodeParams(format);
-  const blob = await new Promise<Blob | null>(resolve =>
-    canvas.toBlob(resolve, mime, quality),
-  );
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, quality));
   if (!blob) {
     throw new Error(`${ext} encode failed`);
   }
@@ -55,7 +50,7 @@ async function canvasToBytes(
   canvas: HTMLCanvasElement,
   width: number,
   height: number,
-  format: DecodeFormat,
+  format: DecodeFormat
 ): Promise<DecodedImage> {
   const dim = scaleDim(width, height);
   let out = canvas;
@@ -71,9 +66,7 @@ async function canvasToBytes(
     out = scaled;
   }
   const {mime, quality, ext} = encodeParams(format);
-  const blob = await new Promise<Blob | null>(resolve =>
-    out.toBlob(resolve, mime, quality),
-  );
+  const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, mime, quality));
   if (!blob) {
     throw new Error(`${ext} encode failed`);
   }
@@ -89,7 +82,7 @@ export async function decodeAndSave(
   num: number,
   encoded: Uint8Array,
   ext: string,
-  format: DecodeFormat = 'jpg',
+  format: DecodeFormat = 'jpg'
 ): Promise<DecodedImage> {
   const lower = ext.toLowerCase();
   if (num <= 1 && lower !== 'webp' && lower !== 'gif') {
@@ -116,17 +109,7 @@ export async function decodeAndSave(
       throw new Error('canvas 2d context unavailable');
     }
     for (const strip of computeStrips(num, height)) {
-      ctx.drawImage(
-        bitmap,
-        0,
-        strip.ySrc,
-        width,
-        strip.height,
-        0,
-        strip.yDst,
-        width,
-        strip.height,
-      );
+      ctx.drawImage(bitmap, 0, strip.ySrc, width, strip.height, 0, strip.yDst, width, strip.height);
     }
     return canvasToBytes(canvas, width, height, format);
   } finally {

@@ -1,11 +1,4 @@
-import {
-  CDN_DOMAINS,
-  DOWNLOAD,
-  HTML_DOMAINS,
-  PDF,
-  REQUEST,
-  SCRAMBLE,
-} from '@/core/constants';
+import {CDN_DOMAINS, DOWNLOAD, HTML_DOMAINS, PDF, REQUEST, SCRAMBLE} from '@/core/constants';
 import {config} from '@/config';
 
 describe('constants', () => {

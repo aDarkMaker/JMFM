@@ -1,8 +1,7 @@
 /* eslint-disable no-bitwise */
 import {utf8Decode} from '../../../src/core/util/utf8';
 
-const B64_CHARS =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 export function decodeBase64Utf8(input: string): string {
   const clean = input.replace(/\s+/g, '');

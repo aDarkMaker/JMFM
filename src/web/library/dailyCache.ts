@@ -1,8 +1,5 @@
 import type {AlbumSummary} from '../../core/model';
-import {
-  createUserStorage,
-  migrateFromLocalStorage,
-} from '../../data/user-storage';
+import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
 
 const KEY_PREFIX = 'jmf.daily.';
 const storage = createUserStorage();
@@ -40,9 +37,7 @@ export function writeCache(date: string, albums: AlbumSummary[]): void {
 export async function clearStaleCaches(keepDate: string): Promise<void> {
   try {
     const keys = await storage.keys(KEY_PREFIX);
-    await Promise.all(
-      keys.filter(k => k !== cacheKey(keepDate)).map(k => storage.remove(k)),
-    );
+    await Promise.all(keys.filter((k) => k !== cacheKey(keepDate)).map((k) => storage.remove(k)));
   } catch {
     // ignore
   }

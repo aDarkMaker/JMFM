@@ -29,7 +29,7 @@ export function pushObject(
   state: WriterState,
   objNum: number,
   body: string,
-  streamData?: Uint8Array,
+  streamData?: Uint8Array
 ): Uint8Array {
   while (state.xrefOffsets.length <= objNum) {
     state.xrefOffsets.push(-1);
@@ -63,7 +63,7 @@ export function buildPage(
   state: WriterState,
   index: number,
   page: PdfPage,
-  jpeg: Uint8Array,
+  jpeg: Uint8Array
 ): Uint8Array {
   const base = 3 + index * 3;
   const w = page.width;

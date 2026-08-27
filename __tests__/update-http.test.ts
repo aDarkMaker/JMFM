@@ -11,7 +11,7 @@ describe('updateFetchJson on native', () => {
 
     const {updateFetchJson} = await import('@/core/update/http');
     const result = await updateFetchJson<{version: string; tag: string}>(
-      'https://example.com/version.json',
+      'https://example.com/version.json'
     );
     expect(result).toEqual({version: '2.0.0', tag: 'v2.0.0'});
   });
@@ -25,9 +25,7 @@ describe('updateFetchJson on native', () => {
     }));
 
     const {updateFetchJson} = await import('@/core/update/http');
-    const result = await updateFetchJson<{version: string}>(
-      'https://example.com/version.json',
-    );
+    const result = await updateFetchJson<{version: string}>('https://example.com/version.json');
     expect(result).toEqual({version: '1.0.0'});
   });
 });

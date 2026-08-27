@@ -28,7 +28,7 @@ const SWIPE_MIN = 48;
 
 export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(function ImageReader(
   {pagesDir, mode, onPageChange, onReady, onError},
-  ref,
+  ref
 ) {
   const metaRef = useRef<ImageDocMeta | null>(getImageDocMeta(pagesDir) ?? null);
   const pageRef = useRef(1);
@@ -47,11 +47,9 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
   const pendingPageRef = useRef(0);
   const pagedAreaRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const slideRefs = useRef<[HTMLImageElement | null, HTMLImageElement | null, HTMLImageElement | null]>([
-    null,
-    null,
-    null,
-  ]);
+  const slideRefs = useRef<
+    [HTMLImageElement | null, HTMLImageElement | null, HTMLImageElement | null]
+  >([null, null, null]);
   const animatingRef = useRef(false);
   const touchRef = useRef<{x: number; y: number; t: number} | null>(null);
   const pinchRef = useRef<{dist: number; scale: number} | null>(null);
@@ -79,20 +77,23 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
     return metaRef.current?.srcs[index];
   }, []);
 
-  const bindImg = useCallback((img: HTMLImageElement, index: number) => {
-    const src = pageSrc(index);
-    if (!src) return;
-    if (
-      img.dataset.pageIndex === String(index) &&
-      img.dataset.src === src &&
-      img.complete &&
-      img.naturalWidth > 0
-    ) {
-      return;
-    }
-    img.dataset.pageIndex = String(index);
-    applyToImg(img, src);
-  }, [pageSrc]);
+  const bindImg = useCallback(
+    (img: HTMLImageElement, index: number) => {
+      const src = pageSrc(index);
+      if (!src) return;
+      if (
+        img.dataset.pageIndex === String(index) &&
+        img.dataset.src === src &&
+        img.complete &&
+        img.naturalWidth > 0
+      ) {
+        return;
+      }
+      img.dataset.pageIndex = String(index);
+      applyToImg(img, src);
+    },
+    [pageSrc]
+  );
 
   const sizeImg = useCallback((img: HTMLImageElement) => {
     img.style.width = `${slotWRef.current}px`;
@@ -119,7 +120,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       if (img) sizeImg(img);
       return el;
     },
-    [sizeImg],
+    [sizeImg]
   );
 
   const patchScrollWindow = useCallback(
@@ -162,7 +163,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         anchor = el;
       }
     },
-    [acquirePageEl, bindImg],
+    [acquirePageEl, bindImg]
   );
 
   const ensureScrollWindow = useCallback(
@@ -195,7 +196,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       }
       patchScrollWindow(start, end);
     },
-    [patchScrollWindow],
+    [patchScrollWindow]
   );
 
   const scheduleWindowPatch = useCallback(
@@ -207,7 +208,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         ensureScrollWindow(pendingPageRef.current || pageRef.current);
       });
     },
-    [ensureScrollWindow],
+    [ensureScrollWindow]
   );
 
   const onScroll = useCallback(() => {
@@ -236,7 +237,9 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
   const setTrackX = useCallback((x: number, animate: boolean) => {
     const track = trackRef.current;
     if (!track) return;
-    track.style.transition = animate ? `transform ${PAGED_FLIP_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1)` : 'none';
+    track.style.transition = animate
+      ? `transform ${PAGED_FLIP_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
+      : 'none';
     track.style.transform = `translate3d(${x}%, 0, 0)`;
   }, []);
 
@@ -261,7 +264,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         bindImg(img, page1 - 1);
       });
     },
-    [sizeImg, bindImg],
+    [sizeImg, bindImg]
   );
 
   const flipPaged = useCallback(
@@ -288,7 +291,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         }
         setTrackX(0, true);
       }
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         window.setTimeout(resolve, PAGED_FLIP_MS + 16);
       });
       pageRef.current = target;
@@ -297,7 +300,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       paintPagedSlides(target);
       animatingRef.current = false;
     },
-    [sizeImg, bindImg, setTrackX, notifyPage, paintPagedSlides],
+    [sizeImg, bindImg, setTrackX, notifyPage, paintPagedSlides]
   );
 
   const refreshSized = useCallback(() => {
@@ -311,7 +314,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       if (scrollBottomRef.current && metaRef.current && prev.end >= 0) {
         scrollBottomRef.current.style.height = `${Math.max(0, (metaRef.current.pageCount - prev.end) * h)}px`;
       }
-      pageElsRef.current.forEach(el => {
+      pageElsRef.current.forEach((el) => {
         el.style.height = `${h}px`;
         const img = el.firstElementChild as HTMLImageElement | null;
         if (img) sizeImg(img);
@@ -343,7 +346,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         paintPagedSlides(next);
       }
     },
-    [mode, notifyPage, ensureScrollWindow, flipPaged, setTrackX, paintPagedSlides],
+    [mode, notifyPage, ensureScrollWindow, flipPaged, setTrackX, paintPagedSlides]
   );
 
   const zoom = useCallback(
@@ -351,7 +354,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       scaleRef.current = clamp(scaleRef.current * factor, SCALE_MIN, SCALE_MAX);
       refreshSized();
     },
-    [refreshSized],
+    [refreshSized]
   );
 
   const fitToWidth = useCallback(() => {
@@ -359,11 +362,15 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
     refreshSized();
   }, [refreshSized]);
 
-  useImperativeHandle(ref, () => ({
-    goTo,
-    zoom,
-    fitToWidth,
-  }), [goTo, zoom, fitToWidth]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      goTo,
+      zoom,
+      fitToWidth,
+    }),
+    [goTo, zoom, fitToWidth]
+  );
 
   useEffect(() => {
     let alive = true;
@@ -386,11 +393,11 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       };
     }
     loadImageDocMeta(pagesDir)
-      .then(m => {
+      .then((m) => {
         if (!alive) return;
         boot(m);
       })
-      .catch(e => {
+      .catch((e) => {
         if (alive) {
           onErrorRef.current(e instanceof Error ? e.message : String(e));
         }
@@ -433,7 +440,10 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       pinchRef.current = {
-        dist: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY),
+        dist: Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        ),
         scale: scaleRef.current,
       };
       touchRef.current = null;
@@ -446,7 +456,10 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
     (e: React.TouchEvent) => {
       const p = pinchRef.current;
       if (p && e.touches.length === 2) {
-        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
         scaleRef.current = clamp(p.scale * (dist / p.dist), SCALE_MIN, SCALE_MAX);
         refreshSized();
         return;
@@ -464,7 +477,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         }
       }
     },
-    [mode, refreshSized, setTrackX],
+    [mode, refreshSized, setTrackX]
   );
 
   const onTouchEnd = useCallback(
@@ -485,7 +498,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         setTrackX(-33.3333, true);
       }
     },
-    [mode, flipPaged, setTrackX],
+    [mode, flipPaged, setTrackX]
   );
 
   if (mode === 'scroll') {
@@ -516,10 +529,10 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       onTouchEnd={onTouchEnd}
     >
       <div className="reader-paged-track" ref={trackRef}>
-        {[0, 1, 2].map(slot => (
+        {[0, 1, 2].map((slot) => (
           <div className="reader-paged-slide" key={slot}>
             <img
-              ref={el => {
+              ref={(el) => {
                 slideRefs.current[slot] = el;
               }}
               className="reader-img reader-img-paged is-loading"

@@ -19,23 +19,16 @@ export interface HttpClient {
   getHtml(
     path: string,
     domains?: readonly string[],
-    headers?: Record<string, string>,
+    headers?: Record<string, string>
   ): Promise<FetchResult>;
   getBytes(url: string, headers?: Record<string, string>): Promise<FetchResult>;
-  getBytesWithUrls(
-    urls: string[],
-    headers?: Record<string, string>,
-  ): Promise<FetchResult>;
+  getBytesWithUrls(urls: string[], headers?: Record<string, string>): Promise<FetchResult>;
 }
 
-export const sleep = (ms: number) =>
-  new Promise<void>(resolve => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const DEFAULT_MAX_RETRIES = REQUEST.MAX_RETRIES;
 
 export function buildBaseUrls(domains: readonly string[], path: string): string[] {
-  return domains.flatMap(d => [
-    `https://${d}${path}`,
-    `http://${d}${path}`,
-  ]);
+  return domains.flatMap((d) => [`https://${d}${path}`, `http://${d}${path}`]);
 }

@@ -58,7 +58,7 @@ export function useAppUpdate() {
         if (isActive) {
           void loadCurrentVersion();
         }
-      }).then(h => {
+      }).then((h) => {
         handle = h;
       });
     }

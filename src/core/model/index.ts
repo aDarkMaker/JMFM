@@ -68,11 +68,7 @@ export function buildFallbackImageUrl(aid: number, index: number): string {
 
 const ALLOWED_SUFFIXES = new Set(['webp', 'jpg', 'jpeg', 'png', 'gif']);
 
-export function createImageItem(
-  photo: PhotoDetail,
-  fileName: string,
-  index: number,
-): ImageItem {
+export function createImageItem(photo: PhotoDetail, fileName: string, index: number): ImageItem {
   const dot = fileName.lastIndexOf('.');
   const base = dot > 0 ? fileName.slice(0, dot) : fileName;
   const rawSuffix = dot > 0 ? fileName.slice(dot + 1) : '';

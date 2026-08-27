@@ -5,9 +5,7 @@ function keywordPattern(keyword: string): RegExp {
 }
 
 export function isHardBlockedKeyword(tag: string): boolean {
-  return HARD_BLOCK_KEYWORDS.some(kw =>
-    keywordPattern(kw).test(tag.toLowerCase()),
-  );
+  return HARD_BLOCK_KEYWORDS.some((kw) => keywordPattern(kw).test(tag.toLowerCase()));
 }
 
 interface BlockableAlbum {
@@ -18,11 +16,8 @@ interface BlockableAlbum {
   category?: string;
 }
 
-export function isBlockedAlbum(
-  album: BlockableAlbum,
-  blacklistTags: string[],
-): boolean {
-  const tagSet = new Set(blacklistTags.map(t => t.trim()).filter(Boolean));
+export function isBlockedAlbum(album: BlockableAlbum, blacklistTags: string[]): boolean {
+  const tagSet = new Set(blacklistTags.map((t) => t.trim()).filter(Boolean));
   const tags = album.tags ?? [];
   for (const tag of tags) {
     if (tagSet.has(tag)) {
@@ -30,7 +25,9 @@ export function isBlockedAlbum(
     }
   }
   const name = album.name ?? album.title ?? '';
-  if (isHardBlockedKeyword(`${name} ${album.author ?? ''} ${album.category ?? ''} ${tags.join(' ')}`)) {
+  if (
+    isHardBlockedKeyword(`${name} ${album.author ?? ''} ${album.category ?? ''} ${tags.join(' ')}`)
+  ) {
     return true;
   }
   return false;
@@ -38,7 +35,7 @@ export function isBlockedAlbum(
 
 export function filterBlockedAlbums<T extends BlockableAlbum>(
   albums: T[],
-  blacklistTags: string[],
+  blacklistTags: string[]
 ): T[] {
-  return albums.filter(a => !isBlockedAlbum(a, blacklistTags));
+  return albums.filter((a) => !isBlockedAlbum(a, blacklistTags));
 }

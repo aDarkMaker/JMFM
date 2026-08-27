@@ -1,9 +1,4 @@
-import {
-  APK_ASSET_NAME,
-  RELEASES_API,
-  VERSION_ASSET_NAME,
-  releaseAssetUrl,
-} from './constants';
+import {APK_ASSET_NAME, RELEASES_API, VERSION_ASSET_NAME, releaseAssetUrl} from './constants';
 import {updateFetchJson} from './http';
 
 export interface RemoteVersion {
@@ -39,9 +34,7 @@ export async function fetchLatestRelease(): Promise<LatestReleaseInfo> {
   const tag = release.tag_name || 'latest';
 
   // version.json and the APK are read from the same pinned tag.
-  const remote = await updateFetchJson<RemoteVersion>(
-    releaseAssetUrl(tag, VERSION_ASSET_NAME),
-  );
+  const remote = await updateFetchJson<RemoteVersion>(releaseAssetUrl(tag, VERSION_ASSET_NAME));
   if (!remote.version || !Number.isFinite(remote.versionCode)) {
     throw new Error('invalid remote version.json');
   }

@@ -28,7 +28,9 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-pill);
   padding: var(--space-1) var(--space-3);
-  transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) ease;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    opacity var(--dur-fast) ease;
 }
 
 .tag-filter-chip:active {
@@ -76,7 +78,9 @@
   border: 1px dashed var(--ink-tertiary);
   border-radius: var(--radius-pill);
   padding: var(--space-1) var(--space-3);
-  transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) ease;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    opacity var(--dur-fast) ease;
 }
 
 .tag-filter-suggest-chip:active {

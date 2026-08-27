@@ -14,17 +14,15 @@ import {useReaderLifecycle} from './hooks/reader-lifecycle';
 
 type TabId = 'home' | 'library' | 'tasks' | 'settings';
 
-const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download' | 'settings'}[] = [
-  {id: 'home', label: '首页', icon: 'home'},
-  {id: 'library', label: '资源', icon: 'auto-stories'},
-  {id: 'tasks', label: '下载', icon: 'download'},
-  {id: 'settings', label: '设置', icon: 'settings'},
-];
+const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download' | 'settings'}[] =
+  [
+    {id: 'home', label: '首页', icon: 'home'},
+    {id: 'library', label: '资源', icon: 'auto-stories'},
+    {id: 'tasks', label: '下载', icon: 'download'},
+    {id: 'settings', label: '设置', icon: 'settings'},
+  ];
 
-const SCREEN_ENTRIES: [
-  Exclude<TabId, 'library'>,
-  () => import('react').ReactElement,
-][] = [
+const SCREEN_ENTRIES: [Exclude<TabId, 'library'>, () => import('react').ReactElement][] = [
   ['home', HomeScreen],
   ['tasks', TasksScreen],
   ['settings', SettingsScreen],
@@ -33,11 +31,13 @@ const SCREEN_ENTRIES: [
 export function App() {
   const [tab, setTab] = useState<TabId>('home');
   const [prevTab, setPrevTab] = useState<TabId | null>(null);
-  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({} as Record<TabId, HTMLButtonElement | null>);
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>(
+    {} as Record<TabId, HTMLButtonElement | null>
+  );
   const contentRef = useRef<HTMLDivElement>(null);
-  const theme = useSettingsStore(s => s.settings.theme);
-  const loaded = useSettingsStore(s => s.loaded);
-  const load = useSettingsStore(s => s.load);
+  const theme = useSettingsStore((s) => s.settings.theme);
+  const loaded = useSettingsStore((s) => s.loaded);
+  const load = useSettingsStore((s) => s.load);
   const {reader, readerClosing, openReader, closeReader} = useReaderLifecycle();
   useKeyboardVisibility();
 
@@ -53,7 +53,7 @@ export function App() {
 
   useEffect(() => {
     const warm = () => {
-      void preloadCovers(useLibraryStore.getState().items.map(i => i.coverPath));
+      void preloadCovers(useLibraryStore.getState().items.map((i) => i.coverPath));
     };
     warm();
     return useLibraryStore.subscribe((state, prev) => {
@@ -69,11 +69,7 @@ export function App() {
     const activeEl = tabRefs.current[tab];
     if (!activeEl) return;
 
-    gsap.fromTo(
-      activeEl,
-      {scale: 0.9},
-      {scale: 1, duration: 0.25, ease: 'back.out(1.5)'},
-    );
+    gsap.fromTo(activeEl, {scale: 0.9}, {scale: 1, duration: 0.25, ease: 'back.out(1.5)'});
   }, [tab]);
 
   useEffect(() => {
@@ -93,7 +89,7 @@ export function App() {
         x: 0,
         duration: 0.28,
         ease: 'power2.out',
-      },
+      }
     );
 
     setPrevTab(null);
@@ -110,19 +106,26 @@ export function App() {
       <div ref={contentRef} className="app-content">
         {tab === 'library' ? (
           <LibraryScreen
-            onOpenReader={item => openReader({filePath: item.filePath, title: item.title, pageCount: item.pageCount, pagesDir: item.pagesDir})}
+            onOpenReader={(item) =>
+              openReader({
+                filePath: item.filePath,
+                title: item.title,
+                pageCount: item.pageCount,
+                pagesDir: item.pagesDir,
+              })
+            }
           />
         ) : (
-          SCREEN_ENTRIES.map(([id, Screen]) =>
-            tab === id ? <Screen key={id} /> : null,
-          )
+          SCREEN_ENTRIES.map(([id, Screen]) => (tab === id ? <Screen key={id} /> : null))
         )}
       </div>
       <nav className="app-tabbar">
-        {TABS.map(t => (
+        {TABS.map((t) => (
           <button
             key={t.id}
-            ref={el => { tabRefs.current[t.id] = el; }}
+            ref={(el) => {
+              tabRefs.current[t.id] = el;
+            }}
             className={`tab-item${tab === t.id ? ' is-active' : ''}`}
             onClick={() => handleTabChange(t.id)}
           >

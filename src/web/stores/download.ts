@@ -19,7 +19,9 @@ export interface Task {
 interface DownloadState {
   tasks: Task[];
   add(task: Omit<Task, 'status' | 'done' | 'chaptersDone' | 'chaptersTotal' | 'total'>): void;
-  addBatch(tasks: Omit<Task, 'status' | 'done' | 'chaptersDone' | 'chaptersTotal' | 'total'>[]): void;
+  addBatch(
+    tasks: Omit<Task, 'status' | 'done' | 'chaptersDone' | 'chaptersTotal' | 'total'>[]
+  ): void;
   remove(id: string): void;
   setStatus(id: string, status: TaskStatus, error?: string): void;
   updateProgress(id: string, done: number, total: number): void;
@@ -31,7 +33,7 @@ interface DownloadState {
 }
 
 function newTask(
-  t: Omit<Task, 'status' | 'done' | 'chaptersDone' | 'chaptersTotal' | 'total'>,
+  t: Omit<Task, 'status' | 'done' | 'chaptersDone' | 'chaptersTotal' | 'total'>
 ): Task {
   return {
     ...t,
@@ -55,7 +57,7 @@ function flushProgress(): void {
   const snapshot = new Map(pendingProgress);
   pendingProgress.clear();
   const {tasks} = useDownloadStore.getState();
-  const updates = new Map(tasks.map(t => [t.id, t]));
+  const updates = new Map(tasks.map((t) => [t.id, t]));
   snapshot.forEach((p, id) => {
     const cur = updates.get(id);
     if (cur) {
@@ -68,17 +70,17 @@ function flushProgress(): void {
 export const useDownloadStore = create<DownloadState>((set, get) => ({
   tasks: [],
   add(task) {
-    set(state => {
-      if (state.tasks.some(t => t.albumId === task.albumId)) {
+    set((state) => {
+      if (state.tasks.some((t) => t.albumId === task.albumId)) {
         return state;
       }
       return {tasks: [...state.tasks, newTask(task)]};
     });
   },
   addBatch(tasks) {
-    set(state => {
-      const existing = new Set(state.tasks.map(t => t.albumId));
-      const next = tasks.filter(t => !existing.has(t.albumId));
+    set((state) => {
+      const existing = new Set(state.tasks.map((t) => t.albumId));
+      const next = tasks.filter((t) => !existing.has(t.albumId));
       if (next.length === 0) {
         return state;
       }
@@ -86,11 +88,11 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
     });
   },
   remove(id) {
-    set(state => ({tasks: state.tasks.filter(t => t.id !== id)}));
+    set((state) => ({tasks: state.tasks.filter((t) => t.id !== id)}));
   },
   setStatus(id, status, error) {
-    set(state => ({
-      tasks: state.tasks.map(t => (t.id === id ? {...t, status, error} : t)),
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === id ? {...t, status, error} : t)),
     }));
   },
   updateProgress(id, done, total) {
@@ -101,25 +103,23 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
     progressTimer = setTimeout(flushProgress, THROTTLE_MS);
   },
   updateChapter(id, chaptersDone, chaptersTotal) {
-    set(state => ({
-      tasks: state.tasks.map(t =>
-        t.id === id ? {...t, chaptersDone, chaptersTotal} : t,
-      ),
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === id ? {...t, chaptersDone, chaptersTotal} : t)),
     }));
   },
   setTitle(id, title) {
-    set(state => ({
-      tasks: state.tasks.map(t => (t.id === id ? {...t, title} : t)),
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === id ? {...t, title} : t)),
     }));
   },
   setController(id, controller) {
-    set(state => ({
-      tasks: state.tasks.map(t => (t.id === id ? {...t, controller} : t)),
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === id ? {...t, controller} : t)),
     }));
   },
   pauseAll() {
     const {tasks} = get();
-    tasks.forEach(t => {
+    tasks.forEach((t) => {
       if (t.status === 'running' || t.status === 'pending') {
         t.controller?.cancel();
       }
@@ -127,12 +127,10 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   },
   resumeAll() {
     const {tasks} = get();
-    tasks.forEach(t => {
+    tasks.forEach((t) => {
       if (t.status === 'paused') {
-        set(state => ({
-          tasks: state.tasks.map(x =>
-            x.id === t.id ? {...x, status: 'pending' as const} : x,
-          ),
+        set((state) => ({
+          tasks: state.tasks.map((x) => (x.id === t.id ? {...x, status: 'pending' as const} : x)),
         }));
       }
     });

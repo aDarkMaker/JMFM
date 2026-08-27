@@ -55,7 +55,7 @@ export async function renderScrollWindow(
   ctx: ScrollViewerCtx,
   center: number,
   seq: number,
-  onLowRes?: (page: number) => void,
+  onLowRes?: (page: number) => void
 ): Promise<void> {
   const doc = ctx.docRef.current;
   if (!doc) return;
@@ -77,7 +77,7 @@ export async function renderScrollWindow(
       ctx.scaleRef.current,
       seq,
       () => ctx.renderSeqRef.current,
-      onLowRes ? () => onLowRes(i) : undefined,
+      onLowRes ? () => onLowRes(i) : undefined
     );
     if (seq !== ctx.renderSeqRef.current) return;
     ctx.renderedScrollPagesRef.current.add(i);
@@ -88,7 +88,7 @@ export async function renderAllPages(
   ctx: ScrollViewerCtx,
   fit: boolean,
   onLayoutChanged?: () => void,
-  onLowRes?: (page: number) => void,
+  onLowRes?: (page: number) => void
 ): Promise<void> {
   const doc = ctx.docRef.current;
   const area = ctx.scrollAreaRef.current;
@@ -124,7 +124,7 @@ export function onScrollAreaScroll(ctx: ScrollViewerCtx): void {
 function rerenderScrollWithAnchor(
   ctx: ScrollViewerCtx,
   render: (onLayoutChanged?: () => void) => Promise<void>,
-  focalY?: number,
+  focalY?: number
 ): void {
   const area = ctx.scrollAreaRef.current;
   if (!area) return;
@@ -170,14 +170,18 @@ export function scrollToPage(ctx: ScrollViewerCtx, n: number): void {
 export function getScrollFocalY(
   ctx: ScrollViewerCtx,
   touches: {clientY: number}[],
-  el: HTMLElement,
+  el: HTMLElement
 ): number {
   const rect = el.getBoundingClientRect();
   const midY = (touches[0].clientY + touches[1].clientY) / 2;
   return midY - rect.top;
 }
 
-export function applyScrollScaleTransform(ctx: ScrollViewerCtx, s: number, st: {baseScrollTop: number; focalY: number} | null): void {
+export function applyScrollScaleTransform(
+  ctx: ScrollViewerCtx,
+  s: number,
+  st: {baseScrollTop: number; focalY: number} | null
+): void {
   const wrapper = ctx.scrollContentRef.current;
   if (!wrapper) return;
   const k = s / ctx.renderedScaleRef.current;
@@ -199,7 +203,7 @@ export function resetScrollScaleTransform(ctx: ScrollViewerCtx): void {
 export function scaleScrollWithAnchor(
   ctx: ScrollViewerCtx,
   render: (onLayoutChanged?: () => void) => Promise<void>,
-  focalY?: number,
+  focalY?: number
 ): void {
   rerenderScrollWithAnchor(ctx, render, focalY);
 }

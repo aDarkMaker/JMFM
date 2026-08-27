@@ -33,7 +33,7 @@ export async function resolveCoverSrc(coverPath: string): Promise<string | null>
   }
 
   const job = resolveNativeCoverSrc(coverPath)
-    .then(src => {
+    .then((src) => {
       if (src) {
         uriCache.set(coverPath, src);
       }
@@ -60,7 +60,7 @@ async function resolveNativeCoverSrc(coverPath: string): Promise<string | null> 
 }
 
 function decodeImage(src: string): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => resolve();
     img.onerror = () => resolve();
@@ -71,11 +71,11 @@ function decodeImage(src: string): Promise<void> {
 export async function preloadCovers(paths: Array<string | undefined>): Promise<void> {
   const unique = [...new Set(paths.filter((p): p is string => Boolean(p)))];
   await Promise.all(
-    unique.map(async path => {
+    unique.map(async (path) => {
       const src = await resolveCoverSrc(path);
       if (src) {
         await decodeImage(src);
       }
-    }),
+    })
   );
 }

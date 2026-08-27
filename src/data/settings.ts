@@ -25,13 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   imageFormat: 'webp',
   proxy: '',
   proxyEnabled: false,
-  domains: [
-    '18comic.vip',
-    '18comic.org',
-    'jmcomic.me',
-    'jmcomic1.me',
-    'jmcomic2.me',
-  ],
+  domains: ['18comic.vip', '18comic.org', 'jmcomic.me', 'jmcomic1.me', 'jmcomic2.me'],
   blacklistTags: [],
   whitelistTags: [],
   theme: 'light',
@@ -61,7 +55,7 @@ function sanitizeDomains(raw: string[] | undefined): string[] {
   if (!Array.isArray(raw) || raw.length === 0) {
     return [...DEFAULT_SETTINGS.domains];
   }
-  return raw.map(d => String(d).trim()).filter(Boolean);
+  return raw.map((d) => String(d).trim()).filter(Boolean);
 }
 
 function sanitizeBlacklist(raw: string[] | undefined): string[] {
@@ -96,7 +90,7 @@ function normalizeInt(
   value: number | undefined,
   min: number,
   max: number,
-  fallback: number,
+  fallback: number
 ): number {
   const v = Number(value);
   if (!Number.isFinite(v)) {
@@ -141,20 +135,18 @@ function parseSettings(raw: string): Settings {
 }
 
 export function createSettingsStorage(): SettingsStorage {
-  return Capacitor.isNativePlatform()
-    ? new NativeSettingsStorage()
-    : new WebSettingsStorage();
+  return Capacitor.isNativePlatform() ? new NativeSettingsStorage() : new WebSettingsStorage();
 }
 
 export async function loadSettings(
-  storage: SettingsStorage = createSettingsStorage(),
+  storage: SettingsStorage = createSettingsStorage()
 ): Promise<Settings> {
   return storage.load();
 }
 
 export async function saveSettings(
   settings: Settings,
-  storage: SettingsStorage = createSettingsStorage(),
+  storage: SettingsStorage = createSettingsStorage()
 ): Promise<void> {
   await storage.save(settings);
 }

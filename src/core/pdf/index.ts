@@ -14,14 +14,11 @@ export interface PdfPage {
   backgroundColor: string;
 }
 
-export function buildPdfPages(
-  imagePaths: string[],
-  sizes?: PageSize[],
-): PdfPage[] {
-  const known = (sizes ?? []).filter(s => s.width > 0 && s.height > 0);
+export function buildPdfPages(imagePaths: string[], sizes?: PageSize[]): PdfPage[] {
+  const known = (sizes ?? []).filter((s) => s.width > 0 && s.height > 0);
   const targetW = computeUniformWidth(
-    known.map(s => s.width),
-    PDF.MAX_WIDTH,
+    known.map((s) => s.width),
+    PDF.MAX_WIDTH
   );
   return imagePaths.map((imagePath, i) => {
     const size = sizes?.[i];
@@ -47,15 +44,16 @@ export function buildPdfPages(
 
 export async function buildPdfBytes(
   pages: PdfPage[],
-  readImage: (path: string) => Promise<Uint8Array>,
+  readImage: (path: string) => Promise<Uint8Array>
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   for (const page of pages) {
     const bytes = await readImage(page.imagePath);
     const lower = page.imagePath.toLowerCase();
-    const img = lower.endsWith('.jpg') || lower.endsWith('.jpeg')
-      ? await doc.embedJpg(bytes)
-      : await doc.embedPng(bytes);
+    const img =
+      lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+        ? await doc.embedJpg(bytes)
+        : await doc.embedPng(bytes);
     const p = doc.addPage([page.width, page.height]);
     p.drawImage(img, {x: 0, y: 0, width: page.width, height: page.height});
   }

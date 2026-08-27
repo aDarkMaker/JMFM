@@ -58,7 +58,10 @@ export const AlbumCard = memo(function AlbumCard({
       onClick={() => onPress?.(album)}
       aria-label={album.title}
     >
-      <div className="album-cover" style={{background: album.coverColor ?? coverColorOf(album.albumId)}}>
+      <div
+        className="album-cover"
+        style={{background: album.coverColor ?? coverColorOf(album.albumId)}}
+      >
         {showCover ? (
           <img
             className="album-cover-img"
@@ -75,7 +78,7 @@ export const AlbumCard = memo(function AlbumCard({
           <button
             className={`album-corner-btn${album.favorite ? ' is-active' : ''}`}
             aria-label="收藏"
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation();
               onFavorite(album);
             }}
@@ -88,7 +91,7 @@ export const AlbumCard = memo(function AlbumCard({
             className={`album-corner-btn album-corner-download${downloading ? ' is-active' : ''}`}
             aria-label={downloading ? '已在下载队列' : '加入下载'}
             disabled={downloading}
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation();
               if (!downloading) onDownload(album);
             }}
@@ -100,7 +103,7 @@ export const AlbumCard = memo(function AlbumCard({
           <button
             className="album-corner-btn album-corner-delete"
             aria-label="删除"
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation();
               onDelete(album);
             }}
@@ -112,7 +115,7 @@ export const AlbumCard = memo(function AlbumCard({
           <button
             className="album-corner-btn album-corner-dismiss"
             aria-label="不再推荐"
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation();
               onDismiss(album);
             }}
@@ -122,14 +125,20 @@ export const AlbumCard = memo(function AlbumCard({
         ) : null}
       </div>
       <div className="album-info">
-        <span className={`album-title${hasJapanese(album.title) ? ' is-ja' : ''}`}>{album.title}</span>
+        <span className={`album-title${hasJapanese(album.title) ? ' is-ja' : ''}`}>
+          {album.title}
+        </span>
         {album.author ? (
-          <span className={`album-meta${hasJapanese(album.author) ? ' is-ja' : ''}`}>{album.author}</span>
+          <span className={`album-meta${hasJapanese(album.author) ? ' is-ja' : ''}`}>
+            {album.author}
+          </span>
         ) : null}
         {tags.length > 0 ? (
           <div className="album-tags">
-            {tags.map(tag => (
-              <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>{tag}</span>
+            {tags.map((tag) => (
+              <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>
+                {tag}
+              </span>
             ))}
           </div>
         ) : null}

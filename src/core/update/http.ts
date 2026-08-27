@@ -20,8 +20,7 @@ function friendlyError(e: unknown): Error {
   return new Error('网络连接失败，请检查网络');
 }
 
-const sleep = (ms: number) =>
-  new Promise<void>(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function withUpdateRetry<T>(fn: () => Promise<T>): Promise<T> {
   let last: unknown;
@@ -41,7 +40,7 @@ async function withUpdateRetry<T>(fn: () => Promise<T>): Promise<T> {
 export async function updateFetchText(
   url: string,
   headers?: Record<string, string>,
-  readTimeoutMs = UPDATE_TIMEOUT.READ_VERSION_MS,
+  readTimeoutMs = UPDATE_TIMEOUT.READ_VERSION_MS
 ): Promise<string> {
   return withUpdateRetry(async () => {
     if (Capacitor.isNativePlatform()) {
@@ -68,7 +67,7 @@ export async function updateFetchText(
 
 export async function updateFetchJson<T>(
   url: string,
-  headers?: Record<string, string>,
+  headers?: Record<string, string>
 ): Promise<T> {
   const text = await updateFetchText(url, headers);
   return JSON.parse(text) as T;
@@ -76,7 +75,7 @@ export async function updateFetchJson<T>(
 
 export async function updateFetchBytes(
   url: string,
-  onProgress?: (loaded: number, total: number) => void,
+  onProgress?: (loaded: number, total: number) => void
 ): Promise<Uint8Array> {
   return withUpdateRetry(async () => {
     if (Capacitor.isNativePlatform()) {

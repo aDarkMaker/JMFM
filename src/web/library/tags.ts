@@ -16,13 +16,10 @@ export const LANGUAGE_TAGS = [
 
 export function isLanguageTag(tag: string): boolean {
   const t = tag.trim().toLowerCase();
-  return LANGUAGE_TAGS.some(lang => lang.toLowerCase() === t);
+  return LANGUAGE_TAGS.some((lang) => lang.toLowerCase() === t);
 }
 
-export function topTags(
-  items: Array<Pick<LibraryItem, 'tags'>>,
-  n = 4,
-): string[] {
+export function topTags(items: Array<Pick<LibraryItem, 'tags'>>, n = 4): string[] {
   const counts = new Map<string, number>();
   for (const item of items) {
     for (const raw of item.tags ?? []) {

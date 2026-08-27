@@ -12,12 +12,12 @@ import {uid} from '../library/uid';
 import {formatTaskError} from '../util/formatTaskError';
 
 export function useDownloadTask() {
-  const downloadPath = useSettingsStore(s => s.settings.downloadPath);
-  const proxyEnabled = useSettingsStore(s => s.settings.proxyEnabled);
-  const proxy = useSettingsStore(s => s.settings.proxy);
-  const retryTimes = useSettingsStore(s => s.settings.retryTimes);
-  const imageThreads = useSettingsStore(s => s.settings.imageThreads);
-  const imageFormat = useSettingsStore(s => s.settings.imageFormat);
+  const downloadPath = useSettingsStore((s) => s.settings.downloadPath);
+  const proxyEnabled = useSettingsStore((s) => s.settings.proxyEnabled);
+  const proxy = useSettingsStore((s) => s.settings.proxy);
+  const retryTimes = useSettingsStore((s) => s.settings.retryTimes);
+  const imageThreads = useSettingsStore((s) => s.settings.imageThreads);
+  const imageFormat = useSettingsStore((s) => s.settings.imageFormat);
 
   const runTask = useCallback(
     async (taskId: string) => {
@@ -33,17 +33,21 @@ export function useDownloadTask() {
         runtime,
         downloadPath,
         concurrency: imageThreads || undefined,
-        cpuCount:
-          typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4,
+        cpuCount: typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4,
         imageFormat: imageFormat === 'webp' ? 'webp' : 'jpg',
       });
 
-      const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
+      const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
       if (!task) return;
       const albumId = task.albumId;
       let albumInfo: AlbumInfo | null = null;
       let albumTotal = 0;
-      const controller = {paused: false, cancel() { this.paused = true; }};
+      const controller = {
+        paused: false,
+        cancel() {
+          this.paused = true;
+        },
+      };
       useDownloadStore.getState().setController(taskId, controller);
       useDownloadStore.getState().setStatus(taskId, 'running');
 
@@ -62,7 +66,7 @@ export function useDownloadTask() {
               useDownloadStore.getState().updateProgress(taskId, e.albumDone, e.albumTotal);
             }
           },
-          {controller},
+          {controller}
         );
         useDownloadStore.getState().setStatus(taskId, 'done');
         if (albumInfo) {
@@ -73,35 +77,37 @@ export function useDownloadTask() {
             albumDir,
             http,
             runtime,
-            useLibraryStore.getState(),
+            useLibraryStore.getState()
           );
         }
       } catch (err) {
         if (isCanceledError(err)) {
           useDownloadStore.getState().setStatus(taskId, 'paused');
         } else {
-          useDownloadStore.getState().setStatus(
-            taskId,
-            'error',
-            formatTaskError(err instanceof Error ? err.message : String(err)),
-          );
+          useDownloadStore
+            .getState()
+            .setStatus(
+              taskId,
+              'error',
+              formatTaskError(err instanceof Error ? err.message : String(err))
+            );
         }
       }
     },
-    [downloadPath, proxyEnabled, proxy, retryTimes, imageThreads, imageFormat],
+    [downloadPath, proxyEnabled, proxy, retryTimes, imageThreads, imageFormat]
   );
 
   const startDownload = useCallback(
     (taskId: string) => {
-      const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
+      const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
       if (!task || task.status === 'running' || task.status === 'done') return;
       enqueueDownload(taskId, () => runTask(taskId));
     },
-    [runTask],
+    [runTask]
   );
 
   const cancel = useCallback((taskId: string) => {
-    const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
+    const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
     task?.controller?.cancel();
   }, []);
 
@@ -109,12 +115,12 @@ export function useDownloadTask() {
     (albumId: number, title: string): void => {
       const id = uid();
       useDownloadStore.getState().addBatch([{id, albumId, title}]);
-      const task = useDownloadStore.getState().tasks.find(t => t.albumId === albumId);
+      const task = useDownloadStore.getState().tasks.find((t) => t.albumId === albumId);
       if (task) {
         startDownload(task.id);
       }
     },
-    [startDownload],
+    [startDownload]
   );
 
   return {startDownload, cancel, enqueueAlbum};

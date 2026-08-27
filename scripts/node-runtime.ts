@@ -30,7 +30,7 @@ export function decodeWithMagick(
   num: number,
   encoded: Uint8Array,
   ext: string,
-  format: DecodeFormat = 'jpg',
+  format: DecodeFormat = 'jpg'
 ): DecodedImage {
   const lower = ext.toLowerCase();
   const outExt = format === 'webp' ? 'webp' : 'jpg';
@@ -68,13 +68,7 @@ export function decodeWithMagick(
     for (let i = 0; i < strips.length; i++) {
       const s = strips[i];
       const part = join(dir, `s${i}.png`);
-      runMagick([
-        input,
-        '-crop',
-        `${width}x${s.height}+0+${s.ySrc}`,
-        '+repage',
-        part,
-      ]);
+      runMagick([input, '-crop', `${width}x${s.height}+0+${s.ySrc}`, '+repage', part]);
       parts.push(part);
     }
     const out = join(dir, `out.${outExt}`);
@@ -93,28 +87,22 @@ export function decodeWithMagick(
 export async function createPdfWithMagick(
   outputDir: string,
   title: string,
-  imagePaths: string[],
+  imagePaths: string[]
 ): Promise<string> {
   mkdirSync(outputDir, {recursive: true});
   const outputPath = join(outputDir, buildFileName(title));
   if (imagePaths.length === 0) {
     throw new Error('no images for pdf');
   }
-  const widths = imagePaths.map(path => identifySize(path).width);
+  const widths = imagePaths.map((path) => identifySize(path).width);
   const targetW = computeUniformWidth(widths, PDF.MAX_WIDTH);
-  runMagick([
-    ...imagePaths,
-    '+repage',
-    '-resize',
-    `${targetW}x`,
-    outputPath,
-  ]);
+  runMagick([...imagePaths, '+repage', '-resize', `${targetW}x`, outputPath]);
   return outputPath;
 }
 
 export function createNodeRuntime(): DownloadRuntime {
   const fs: FileSystem = {
-    mkdir: async path => {
+    mkdir: async (path) => {
       mkdirSync(path, {recursive: true});
     },
     writeFile: async (path, data) => {
@@ -123,18 +111,17 @@ export function createNodeRuntime(): DownloadRuntime {
     appendFile: async (path, data) => {
       writeFileSync(path, data, {flag: 'a'});
     },
-    readFile: async path => {
+    readFile: async (path) => {
       return new Uint8Array(readFileSync(path));
     },
-    unlink: async path => {
+    unlink: async (path) => {
       rmSync(path, {recursive: true, force: true});
     },
-    exists: async path => existsSync(path),
+    exists: async (path) => existsSync(path),
   };
   return {
     fs,
-    decodeAndSave: async (num, encoded, ext, format) =>
-      decodeWithMagick(num, encoded, ext, format),
+    decodeAndSave: async (num, encoded, ext, format) => decodeWithMagick(num, encoded, ext, format),
     createAlbumPdf: createPdfWithMagick,
   };
 }

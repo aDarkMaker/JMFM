@@ -1,0 +1,7 @@
+dist
+node_modules
+android
+temp
+*.min.js
+*.min.mjs
+bun.lock

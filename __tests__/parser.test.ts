@@ -1,5 +1,10 @@
 /* eslint-disable no-bitwise */
-import {decodeBase64Utf8, extractBase64Html, parseAlbumDetail, parsePhotoDetail} from './helpers/parser';
+import {
+  decodeBase64Utf8,
+  extractBase64Html,
+  parseAlbumDetail,
+  parsePhotoDetail,
+} from './helpers/parser';
 
 describe('parser base64', () => {
   it('decodes utf8 base64', () => {
@@ -18,9 +23,8 @@ describe('parser base64', () => {
 });
 
 function encodeBase64(input: string): string {
-  const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const bytes = Array.from(input, c => c.charCodeAt(0));
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const bytes = Array.from(input, (c) => c.charCodeAt(0));
   let out = '';
   for (let i = 0; i < bytes.length; i += 3) {
     const b0 = bytes[i];

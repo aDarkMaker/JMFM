@@ -14,7 +14,7 @@ export type DownloadProgress = (loaded: number, total: number) => void;
 export async function downloadApkToCache(
   url: string,
   expectedSha256: string | undefined,
-  onProgress?: DownloadProgress,
+  onProgress?: DownloadProgress
 ): Promise<string> {
   const bytes = await updateFetchBytes(url, onProgress);
   if (expectedSha256) {

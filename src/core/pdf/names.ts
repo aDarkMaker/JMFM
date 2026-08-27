@@ -5,9 +5,7 @@ export function sanitizeTitle(title: string): string {
   if (!cleaned) {
     return 'untitled';
   }
-  return cleaned.length > PDF.TITLE_MAX_LEN
-    ? cleaned.slice(0, PDF.TITLE_MAX_LEN)
-    : cleaned;
+  return cleaned.length > PDF.TITLE_MAX_LEN ? cleaned.slice(0, PDF.TITLE_MAX_LEN) : cleaned;
 }
 
 export function buildFileName(title: string): string {

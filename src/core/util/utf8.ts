@@ -12,9 +12,7 @@ export function utf8Decode(bytes: Uint8Array | number[]): string {
       i += 2;
     } else if (b < 0xf0) {
       out += String.fromCharCode(
-        ((b & 0x0f) << 12) |
-          ((bytes[i + 1] & 0x3f) << 6) |
-          (bytes[i + 2] & 0x3f),
+        ((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f)
       );
       i += 3;
     } else {

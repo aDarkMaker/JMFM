@@ -22,15 +22,15 @@ const BADGE_TEXT: Record<TaskStatus, string> = {
 function parseIds(input: string): number[] {
   return input
     .split(/[\s,]+/)
-    .map(s => s.trim())
-    .filter(s => /^\d+$/.test(s))
+    .map((s) => s.trim())
+    .filter((s) => /^\d+$/.test(s))
     .map(Number);
 }
 
 export function TasksScreen() {
-  const tasks = useDownloadStore(s => s.tasks);
-  const pauseAll = useDownloadStore(s => s.pauseAll);
-  const resumeAll = useDownloadStore(s => s.resumeAll);
+  const tasks = useDownloadStore((s) => s.tasks);
+  const pauseAll = useDownloadStore((s) => s.pauseAll);
+  const resumeAll = useDownloadStore((s) => s.resumeAll);
   const {startDownload, cancel, enqueueAlbum} = useDownloadTask();
   const [input, setInput] = useState('');
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
@@ -39,8 +39,8 @@ export function TasksScreen() {
   const scheduledRemoveRef = useRef(new Set<string>());
   const ids = parseIds(input);
   const isValid = ids.length > 0;
-  const hasRunning = tasks.some(t => t.status === 'running');
-  const hasPaused = tasks.some(t => t.status === 'paused');
+  const hasRunning = tasks.some((t) => t.status === 'running');
+  const hasPaused = tasks.some((t) => t.status === 'paused');
 
   const startRemove = useCallback((taskId: string) => {
     if (leavingRef.current.has(taskId)) return;
@@ -89,10 +89,10 @@ export function TasksScreen() {
     const autoMap = autoRemoveTimersRef.current;
     const tiles = tileRefs.current;
     return () => {
-      autoMap.forEach(timer => clearTimeout(timer));
+      autoMap.forEach((timer) => clearTimeout(timer));
       autoMap.clear();
       scheduledRemoveRef.current.clear();
-      tiles.forEach(el => gsap.killTweensOf(el));
+      tiles.forEach((el) => gsap.killTweensOf(el));
       tiles.clear();
       leavingRef.current.clear();
     };
@@ -123,13 +123,13 @@ export function TasksScreen() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isValid) return;
-    const existing = new Set(useDownloadStore.getState().tasks.map(t => t.albumId));
-    const fresh = ids.filter(id => !existing.has(id));
+    const existing = new Set(useDownloadStore.getState().tasks.map((t) => t.albumId));
+    const fresh = ids.filter((id) => !existing.has(id));
     if (fresh.length === 0) {
       setInput('');
       return;
     }
-    fresh.forEach(id => enqueueAlbum(id, `漫画 ${id}`));
+    fresh.forEach((id) => enqueueAlbum(id, `漫画 ${id}`));
     setInput('');
   }
 
@@ -150,33 +150,24 @@ export function TasksScreen() {
           className="download-input"
           placeholder="输入漫画ID"
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
         />
-        <button
-          className="download-button"
-          type="submit"
-          disabled={!isValid}
-          aria-label="下载"
-        >
+        <button className="download-button" type="submit" disabled={!isValid} aria-label="下载">
           <Icon name="add" size={20} />
         </button>
       </form>
       {tasks.length === 0 ? (
         <div className="app-empty">
-          <EmptyState
-            icon="cloud-download"
-            title="暂无下载任务"
-            hint="在上方输入漫画ID开始下载"
-          />
+          <EmptyState icon="cloud-download" title="暂无下载任务" hint="在上方输入漫画ID开始下载" />
         </div>
       ) : (
         <div className="tasks-stack">
-          {tasks.map(task => {
+          {tasks.map((task) => {
             return (
               <div
                 className="task-tile"
                 key={task.id}
-                ref={el => {
+                ref={(el) => {
                   if (el) {
                     tileRefs.current.set(task.id, el);
                   } else {
@@ -185,10 +176,10 @@ export function TasksScreen() {
                 }}
               >
                 <div className="task-head">
-                  <span className={`task-title${hasJapanese(task.title) ? ' is-ja' : ''}`}>{task.title}</span>
-                  <span className={`task-badge is-${task.status}`}>
-                    {BADGE_TEXT[task.status]}
+                  <span className={`task-title${hasJapanese(task.title) ? ' is-ja' : ''}`}>
+                    {task.title}
                   </span>
+                  <span className={`task-badge is-${task.status}`}>{BADGE_TEXT[task.status]}</span>
                 </div>
                 <ProgressBar
                   progress={(task.done / Math.max(1, task.total)) * 100}
@@ -221,7 +212,10 @@ export function TasksScreen() {
                       重试
                     </button>
                   ) : null}
-                  <button className="task-action task-action-danger" onClick={() => handleRemoveTask(task.id)}>
+                  <button
+                    className="task-action task-action-danger"
+                    onClick={() => handleRemoveTask(task.id)}
+                  >
                     <Icon name="delete" size={16} />
                     删除
                   </button>

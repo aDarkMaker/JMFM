@@ -81,9 +81,9 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
     }),
   ]);
   const files = dir.files
-    .filter(f => f.type === 'file' && isImageFile(f.name))
+    .filter((f) => f.type === 'file' && isImageFile(f.name))
     .sort((a, b) => sortByNumericName(a.name, b.name))
-    .map(f => f.name);
+    .map((f) => f.name);
   const baseSrc = Capacitor.convertFileSrc(uri.uri);
   const entry: ImageDocMeta = {
     pagesDir,
@@ -100,19 +100,19 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
 async function loadSafImageDocMeta(
   pagesDir: string,
   treeUri: string,
-  downloadPath: string,
+  downloadPath: string
 ): Promise<ImageDocMeta> {
   const rel = toSafRelativePath(pagesDir, downloadPath);
   const entries = await safListDirectory(treeUri, rel);
   const files = entries
-    .filter(e => e.type === 'file' && isImageFile(e.name))
+    .filter((e) => e.type === 'file' && isImageFile(e.name))
     .sort((a, b) => sortByNumericName(a.name, b.name))
-    .map(e => e.name);
+    .map((e) => e.name);
   const srcs = await Promise.all(
-    files.map(async name => {
+    files.map(async (name) => {
       const uri = await safGetEntryUri(treeUri, `${rel}/${name}`);
       return Capacitor.convertFileSrc(uri);
-    }),
+    })
   );
   const entry: ImageDocMeta = {
     pagesDir,
@@ -123,4 +123,3 @@ async function loadSafImageDocMeta(
   cacheEntry(pagesDir, entry);
   return entry;
 }
-

@@ -28,8 +28,8 @@ export function useKeyboardVisibility(): void {
       document.addEventListener('focusin', onFocusIn);
       document.addEventListener('focusout', onFocusOut);
       return () => {
-        void show.then(h => h.remove());
-        void hide.then(h => h.remove());
+        void show.then((h) => h.remove());
+        void hide.then((h) => h.remove());
         document.removeEventListener('focusin', onFocusIn);
         document.removeEventListener('focusout', onFocusOut);
       };

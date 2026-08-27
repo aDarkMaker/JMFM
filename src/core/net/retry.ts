@@ -5,7 +5,7 @@ import {sleep} from './http';
 export async function requestWithRetry(
   urls: string[],
   maxRetries: number | undefined,
-  tryOnce: (url: string) => Promise<FetchResult>,
+  tryOnce: (url: string) => Promise<FetchResult>
 ): Promise<FetchResult> {
   const retries = maxRetries ?? REQUEST.MAX_RETRIES;
   let lastError = '';

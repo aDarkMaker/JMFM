@@ -26,18 +26,24 @@ interface Fixture {
 
 function scanner(fixture: Fixture): LibraryScanner {
   return {
-    listDirs: async path => fixture.dirs[path] ?? [],
-    listImages: async path => fixture.pages[path] ?? [],
-    readMeta: async path => fixture.metas[path] ?? null,
+    listDirs: async (path) => fixture.dirs[path] ?? [],
+    listImages: async (path) => fixture.pages[path] ?? [],
+    readMeta: async (path) => fixture.metas[path] ?? null,
   };
 }
 
 describe('parseLocalMeta', () => {
   it('parses a valid meta object', () => {
     const meta = parseLocalMeta(
-      JSON.stringify({albumId: 42, title: '标题', author: '作者', tags: ['a', 'b'], pageCount: 5}),
+      JSON.stringify({albumId: 42, title: '标题', author: '作者', tags: ['a', 'b'], pageCount: 5})
     );
-    expect(meta).toMatchObject({albumId: 42, title: '标题', author: '作者', tags: ['a', 'b'], pageCount: 5});
+    expect(meta).toMatchObject({
+      albumId: 42,
+      title: '标题',
+      author: '作者',
+      tags: ['a', 'b'],
+      pageCount: 5,
+    });
   });
 
   it('rejects invalid JSON or empty titles', () => {
@@ -67,7 +73,7 @@ describe('mergeDiscovered', () => {
       item('B', 'base/B/pages', 1_000_000_002),
     ];
     const merged = mergeDiscovered(existing, discovered);
-    expect(merged.map(i => i.title)).toEqual(['A', 'B']);
+    expect(merged.map((i) => i.title)).toEqual(['A', 'B']);
   });
 
   it('skips discovered items whose real albumId already exists', () => {
@@ -110,9 +116,9 @@ describe('discoverLibraryFromDisk', () => {
     const found = await discoverLibraryFromDisk(
       existing,
       'Download/JMFDownloads',
-      scanner(fixture),
+      scanner(fixture)
     );
-    const byTitle = new Map(found.map(i => [i.title, i]));
+    const byTitle = new Map(found.map((i) => [i.title, i]));
     expect(byTitle.has('测试')).toBe(false);
     const unnamed = byTitle.get('未命名')!;
     expect(unnamed.pageCount).toBe(2);
@@ -127,7 +133,7 @@ describe('discoverLibraryFromDisk', () => {
       metas: {'JMFMobile/downloads/新本': {albumId: 9, title: '新本', pageCount: 1}},
     };
     const found = await discoverLibraryFromDisk([], 'Download/JMFDownloads', scanner(fixture2));
-    const fresh = found.find(i => i.albumId === 9);
+    const fresh = found.find((i) => i.albumId === 9);
     expect(fresh).toBeDefined();
     expect(fresh!.title).toBe('新本');
   });

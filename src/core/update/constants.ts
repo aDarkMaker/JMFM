@@ -3,8 +3,7 @@ export const GITHUB_REPO = 'JMFM';
 export const APK_ASSET_NAME = 'JMFM.apk';
 export const VERSION_ASSET_NAME = 'version.json';
 
-export const RELEASES_API =
-  `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+export const RELEASES_API = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 
 // Assets are pinned to a concrete release tag (never the `latest` wildcard)
 // so version.json and its APK always belong to the same release.

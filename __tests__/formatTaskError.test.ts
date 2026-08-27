@@ -3,13 +3,13 @@ import {formatTaskError} from '@/web/util/formatTaskError';
 describe('formatTaskError', () => {
   it('strips full urls', () => {
     expect(formatTaskError('failed to download https://cdn.example.com/a/b/00001.webp?x=1')).toBe(
-      'failed to download',
+      'failed to download'
     );
   });
 
   it('strips native/web detail blobs', () => {
     expect(formatTaskError('api failed; native=timeout; web=TypeError: Failed to fetch')).toBe(
-      'api failed',
+      'api failed'
     );
   });
 

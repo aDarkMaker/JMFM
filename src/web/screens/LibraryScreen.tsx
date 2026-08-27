@@ -18,10 +18,10 @@ const CATEGORIES: {key: CategoryKey; label: string}[] = [
 ];
 
 export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem) => void}) {
-  const items = useLibraryStore(s => s.items);
-  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
-  const removeItem = useLibraryStore(s => s.remove);
-  const markOpened = useLibraryStore(s => s.markOpened);
+  const items = useLibraryStore((s) => s.items);
+  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
+  const removeItem = useLibraryStore((s) => s.remove);
+  const markOpened = useLibraryStore((s) => s.markOpened);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryKey>('all');
   const [pendingDelete, setPendingDelete] = useState<LibraryItem | null>(null);
@@ -29,16 +29,14 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
   const filtered = useMemo(() => {
     let list = items;
     if (category === 'favorite') {
-      list = list.filter(it => it.favorite);
+      list = list.filter((it) => it.favorite);
     } else if (category === 'recent') {
-      list = [...list].sort(
-        (a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0),
-      );
+      list = [...list].sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0));
     }
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
-        it => it.title.toLowerCase().includes(q) || String(it.albumId).includes(q),
+        (it) => it.title.toLowerCase().includes(q) || String(it.albumId).includes(q)
       );
     }
     return list;
@@ -50,11 +48,11 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
 
   const handleDelete = useCallback(
     (album: AlbumCardData) => {
-      const item = items.find(it => it.albumId === album.albumId);
+      const item = items.find((it) => it.albumId === album.albumId);
       if (!item) return;
       setPendingDelete(item);
     },
-    [items],
+    [items]
   );
 
   const confirmDelete = useCallback(() => {
@@ -68,7 +66,7 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
 
   const handlePress = useCallback(
     (album: AlbumCardData) => {
-      const item = items.find(it => it.albumId === album.albumId);
+      const item = items.find((it) => it.albumId === album.albumId);
       if (!item) return;
       markOpened(item.albumId);
       if (item.pagesDir) {
@@ -76,14 +74,14 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
       }
       onOpenReader(item);
     },
-    [items, markOpened, onOpenReader],
+    [items, markOpened, onOpenReader]
   );
 
   const handleFavorite = useCallback(
     (album: AlbumCardData) => {
       toggleFavorite(album.albumId);
     },
-    [toggleFavorite],
+    [toggleFavorite]
   );
 
   return (
@@ -93,7 +91,7 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
         <SearchBar value={query} onChange={setQuery} placeholder="搜索本地漫画" />
         {items.length > 0 ? (
           <div className="category-tabs">
-            {CATEGORIES.map(cat => (
+            {CATEGORIES.map((cat) => (
               <button
                 key={cat.key}
                 className={`category-tab${category === cat.key ? ' is-active' : ''}`}
@@ -111,7 +109,7 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
         </div>
       ) : (
         <div className="library-grid">
-          {filtered.map(item => (
+          {filtered.map((item) => (
             <AlbumCard
               key={item.albumId}
               album={item}

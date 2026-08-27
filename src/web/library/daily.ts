@@ -26,16 +26,14 @@ export function buildRecommendations(
   favTags: string[],
   count = 6,
   random = Math.random,
-  options?: RecommendOptions,
+  options?: RecommendOptions
 ): AlbumSummary[] {
   if (dailyAlbums.length === 0 || count <= 0) {
     return [];
   }
 
-  const favSet = new Set(favTags.map(t => t.trim()).filter(Boolean));
-  const whitelistSet = new Set(
-    (options?.whitelistTags ?? []).map(t => t.trim()).filter(Boolean),
-  );
+  const favSet = new Set(favTags.map((t) => t.trim()).filter(Boolean));
+  const whitelistSet = new Set((options?.whitelistTags ?? []).map((t) => t.trim()).filter(Boolean));
   const excludeIds = options?.excludeIds ?? new Set<number>();
 
   const whitelisted: AlbumSummary[] = [];
@@ -43,7 +41,7 @@ export function buildRecommendations(
   const rest: AlbumSummary[] = [];
 
   const tagHits = (album: AlbumSummary, wanted: Set<string>): boolean =>
-    album.tags.some(t => wanted.has(t) && !isLanguageTag(t));
+    album.tags.some((t) => wanted.has(t) && !isLanguageTag(t));
 
   for (const album of dailyAlbums) {
     if (excludeIds.has(album.albumId)) continue;

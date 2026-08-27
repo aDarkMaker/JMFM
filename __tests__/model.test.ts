@@ -1,9 +1,4 @@
-import {
-  PhotoDetail,
-  buildFallbackImageUrl,
-  buildImageUrl,
-  createImageItem,
-} from '@/core/model';
+import {PhotoDetail, buildFallbackImageUrl, buildImageUrl, createImageItem} from '@/core/model';
 
 const photo: PhotoDetail = {
   photoId: 100200300,
@@ -20,13 +15,13 @@ const photo: PhotoDetail = {
 describe('model buildImageUrl', () => {
   it('appends file name and query params', () => {
     expect(buildImageUrl(photo, '00001.webp')).toBe(
-      'https://cdn-msp.jmapiproxy1.cc/media/photos/100200300/00001.webp?v=1699999999',
+      'https://cdn-msp.jmapiproxy1.cc/media/photos/100200300/00001.webp?v=1699999999'
     );
   });
 
   it('omits query when empty', () => {
     expect(buildImageUrl({...photo, queryParams: ''}, '00002.webp')).toBe(
-      'https://cdn-msp.jmapiproxy1.cc/media/photos/100200300/00002.webp',
+      'https://cdn-msp.jmapiproxy1.cc/media/photos/100200300/00002.webp'
     );
   });
 });
@@ -34,7 +29,7 @@ describe('model buildImageUrl', () => {
 describe('model buildFallbackImageUrl', () => {
   it('pads index to 5 digits', () => {
     expect(buildFallbackImageUrl(100200300, 3)).toBe(
-      'https://cdn-msp.jmapiproxy.cc/media/photos/100200300/00003.jpg',
+      'https://cdn-msp.jmapiproxy.cc/media/photos/100200300/00003.jpg'
     );
   });
 });

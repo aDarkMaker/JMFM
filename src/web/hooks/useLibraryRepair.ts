@@ -80,7 +80,7 @@ export function useLibraryRepair(imageFormat: string) {
         setRepairProgress(null);
       }
     },
-    [enqueueAlbum, imageFormat],
+    [enqueueAlbum, imageFormat]
   );
 
   const handleRepair = useCallback(
@@ -113,7 +113,7 @@ export function useLibraryRepair(imageFormat: string) {
           items,
           imageFormat,
           downloadPath,
-          downloadTreeUri,
+          downloadTreeUri
         );
         for (const item of remapped) {
           useLibraryStore.getState().patchItem(item.albumId, {
@@ -142,7 +142,7 @@ export function useLibraryRepair(imageFormat: string) {
         setRepairProgress(null);
       }
     },
-    [repairing, imageFormat],
+    [repairing, imageFormat]
   );
 
   return {repairing, repairProgress, runRepair, handleRepair};

@@ -31,12 +31,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
 /** Await settings load so consumers never filter against default values. */
 export function waitForSettingsLoaded(): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (useSettingsStore.getState().loaded) {
       resolve();
       return;
     }
-    const unsubscribe = useSettingsStore.subscribe(state => {
+    const unsubscribe = useSettingsStore.subscribe((state) => {
       if (state.loaded) {
         unsubscribe();
         resolve();

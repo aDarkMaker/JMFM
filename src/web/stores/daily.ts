@@ -62,7 +62,7 @@ async function fetchTodayAlbums(api: ApiClient, now = new Date()): Promise<Album
     // Last page shorter than page size
     if (albums.length < PAGE_SIZE_HINT) break;
     // Space pagination requests to avoid source rate limiting
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 400));
   }
   return [...byId.values()];
 }
@@ -71,13 +71,13 @@ async function fetchTodayAlbums(api: ApiClient, now = new Date()): Promise<Album
 async function enrichTagsBySearch(
   api: ApiClient,
   albums: AlbumSummary[],
-  favTags: string[],
+  favTags: string[]
 ): Promise<AlbumSummary[]> {
   if (albums.length === 0 || favTags.length === 0) {
     return albums;
   }
 
-  const todayIds = new Set(albums.map(a => a.albumId));
+  const todayIds = new Set(albums.map((a) => a.albumId));
   const tagHits = new Map<number, Set<string>>();
 
   // Search tags serially to avoid source rate limiting
@@ -97,14 +97,14 @@ async function enrichTagsBySearch(
       // ignore single-tag search failure
     }
     // Space search requests to avoid source rate limiting
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 600));
   }
 
   if (tagHits.size === 0) {
     return albums;
   }
 
-  return albums.map(album => {
+  return albums.map((album) => {
     const hits = tagHits.get(album.albumId);
     if (!hits || hits.size === 0) return album;
     const merged = new Set([...album.tags, ...hits]);
@@ -212,7 +212,7 @@ export const useDailyStore = create<DailyState>((set, get) => ({
     });
     const result = new Map<number, string[]>();
     await Promise.all(
-      albumIds.map(async id => {
+      albumIds.map(async (id) => {
         try {
           const detail = await api.getAlbum(id);
           if (detail.tags.length > 0) {
@@ -221,7 +221,7 @@ export const useDailyStore = create<DailyState>((set, get) => ({
         } catch {
           // ignore single-album failure
         }
-      }),
+      })
     );
     return result;
   },
