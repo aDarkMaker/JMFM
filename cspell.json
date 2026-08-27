@@ -19,7 +19,9 @@
         "jmfmobile",
         "npmkeep",
         "picasa",
+        "pipefail",
         "Proguard",
-        "splashscreen"
+        "splashscreen",
+        "temurin"
     ]
 }

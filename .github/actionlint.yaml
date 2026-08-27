@@ -1,0 +1,3 @@
+# Expected repository secrets for release-apk workflow
+self-hosted-runner:
+  labels: []

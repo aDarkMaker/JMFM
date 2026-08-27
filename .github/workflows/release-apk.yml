@@ -47,6 +47,19 @@ jobs:
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
 
+      - name: Restore signing keystore
+        env:
+          JMF_KEYSTORE_B64: ${{ secrets.JMF_KEYSTORE_B64 }}
+          JMF_KEYSTORE_PASS: ${{ secrets.JMF_KEYSTORE_PASS }}
+        run: |
+          if [ -z "$JMF_KEYSTORE_B64" ] || [ -z "$JMF_KEYSTORE_PASS" ]; then
+            echo "::error::Configure repository secrets JMF_KEYSTORE_B64 and JMF_KEYSTORE_PASS"
+            exit 1
+          fi
+          echo "$JMF_KEYSTORE_B64" | base64 -d > android/app/jmf.keystore
+          echo "JMF_KEYSTORE_FILE=$GITHUB_WORKSPACE/android/app/jmf.keystore" >> "$GITHUB_ENV"
+          echo "JMF_KEYSTORE_PASS=$JMF_KEYSTORE_PASS" >> "$GITHUB_ENV"
+
       - name: Build release APK
         env:
           CI_VERSION_CODE: ${{ steps.version.outputs.code }}
@@ -54,11 +67,19 @@ jobs:
         run: bun run apk:release
 
       - name: Prepare assets
+        id: assets
         run: |
           mkdir -p dist-apk
           cp -f dist-apk/jmfmobile-release.apk dist-apk/JMFM.apk
-          cp -f version.json dist-apk/version.json
+          SHA256="$(sha256sum dist-apk/JMFM.apk | awk '{print $1}')"
+          JMF_SHA256="$SHA256" bun -e "
+            import {readFileSync, writeFileSync} from 'node:fs';
+            const v = JSON.parse(readFileSync('version.json', 'utf8'));
+            v.apkSha256 = process.env.JMF_SHA256;
+            writeFileSync('dist-apk/version.json', JSON.stringify(v, null, 2) + '\n');
+          "
           ls -lh dist-apk/JMFM.apk dist-apk/version.json
+          echo "apkSha256=$SHA256" >> "$GITHUB_OUTPUT"
 
       - name: Publish Latest release
         env:
