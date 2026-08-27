@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-27
+
+### Project structure cleanup & optimization
+
+- **Comments & docs**: all Chinese comments translated to English; README / VitePress docs (zh/en) synced (new daily recommendations & content filtering sections; directory layout and layer dependencies updated).
+- **Lean main bundle**: `core/parser` moved to `__tests__/helpers/parser`; `AxiosHttpClient` moved to `scripts/shared/axios-http.ts` — runtime uses Fetch / CapacitorHttp only; removed unreferenced dead exports (`buildImageUrls`, `buildImageItemsFromPhoto`, unused constants, `prefetch*`, `clearImageLoaderCache`, `swapCanvases` export, etc.).
+- **Decoupling**: `blocklist` moved into `core/model`; `DecodedImage/DecodeFormat` moved into `core/model`; new `core/fs/types.ts` holds `FileSystem`, removing the pdf → download reverse dependency.
+- **Store convergence**: `daily` store parameterized (caller injects blacklist / favorite tags / proxy config); `saveToLibrary` store writes are injected.
+- **Duplication removal**: `web/library/uid.ts` unifies `uid()`; `useDownloadTask.enqueueAlbum` converges the "addBatch + find + startDownload" flow across Home / Tasks / Settings.
+- **Unified net retry**: new `requestWithRetry` shared by Fetch and native clients.
+- **API split**: `core/api` split into `client.ts` (auth & retry) + `parse.ts` (pure parsing) + barrel.
+- **SettingsScreen split**: repair orchestration extracted to a `useLibraryRepair` hook; `usePlatformBack` renamed `reader-lifecycle`.
+- **Performance**: library persistence now debounced 400ms batch write with `beforeunload` flush; App warms covers only on items change; screen map hoisted to a module constant.
+- Regression: `bun test` 70 cases / typecheck / lint all green.
+
 ## 2026-08-25
 
 ### Pages-only download (default webp)

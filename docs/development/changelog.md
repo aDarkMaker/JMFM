@@ -1,5 +1,20 @@
 # 开发日志
 
+## 2026-08-27
+
+### 项目结构整理与优化
+
+- **注释与文档**：中文注释全部转英文；README / VitePress 中英文文档同步（新增每日推荐、内容过滤章节，目录结构与分层依赖更新）。
+- **主包最简**：`core/parser` 移至 `__tests__/helpers/parser`；`AxiosHttpClient` 移至 `scripts/shared/axios-http.ts`，运行时仅 Fetch / CapacitorHttp；删除无引用的死代码导出（`buildImageUrls`、`buildImageItemsFromPhoto`、部分 constants、`prefetch*`、`clearImageLoaderCache`、`swapCanvases` 等导出等）。
+- **架构解耦**：`blocklist` 移入 `core/model`；`DecodedImage/DecodeFormat` 移入 `core/model`；新增 `core/fs/types.ts` 承载 `FileSystem`，消除 pdf → download 反向依赖。
+- **store 收敛**：`daily` store 参数化（调用方注入黑名单 / 偏爱标签 / 代理配置）；`saveToLibrary` store 写入改为注入。
+- **重复提取**：`web/library/uid.ts` 统一 `uid()`；`useDownloadTask.enqueueAlbum` 收敛「addBatch + find + startDownload」时序（Home / Tasks / Settings 三处）。
+- **net 重试去重**：新增 `requestWithRetry`，Fetch / 原生实现共用。
+- **api 拆分**：`core/api` 拆为 `client.ts`（请求鉴权重试）+ `parse.ts`（纯解析）+ barrel。
+- **SettingsScreen 拆分**：资源修复编排提取至 `useLibraryRepair` hook；`usePlatformBack` 重命名 `reader-lifecycle`。
+- **性能**：library 持久化 400ms 防抖批量写 + `beforeunload` flush；App 订阅仅 items 变更才预热封面，屏幕映射提为模块级常量。
+- 回归：`bun test` 70 用例 / typecheck / lint 全绿。
+
 ## 2026-08-25
 
 ### 下载改为仅落盘 pages（默认 webp）

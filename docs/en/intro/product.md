@@ -19,7 +19,7 @@ Source images are sliced into scrambled strips; web endpoints get DNS-blocked; p
 | Framework | Capacitor 8 + React Web | Web UI inside native shell |
 | Language | TypeScript | |
 | Build | Bun | |
-| Networking | axios + CapacitorHttp | Domain rotation, retries, proxy; native stack on device |
+| Networking | Fetch / CapacitorHttp | Domain rotation, retries, proxy; axios only for Node scripts |
 | Crypto | crypto-js | MD5, AES-256-ECB |
 | Image decode (device/Web) | Web Canvas | Strip reassembly |
 | PDF generation | pdf-lib | Optional archive, uniform width |
@@ -27,6 +27,14 @@ Source images are sliced into scrambled strips; web endpoints get DNS-blocked; p
 | Storage | Capacitor Filesystem / Preferences | |
 | Testing | bun test | Core algorithm unit tests |
 
+## Home Recommendations
+
+The home screen fetches daily-updated album metadata from the source (covers only, no extra storage), prioritizes albums matching the most frequent tags in the library, and randomly fills remaining slots up to 6. Cached per day and cleared automatically.
+
+## Content Filtering
+
+Albums whose title or tags contain `AI` are hard-blocked from recommendations and downloads, and cannot be disabled. Custom blacklist tags can be added in settings; matches are likewise excluded.
+
 ## Status
 
-Pages download, local reader, library, serial queue, and library repair are all working. `bun run apk` packages an Android installable.
+Daily recommendations, pages download, local reader, library, serial queue, and library repair are all working. `bun run apk` packages an Android installable.

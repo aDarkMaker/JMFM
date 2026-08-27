@@ -19,7 +19,7 @@ JMFM 是禁漫天堂的漫画下载器。Capacitor + React Web + TypeScript，�
 | 框架 | Capacitor 8 + React Web | Web UI 跑在原生壳内 |
 | 语言 | TypeScript | |
 | 构建 | Bun | |
-| 网络 | axios + CapacitorHttp | 域名轮换、重试、代理；真机走原生栈 |
+| 网络 | Fetch / CapacitorHttp | 域名轮换、重试、代理；axios 仅 Node 脚本用 |
 | 加解密 | crypto-js | MD5、AES-256-ECB |
 | 图片解码（真机/Web） | Web Canvas | 条带重组 |
 | PDF 生成 | pdf-lib | 可选归档，统一宽度 |
@@ -27,6 +27,14 @@ JMFM 是禁漫天堂的漫画下载器。Capacitor + React Web + TypeScript，�
 | 存储 | Capacitor Filesystem / Preferences | |
 | 测试 | bun test | 核心算法单测 |
 
+## 首页推荐
+
+首页每日拉取源站当日更新的漫画元数据（仅缓存封面，不占额外体积），按收藏库中频率最高的标签优先匹配，不足时随机补齐至 6 本。按日期缓存，次日自动清除。
+
+## 内容过滤
+
+标题或标签含 `AI` 的漫画在首页与下载入口均被硬屏蔽，无法配置关闭。设置页可另配自定义黑名单标签，命中同样不推荐、不下载。
+
 ## 当前状态
 
-下载 pages、本地阅读、资源库、串行队列、资源修复均已可用。`bun run apk` 可打包 Android 安装包。
+每日推荐、下载 pages、本地阅读、资源库、串行队列、资源修复均已可用。`bun run apk` 可打包 Android 安装包。

@@ -21,6 +21,8 @@ Capacitor + React + TypeScript。输入专辑 ID，API 取数、条带重组、�
 
 | | |
 | --- | --- |
+| **每日推荐** | 首页按收藏偏爱标签推荐当日漫画，按日缓存自动过期 |
+| **内容过滤** | 标题或标签含 AI 的漫画硬屏蔽 + 自定义黑名单标签 |
 | **API 取数** | 动态域名刷新、token 鉴权，不依赖 HTML 入口 |
 | **条带重组** | getNum 算切分，裁剪逆序拼接 |
 | **pages 直读** | 下载只写 `pages/`（默认 webp），阅读器渲染本地图片 |
@@ -39,7 +41,7 @@ Capacitor + React + TypeScript。输入专辑 ID，API 取数、条带重组、�
 **使用**
 
 1. 安装 APK
-2. 「下载」页输入专辑 ID
+2. 「首页」查看每日推荐，或「下载」页输入专辑 ID
 3. 「资源」页打开，阅读 pages/
 
 **开发**
@@ -68,7 +70,7 @@ JMF_PROXY=http://127.0.0.1:7890 bun run verify 1327951
 | --- | --- |
 | 应用壳 / UI | Capacitor 8 · React 19 · TypeScript |
 | 构建 | Bun |
-| 网络 | axios · CapacitorHttp（域名轮换 / 重试 / 代理） |
+| 网络 | Fetch / CapacitorHttp（域名轮换 / 重试 / 代理）；axios 仅 Node 脚本用 |
 | 加解密 | crypto-js（MD5 · AES-256-ECB） |
 | 图片 | Web Canvas（真机）· ImageMagick（Node 验证） |
 | 文档 | VitePress · Mermaid |

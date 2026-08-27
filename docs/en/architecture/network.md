@@ -19,34 +19,36 @@ export interface HttpClient {
 }
 ```
 
-### AxiosHttpClient (Web / Node)
+### FetchHttpClient (Web)
 
-`AxiosHttpClient` is the axios implementation, with proxy support:
+`src/core/net/fetch-http.ts` is built on the browser `fetch` API and is the default at runtime on Web:
 
 ```typescript
-const http = new AxiosHttpClient({proxy: 'http://127.0.0.1:7890'});
+const http = new FetchHttpClient({timeoutMs: 15000, maxRetries: 2});
 const resp = await http.getBytes(url, {Referer, Accept});
 ```
 
 ### NativeHttpClient (Capacitor device)
 
-`src/core/net/native-http.ts` implements the same interface on `CapacitorHttp` (the native networking stack), bypassing WebView CORS for on-device downloads:
+`src/core/net/native-http.ts` implements the same interface on `CapacitorHttp` (the native networking stack), bypassing WebView CORS for on-device downloads; it falls back to the WebView `fetch` when the native stack fails:
 
 ```typescript
-import {NativeHttpClient} from '../src/core/net';
+import {createHttpClient} from '../src/core/net';
 
-// On device: native CapacitorHttp stack
-// Web/Node: axios stack
-const http = Capacitor.isNativePlatform()
-  ? new NativeHttpClient({timeoutMs: 15000, maxRetries: 2})
-  : new AxiosHttpClient({timeoutMs: 15000, maxRetries: 2});
+// On device: NativeHttpClient (native stack, with fetch fallback)
+// On Web: FetchHttpClient
+const http = createHttpClient({timeoutMs: 15000, maxRetries: 2});
 ```
 
 Binary responses (`responseType: 'arraybuffer'`) are returned as Base64 strings by the native layer; `NativeHttpClient` converts them back to `Uint8Array` with `base64ToBytes`.
 
+### Unified Retry
+
+`requestWithRetry` in `src/core/net/retry.ts` centralizes the "domain rotation × per-URL retry" loop shared by the Fetch and native implementations; the axios client (`scripts/shared/axios-http.ts`) is used by Node scripts only.
+
 ## ApiClient
 
-`src/core/api/index.ts` wraps the API channel and handles auth and decryption end to end.
+`src/core/api/client.ts` wraps the API channel; `src/core/api/parse.ts` holds the pure parsing functions.
 
 ### Dynamic Domain Refresh
 
@@ -80,6 +82,8 @@ The `/album` and `/chapter` endpoints:
 2. The response is `{code, data}`, where `data` is an AES-encrypted string.
 3. The decryption key is the 32-byte ASCII of `md5(ts + APP_DATA_SECRET)`.
 4. Parse the decrypted JSON into album / chapter data.
+
+Under rate limiting the source may return `code=200` with empty/corrupted `data`; `req` regenerates `ts`/`token` and retries after 2s (up to 3 attempts).
 
 ### Image URL Construction
 

@@ -19,34 +19,36 @@ export interface HttpClient {
 }
 ```
 
-### AxiosHttpClient（Web / Node）
+### FetchHttpClient（Web）
 
-`AxiosHttpClient` 用 axios 实现，支持代理：
+`src/core/net/fetch-http.ts` 基于浏览器 `fetch` 实现，运行时 Web 端默认使用：
 
 ```typescript
-const http = new AxiosHttpClient({proxy: 'http://127.0.0.1:7890'});
+const http = new FetchHttpClient({timeoutMs: 15000, maxRetries: 2});
 const resp = await http.getBytes(url, {Referer, Accept});
 ```
 
 ### NativeHttpClient（Capacitor 真机）
 
-`src/core/net/native-http.ts` 基于 `CapacitorHttp`（原生网络栈）实现同一接口，请求绕过 WebView 的 CORS 限制，适合真机下载：
+`src/core/net/native-http.ts` 基于 `CapacitorHttp`（原生网络栈）实现同一接口，请求绕过 WebView 的 CORS 限制，适合真机下载；原生栈异常时自动回退到 WebView `fetch`：
 
 ```typescript
-import {NativeHttpClient} from '../src/core/net';
+import {createHttpClient} from '../src/core/net';
 
-// 真机上：CapacitorHttp 原生栈
-// Web/Node 上：AxiosHttpClient
-const http = Capacitor.isNativePlatform()
-  ? new NativeHttpClient({timeoutMs: 15000, maxRetries: 2})
-  : new AxiosHttpClient({timeoutMs: 15000, maxRetries: 2});
+// 真机上：NativeHttpClient（原生栈，含 fetch 回退）
+// Web 上：FetchHttpClient
+const http = createHttpClient({timeoutMs: 15000, maxRetries: 2});
 ```
 
 二进制响应（`responseType: 'arraybuffer'`）由原生层返回 Base64 字符串，`NativeHttpClient` 内部用 `base64ToBytes` 还原为 `Uint8Array`。
 
+### 统一重试
+
+`src/core/net/retry.ts` 的 `requestWithRetry` 收敛「域名轮换 × 单 URL 重试」双循环，Fetch 与原生实现共用；axios 客户端（`scripts/shared/axios-http.ts`）仅 Node 脚本使用。
+
 ## ApiClient
 
-`src/core/api/index.ts` 封装 API 通道，完整处理鉴权与解密。
+`src/core/api/client.ts` 封装 API 通道，`src/core/api/parse.ts` 提供纯解析函数。
 
 ### 动态域名刷新
 
@@ -80,6 +82,8 @@ tokenparam = ts, appVersion
 2. 响应体 `{code, data}`，`data` 为 AES 加密串。
 3. 解密密钥为 `md5(ts + APP_DATA_SECRET)` 的 32 字节 ASCII。
 4. 解密后 JSON 解析为专辑 / 章节数据。
+
+源站限流时可能返回 `code=200` 但 `data` 为空串/空数组或损坏密文；`req` 会重新生成 `ts`/`token` 等待 2s 后重试（最多 3 次）。
 
 ### 图片 URL 构造
 
