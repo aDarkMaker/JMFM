@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
+if [[ -n "${JMFM_SKIP_VERSION_BUMP:-}" ]]; then
+  exit 0
+fi
+
 remote="${1:-}"
 url="${2:-}"
 
@@ -47,20 +51,28 @@ else
   read -r choice < "$prompt_tty"
 fi
 
+bumped=false
 case "$choice" in
   1)
     bun scripts/bump-version.ts minor
     git add version.json package.json
     git commit -m "chore: bump version to $(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+    bumped=true
     ;;
   2)
     bun scripts/bump-version.ts major
     git add version.json package.json
     git commit -m "chore: bump version to $(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+    bumped=true
     ;;
   3|*)
     echo "Skipping version bump."
     ;;
 esac
+
+if [[ "$bumped" == "true" ]]; then
+  echo "Pushing version bump commit ..."
+  JMFM_SKIP_VERSION_BUMP=1 git push "$remote" HEAD:refs/heads/main
+fi
 
 exit 0
