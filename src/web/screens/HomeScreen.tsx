@@ -122,6 +122,7 @@ export function HomeScreen() {
         title="今日推荐"
         actionLabel="刷新"
         actionIcon="refresh"
+        actionLoading={loading && albums.length > 0}
         onAction={handleRefresh}
       />
       {error && albums.length === 0 ? (
@@ -147,7 +148,7 @@ export function HomeScreen() {
           </button>
         </div>
       ) : (
-        <div className="home-grid">
+        <div className={`home-grid${loading ? ' is-refreshing' : ''}`}>
           {recommendations.map(album => (
             <AlbumCard
               key={album.albumId}

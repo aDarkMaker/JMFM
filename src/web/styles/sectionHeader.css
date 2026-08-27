@@ -17,4 +17,22 @@
   font-size: var(--text-sm);
   color: var(--accent-primary);
   font-weight: 500;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.section-header-action:disabled {
+  opacity: 0.5;
+}
+
+.section-header-action.is-loading svg {
+  animation: spin 600ms linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

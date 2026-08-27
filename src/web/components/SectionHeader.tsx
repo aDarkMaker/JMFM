@@ -5,15 +5,26 @@ export interface SectionHeaderProps {
   title: string;
   actionLabel?: string;
   actionIcon?: keyof typeof icons;
+  actionLoading?: boolean;
   onAction?: () => void;
 }
 
-export function SectionHeader({title, actionLabel, actionIcon, onAction}: SectionHeaderProps) {
+export function SectionHeader({
+  title,
+  actionLabel,
+  actionIcon,
+  actionLoading,
+  onAction,
+}: SectionHeaderProps) {
   return (
     <div className="section-header">
       <span className="section-header-title">{title}</span>
       {actionLabel ? (
-        <button className="section-header-action" onClick={onAction}>
+        <button
+          className={`section-header-action${actionLoading ? ' is-loading' : ''}`}
+          onClick={onAction}
+          disabled={actionLoading}
+        >
           {actionIcon ? <Icon name={actionIcon} size={16} /> : null}
           {actionLabel}
         </button>
