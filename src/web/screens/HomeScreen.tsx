@@ -56,12 +56,27 @@ export function HomeScreen() {
   useEffect(() => {
     const ids = recommendationIds.filter((id) => !enrichedRef.current.has(id));
     if (ids.length === 0) return;
-    ids.forEach((id) => enrichedRef.current.add(id));
     void fetchAlbumTags(ids).then((tagsMap) => {
+      for (const id of ids) {
+        if (tagsMap.has(id)) {
+          enrichedRef.current.add(id);
+        }
+      }
       setExtraTags((prev) => {
-        const next = {...prev};
+        const active = new Set(recommendationIds);
+        const next: Record<number, string[]> = {};
+        for (const id of recommendationIds) {
+          if (prev[id]) {
+            next[id] = prev[id]!;
+          }
+        }
         for (const [id, tags] of tagsMap) {
           next[id] = tags;
+        }
+        for (const id of Object.keys(prev).map(Number)) {
+          if (!active.has(id)) {
+            delete next[id];
+          }
         }
         return next;
       });

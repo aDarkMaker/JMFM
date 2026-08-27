@@ -65,9 +65,7 @@ export function useLibraryRepair(imageFormat: string) {
           }
           setRepairProgress({done: repaired + redownloaded, total: issues.length});
         }
-        const message =
-          `完成，补齐 ${repaired} 本` +
-          (redownloaded > 0 ? `，${redownloaded} 本需重新下载（已加入任务队列）` : '');
+        const message = `完成，补齐 ${repaired} 本`;
         return {kind: 'alert', title: '修复文件', message};
       } catch (err) {
         return {

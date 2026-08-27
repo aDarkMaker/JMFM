@@ -136,7 +136,7 @@ export function SettingsScreen() {
         setDialog({
           mode: 'confirm',
           title: '修复文件',
-          message: `共 ${outcome.total} 本，需修复 ${outcome.count} 本（已合规 ${outcome.compliant} 本），是否开始？\n将补齐缺失的页面与封面，尽量无需重新下载整本。`,
+          message: `共 ${outcome.total} 本，需修复 ${outcome.count} 本（已合规 ${outcome.compliant} 本），是否开始？`,
           confirmLabel: '开始修复',
           payload: outcome.issues,
         });

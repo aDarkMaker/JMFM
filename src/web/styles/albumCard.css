@@ -129,9 +129,8 @@
 .album-tags {
   position: relative;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-1);
-  max-height: calc(var(--text-xs) * 3.2 + var(--space-1));
   overflow: hidden;
   min-width: 0;
 }
