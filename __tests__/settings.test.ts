@@ -20,4 +20,15 @@ describe('settings sanitizeSettings', () => {
     expect(s.downloadPath).toBe('x/y');
     expect(s.proxy).toBe('1.2.3.4:8080');
   });
+
+  it('sanitizes whitelist tags and rejects hard-blocked keywords', () => {
+    const s = sanitizeSettings({
+      whitelistTags: [' 校园 ', '校园', 'AI绘图', '', 'NTR'],
+    });
+    expect(s.whitelistTags).toEqual(['校园', 'NTR']);
+  });
+
+  it('defaults whitelist to empty', () => {
+    expect(sanitizeSettings({}).whitelistTags).toEqual([]);
+  });
 });

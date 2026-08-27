@@ -38,6 +38,11 @@ describe('topTags', () => {
     expect(topTags([], 4)).toEqual([]);
     expect(topTags([{tags: undefined}], 4)).toEqual([]);
   });
+
+  it('ignores language tags', () => {
+    const items = [{tags: ['中文', '校园', '日本語', '青春']}];
+    expect(topTags(items, 4)).toEqual(['校园', '青春']);
+  });
 });
 
 describe('buildRecommendations', () => {
@@ -78,6 +83,51 @@ describe('buildRecommendations', () => {
 
   it('returns empty for empty input', () => {
     expect(buildRecommendations([], ['校园'], 6)).toEqual([]);
+  });
+
+  it('prioritizes whitelist hits over fav tag hits', () => {
+    const picks = buildRecommendations(
+      daily,
+      ['校园'],
+      3,
+      rng,
+      {whitelistTags: ['恐怖']},
+    );
+    expect(picks[0].albumId).toBe(7);
+  });
+
+  it('treats whitelist without fav tags as the top tier', () => {
+    const picks = buildRecommendations(
+      daily,
+      [],
+      3,
+      rng,
+      {whitelistTags: ['恐怖']},
+    );
+    expect(picks[0].albumId).toBe(7);
+  });
+
+  it('ignores language tags when matching favorites', () => {
+    const langDaily = [
+      album(10, ['中文']),
+      album(11, ['校园']),
+      album(12, ['都市']),
+    ];
+    const picks = buildRecommendations(langDaily, ['中文'], 1, () => 0);
+    expect(picks[0].albumId).not.toBe(10);
+  });
+
+  it('excludes dismissed album ids', () => {
+    const picks = buildRecommendations(
+      daily,
+      ['校园'],
+      6,
+      rng,
+      {excludeIds: new Set([1, 3])},
+    );
+    expect(picks.map(a => a.albumId)).not.toContain(1);
+    expect(picks.map(a => a.albumId)).not.toContain(3);
+    expect(picks).toHaveLength(5);
   });
 });
 
