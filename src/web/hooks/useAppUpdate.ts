@@ -19,6 +19,23 @@ export interface CheckUpdateResult {
   error?: string;
 }
 
+interface LocalAppInfo {
+  version: string;
+  versionCode?: number;
+}
+
+async function loadLocalInfo(): Promise<LocalAppInfo> {
+  if (Capacitor.isNativePlatform()) {
+    const info = await App.getInfo();
+    const build = Number(info.build);
+    return {
+      version: info.version,
+      versionCode: Number.isFinite(build) ? build : undefined,
+    };
+  }
+  return {version: appVersionFallback()};
+}
+
 export function useAppUpdate() {
   const [currentVersion, setCurrentVersion] = useState('');
   const [status, setStatus] = useState<UpdateStatus>('idle');
@@ -26,15 +43,10 @@ export function useAppUpdate() {
   const [error, setError] = useState<string | null>(null);
   const apkUrlRef = useRef<string | null>(null);
 
-  const loadCurrentVersion = useCallback(async (): Promise<string> => {
-    if (Capacitor.isNativePlatform()) {
-      const info = await App.getInfo();
-      setCurrentVersion(info.version);
-      return info.version;
-    }
-    const v = appVersionFallback();
-    setCurrentVersion(v);
-    return v;
+  const loadCurrentVersion = useCallback(async (): Promise<LocalAppInfo> => {
+    const info = await loadLocalInfo();
+    setCurrentVersion(info.version);
+    return info;
   }, []);
 
   useEffect(() => {
@@ -46,19 +58,22 @@ export function useAppUpdate() {
     setError(null);
     apkUrlRef.current = null;
     try {
-      const current = await loadCurrentVersion();
+      const local = await loadCurrentVersion();
       const release = await fetchLatestRelease();
-      const latest = release.version.version;
-      if (!isNewerVersion(current, latest)) {
+      const remote = release.version;
+      const hasUpdate =
+        (local.versionCode != null && remote.versionCode > local.versionCode) ||
+        (local.versionCode == null && isNewerVersion(local.version, remote.version));
+      if (!hasUpdate) {
         setStatus('idle');
-        return {kind: 'up-to-date', current};
+        return {kind: 'up-to-date', current: local.version};
       }
       apkUrlRef.current = release.apkDownloadUrl;
       setStatus('idle');
       return {
         kind: 'available',
-        current,
-        latest,
+        current: local.version,
+        latest: remote.version,
         releaseNotes: release.releaseNotes,
       };
     } catch (e) {
