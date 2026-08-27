@@ -1,5 +1,5 @@
 import {parse} from 'node-html-parser';
-import {AlbumDetail, Episode, PhotoDetail} from '../model';
+import {AlbumDetail, Episode, PhotoDetail} from '../../../src/core/model';
 import {extractBase64Html} from './base64';
 
 export function parseAlbumDetail(html: string): AlbumDetail {

@@ -1,5 +1,5 @@
 /* eslint-disable no-bitwise */
-import {utf8Decode} from '../util/utf8';
+import {utf8Decode} from '../../../src/core/util/utf8';
 
 const B64_CHARS =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';

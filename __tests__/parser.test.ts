@@ -1,5 +1,5 @@
 /* eslint-disable no-bitwise */
-import {decodeBase64Utf8, extractBase64Html, parseAlbumDetail, parsePhotoDetail} from '@/core/parser';
+import {decodeBase64Utf8, extractBase64Html, parseAlbumDetail, parsePhotoDetail} from './helpers/parser';
 
 describe('parser base64', () => {
   it('decodes utf8 base64', () => {
