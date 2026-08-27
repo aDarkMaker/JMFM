@@ -2,6 +2,7 @@ import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {LibraryItem} from '../stores/library';
 
 export const LEGACY_PREFIXES = [
+  'Documents/JMFDownloads',
   'JMFMobile/downloads',
   'JMFMobile/JMFDownloads',
   'Download/JMFDownloads',
@@ -29,12 +30,30 @@ async function defaultPathExists(path: string): Promise<boolean> {
 export function parsePickedDirectory(path: string, appDir = 'JMFDownloads'): string {
   try {
     const decoded = decodeURIComponent(path);
-    const segment = decoded.split('/').filter(Boolean).pop() ?? '';
-    const name = segment.split(':').pop() ?? '';
-    if (name && name !== appDir) {
-      return `${name}/${appDir}`;
+    const parts = decoded.split('/').filter(Boolean);
+    const treeIdx = parts.findIndex(p => p === 'tree');
+    if (treeIdx >= 0 && treeIdx + 1 < parts.length) {
+      const storagePath = parts.slice(treeIdx + 1).join('/');
+      const colonIdx = storagePath.indexOf(':');
+      const rel = colonIdx >= 0 ? storagePath.slice(colonIdx + 1) : storagePath;
+      if (!rel) {
+        return appDir;
+      }
+      if (rel === appDir || rel.endsWith(`/${appDir}`)) {
+        return rel;
+      }
+      return `${rel}/${appDir}`;
     }
-    return name || appDir;
+    const segment = parts.pop() ?? '';
+    const colonIdx = segment.indexOf(':');
+    const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
+    if (!name) {
+      return appDir;
+    }
+    if (name === appDir || name.endsWith(`/${appDir}`)) {
+      return name;
+    }
+    return `${name}/${appDir}`;
   } catch {
     return appDir;
   }

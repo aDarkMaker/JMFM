@@ -87,7 +87,7 @@ function nativeScanner(): LibraryScanner {
       try {
         const r = await Filesystem.readdir({path, directory: Directory.Documents});
         return r.files
-          .filter(f => f.type === 'directory')
+          .filter(f => f.type !== 'file')
           .map(f => f.name);
       } catch {
         return [];
@@ -97,7 +97,7 @@ function nativeScanner(): LibraryScanner {
       try {
         const r = await Filesystem.readdir({path, directory: Directory.Documents});
         return r.files
-          .filter(f => f.type === 'file' && IMAGE_EXTS.has(extOf(f.name)))
+          .filter(f => f.type !== 'directory' && IMAGE_EXTS.has(extOf(f.name)))
           .map(f => f.name);
       } catch {
         return [];
