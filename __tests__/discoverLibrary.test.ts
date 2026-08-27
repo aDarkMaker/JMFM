@@ -246,6 +246,23 @@ describe('repairAlbumIdsFromTitle', () => {
     expect(patched[0]!.albumId).toBe(1_000_000_002);
   });
 
+  it('resolves hash id by folder name when title differs', async () => {
+    const items = [
+      {
+        ...item('目录名', 'Documents/JMFDownloads/目录名/pages', 1_000_000_003),
+        filePath: 'Documents/JMFDownloads/目录名',
+      },
+    ];
+    const resolver = {
+      searchAlbums: async () => ({
+        albums: [{albumId: 99, name: '目录名'}],
+      }),
+    };
+    const {items: patched, changed} = await repairAlbumIdsFromTitle(items, resolver);
+    expect(changed).toBe(true);
+    expect(patched[0]!.albumId).toBe(99);
+  });
+
   it('skips items that already have real album ids', async () => {
     const items = [item('已有', 'Documents/JMFDownloads/已有/pages', 7)];
     const resolver = {
