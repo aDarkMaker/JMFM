@@ -11,6 +11,7 @@ export interface Settings {
   proxyEnabled: boolean;
   domains: string[];
   blacklistTags: string[];
+  whitelistTags: string[];
   theme: 'light' | 'dark';
   readerMode: 'scroll' | 'paged';
 }
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
     'jmcomic2.me',
   ],
   blacklistTags: [],
+  whitelistTags: [],
   theme: 'light',
   readerMode: 'scroll',
 };
@@ -46,6 +48,7 @@ export function sanitizeSettings(raw: Partial<Settings>): Settings {
     proxyEnabled: raw.proxyEnabled === true,
     domains: sanitizeDomains(raw.domains),
     blacklistTags: sanitizeBlacklist(raw.blacklistTags),
+    whitelistTags: sanitizeWhitelist(raw.whitelistTags),
     theme: raw.theme === 'dark' ? 'dark' : 'light',
     readerMode: raw.readerMode === 'paged' ? 'paged' : 'scroll',
   };
@@ -59,6 +62,14 @@ function sanitizeDomains(raw: string[] | undefined): string[] {
 }
 
 function sanitizeBlacklist(raw: string[] | undefined): string[] {
+  return sanitizeTagList(raw);
+}
+
+function sanitizeWhitelist(raw: string[] | undefined): string[] {
+  return sanitizeTagList(raw);
+}
+
+function sanitizeTagList(raw: string[] | undefined): string[] {
   if (!Array.isArray(raw)) {
     return [];
   }
