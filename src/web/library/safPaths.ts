@@ -20,3 +20,13 @@ export function joinLogicalPath(downloadPath: string, relativePath: string): str
   }
   return `${downloadPath}/${relativePath}`;
 }
+
+/**
+ * Normalized dedup key for an album directory or pages dir, relative to the
+ * download root. Both `Documents/JMFDownloads/Title/pages` and
+ * `JMFDownloads/Title/pages` collapse to `Title/pages`.
+ */
+export function albumRelativeKey(downloadPath: string, albumOrPagesPath: string): string {
+  const rel = toSafRelativePath(albumOrPagesPath, downloadPath);
+  return rel.replace(/\/pages$/, '');
+}

@@ -36,6 +36,15 @@ export async function safGetEntryUri(treeUri: string, relativePath: string): Pro
   return uri;
 }
 
+export async function safFileExists(treeUri: string, relativePath: string): Promise<boolean> {
+  try {
+    await safGetEntryUri(treeUri, relativePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function safEntryExists(treeUri: string, relativePath: string): Promise<boolean> {
   try {
     await safGetEntryUri(treeUri, relativePath);

@@ -3,7 +3,7 @@ import {Capacitor} from '@capacitor/core';
 import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
 import {waitForSettingsLoaded, useSettingsStore} from './settings';
 import {resolveLibraryPaths} from '../library/resolveLibraryPaths';
-import {discoverLibraryFromDisk, mergeDiscovered} from '../library/discoverLibrary';
+import {discoverLibraryFromDisk, dedupeLibraryItems, mergeDiscovered} from '../library/discoverLibrary';
 
 export interface LibraryItem {
   albumId: number;
@@ -63,7 +63,7 @@ if (typeof window !== 'undefined') {
 interface LibraryState {
   items: LibraryItem[];
   loaded: boolean;
-  load(): Promise<void>;
+  load(options?: {force?: boolean}): Promise<void>;
   add(item: Omit<LibraryItem, 'downloadedAt'>): void;
   patchItem(albumId: number, patch: Partial<Omit<LibraryItem, 'albumId'>>): void;
   remove(albumId: number): void;
@@ -71,48 +71,60 @@ interface LibraryState {
   markOpened(albumId: number): void;
 }
 
+let loadPromise: Promise<void> | null = null;
+
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   items: [],
   loaded: false,
-  async load() {
-    const raw = await migrateFromLocalStorage(storage, KEY);
-    const stored = parseItems(raw);
-    const existing = get().items;
-    const byId = new Map<number, LibraryItem>();
-    for (const item of stored) byId.set(item.albumId, item);
-    for (const item of existing) byId.set(item.albumId, item);
-    let items = [...byId.values()];
-    if (Capacitor.isNativePlatform()) {
-      await waitForSettingsLoaded();
-      const {settings} = useSettingsStore.getState();
-      const fixed = await resolveLibraryPaths(
-        items,
-        settings.downloadPath,
-        undefined,
-        settings.downloadTreeUri
-      );
-      if (fixed.length > 0) {
-        const byAlbum = new Map(fixed.map((i) => [i.albumId, i]));
-        items = items.map((i) => byAlbum.get(i.albumId) ?? i);
-      }
-      const discovered = await discoverLibraryFromDisk(
-        items,
-        settings.downloadPath,
-        undefined,
-        settings.downloadTreeUri
-      );
-      if (discovered.length > 0) {
-        items = mergeDiscovered(items, discovered);
-      }
-      if (fixed.length > 0 || discovered.length > 0) {
-        try {
-          await storage.set(KEY, JSON.stringify(items));
-        } catch {
-          // ignore
+  async load(options = {}) {
+    if (loadPromise && !options.force) {
+      return loadPromise;
+    }
+    const job = (async () => {
+      const raw = await migrateFromLocalStorage(storage, KEY);
+      const stored = parseItems(raw);
+      const existing = get().items;
+      const byId = new Map<number, LibraryItem>();
+      for (const item of stored) byId.set(item.albumId, item);
+      for (const item of existing) byId.set(item.albumId, item);
+      let items = [...byId.values()];
+      if (Capacitor.isNativePlatform()) {
+        await waitForSettingsLoaded();
+        const {settings} = useSettingsStore.getState();
+        const fixed = await resolveLibraryPaths(
+          items,
+          settings.downloadPath,
+          undefined,
+          settings.downloadTreeUri
+        );
+        if (fixed.length > 0) {
+          const byAlbum = new Map(fixed.map((i) => [i.albumId, i]));
+          items = items.map((i) => byAlbum.get(i.albumId) ?? i);
+        }
+        const discovered = await discoverLibraryFromDisk(
+          items,
+          settings.downloadPath,
+          undefined,
+          settings.downloadTreeUri
+        );
+        if (discovered.length > 0) {
+          items = mergeDiscovered(items, discovered, settings.downloadPath);
+        }
+        items = dedupeLibraryItems(items, settings.downloadPath);
+        if (fixed.length > 0 || discovered.length > 0) {
+          try {
+            await storage.set(KEY, JSON.stringify(items));
+          } catch {
+            // ignore
+          }
         }
       }
-    }
-    set({items, loaded: true});
+      set({items, loaded: true});
+    })().finally(() => {
+      loadPromise = null;
+    });
+    loadPromise = job;
+    return job;
   },
   add(item) {
     const items = [

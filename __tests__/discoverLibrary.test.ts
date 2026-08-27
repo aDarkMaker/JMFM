@@ -1,5 +1,6 @@
 import {
   albumIdForLocalPath,
+  dedupeLibraryItems,
   discoverLibraryFromDisk,
   mergeDiscovered,
   parseLocalMeta,
@@ -22,6 +23,7 @@ interface Fixture {
   dirs: Record<string, string[]>;
   pages: Record<string, string[]>;
   metas: Record<string, LocalAlbumMeta | null>;
+  files?: Record<string, boolean>;
 }
 
 function scanner(fixture: Fixture): LibraryScanner {
@@ -29,6 +31,7 @@ function scanner(fixture: Fixture): LibraryScanner {
     listDirs: async (path) => fixture.dirs[path] ?? [],
     listImages: async (path) => fixture.pages[path] ?? [],
     readMeta: async (path) => fixture.metas[path] ?? null,
+    fileExists: async (path) => fixture.files?.[path] ?? false,
   };
 }
 
@@ -88,6 +91,43 @@ describe('mergeDiscovered', () => {
     const discovered = [item('C', 'base/C/pages', 1_000_000_003)];
     const merged = mergeDiscovered(existing, discovered);
     expect(merged).toHaveLength(2);
+  });
+
+  it('dedupes same album across normalized path prefixes', () => {
+    const existing = [item('测试', 'JMFDownloads/测试/pages', 1_000_000_001)];
+    const discovered = [item('测试', 'Documents/JMFDownloads/测试/pages', 1_000_000_002)];
+    const merged = mergeDiscovered(existing, discovered, 'Documents/JMFDownloads');
+    expect(merged).toHaveLength(1);
+  });
+
+  it('dedupes local items by title when pagesDir differs', () => {
+    const existing = [item('标题A', 'base/x/pages', 1_000_000_001)];
+    const discovered = [item('标题A', 'other/y/pages', 1_000_000_002)];
+    const merged = mergeDiscovered(existing, discovered, 'base');
+    expect(merged).toHaveLength(1);
+  });
+});
+
+describe('dedupeLibraryItems', () => {
+  it('merges same comic under different hashed ids, keeping coverPath', () => {
+    const items = [
+      item('标题', 'Documents/JMFDownloads/标题/pages', 1_000_000_001),
+      {
+        ...item('标题', 'JMFDownloads/标题/pages', 1_000_000_002),
+        coverPath: 'JMFDownloads/标题/cover.jpg',
+      },
+    ];
+    const deduped = dedupeLibraryItems(items, 'Documents/JMFDownloads');
+    expect(deduped).toHaveLength(1);
+    expect(deduped[0]!.coverPath).toBe('JMFDownloads/标题/cover.jpg');
+  });
+
+  it('keeps distinct albums', () => {
+    const items = [
+      item('A', 'Documents/JMFDownloads/A/pages', 1_000_000_001),
+      item('B', 'Documents/JMFDownloads/B/pages', 1_000_000_002),
+    ];
+    expect(dedupeLibraryItems(items, 'Documents/JMFDownloads')).toHaveLength(2);
   });
 });
 
@@ -157,5 +197,66 @@ describe('discoverLibraryFromDisk', () => {
     };
     const found = await discoverLibraryFromDisk([], 'Download/JMFDownloads', scanner(fixture3));
     expect(found).toHaveLength(0);
+  });
+
+  it('discovers cover.jpg when meta has no coverPath', async () => {
+    const fixture4: Fixture = {
+      dirs: {'Documents/JMFDownloads': ['漫画A']},
+      pages: {'Documents/JMFDownloads/漫画A/pages': ['0001.webp']},
+      metas: {'Documents/JMFDownloads/漫画A': null},
+      files: {'Documents/JMFDownloads/漫画A/cover.jpg': true},
+    };
+    const found = await discoverLibraryFromDisk(
+      [],
+      'Documents/JMFDownloads',
+      scanner(fixture4),
+      'content://tree/primary%3ADocuments%2FJMFDownloads'
+    );
+    expect(found[0]!.coverPath).toBe('Documents/JMFDownloads/漫画A/cover.jpg');
+  });
+
+  it('prefers canonical cover.jpg over stale meta coverPath', async () => {
+    const fixture5: Fixture = {
+      dirs: {'Documents/JMFDownloads': ['漫画B']},
+      pages: {'Documents/JMFDownloads/漫画B/pages': ['0001.webp']},
+      metas: {
+        'Documents/JMFDownloads/漫画B': {
+          title: '漫画B',
+          coverPath: 'JMFDownloads/漫画B/cover.jpg',
+        },
+      },
+      files: {
+        'Documents/JMFDownloads/漫画B/cover.jpg': true,
+        'JMFDownloads/漫画B/cover.jpg': false,
+      },
+    };
+    const found = await discoverLibraryFromDisk(
+      [],
+      'Documents/JMFDownloads',
+      scanner(fixture5),
+      'content://tree/primary%3ADocuments%2FJMFDownloads'
+    );
+    expect(found[0]!.coverPath).toBe('Documents/JMFDownloads/漫画B/cover.jpg');
+  });
+
+  it('falls back to meta coverPath when canonical missing but meta file exists', async () => {
+    const fixture6: Fixture = {
+      dirs: {'Documents/JMFDownloads': ['漫画C']},
+      pages: {'Documents/JMFDownloads/漫画C/pages': ['0001.webp']},
+      metas: {
+        'Documents/JMFDownloads/漫画C': {
+          title: '漫画C',
+          coverPath: 'Documents/JMFDownloads/漫画C/cover.png',
+        },
+      },
+      files: {'Documents/JMFDownloads/漫画C/cover.png': true},
+    };
+    const found = await discoverLibraryFromDisk(
+      [],
+      'Documents/JMFDownloads',
+      scanner(fixture6),
+      'content://tree/primary%3ADocuments%2FJMFDownloads'
+    );
+    expect(found[0]!.coverPath).toBe('Documents/JMFDownloads/漫画C/cover.png');
   });
 });

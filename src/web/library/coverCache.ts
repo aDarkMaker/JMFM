@@ -11,6 +11,11 @@ function isRemoteSrc(path: string): boolean {
   return /^(https?:|blob:|data:)/.test(path);
 }
 
+export function clearCoverCache(): void {
+  uriCache.clear();
+  inflight.clear();
+}
+
 export function peekCoverSrc(coverPath: string): string | null {
   if (isRemoteSrc(coverPath)) {
     return coverPath;

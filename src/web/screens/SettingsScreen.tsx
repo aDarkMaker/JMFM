@@ -65,7 +65,7 @@ export function SettingsScreen() {
         downloadPath: parsePickedDirectory(result.path),
         downloadTreeUri: result.path,
       });
-      await useLibraryStore.getState().load();
+      await useLibraryStore.getState().load({force: true});
     } catch (err) {
       console.error('Failed to pick directory:', err);
     }

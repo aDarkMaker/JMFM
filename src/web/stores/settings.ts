@@ -5,6 +5,8 @@ import {
   sanitizeSettings,
   Settings,
 } from '../../data/settings';
+import {clearCoverCache} from '../library/coverCache';
+import {clearImageDocCache} from '../reader/image-doc';
 
 interface SettingsState {
   settings: Settings;
@@ -22,7 +24,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({settings, loaded: true});
   },
   async update(patch) {
-    const settings = sanitizeSettings({...get().settings, ...patch});
+    const prev = get().settings;
+    const settings = sanitizeSettings({...prev, ...patch});
+    const pathChanged =
+      settings.downloadPath !== prev.downloadPath ||
+      settings.downloadTreeUri !== prev.downloadTreeUri;
+    if (pathChanged) {
+      clearCoverCache();
+      clearImageDocCache();
+    }
     set({settings});
     const storage = createSettingsStorage();
     await storage.save(settings);
