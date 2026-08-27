@@ -21,6 +21,8 @@ export interface AlbumCardProps {
   onPress?: (album: AlbumCardData) => void;
   onFavorite?: (album: AlbumCardData) => void;
   onDelete?: (album: AlbumCardData) => void;
+  onDownload?: (album: AlbumCardData) => void;
+  downloading?: boolean;
 }
 
 const COVER_PALETTE = ['#e8d5c0', '#d0dbe8', '#e8d0c8', '#c8d8e0', '#e8d8d0', '#d8e0c8'];
@@ -34,6 +36,8 @@ export const AlbumCard = memo(function AlbumCard({
   onPress,
   onFavorite,
   onDelete,
+  onDownload,
+  downloading,
 }: AlbumCardProps) {
   const coverSrc = useCoverSrc(album.coverPath);
   const [imgFailed, setImgFailed] = useState(false);
@@ -77,6 +81,19 @@ export const AlbumCard = memo(function AlbumCard({
             }}
           >
             <Icon name="favorite" size={16} />
+          </button>
+        ) : null}
+        {onDownload ? (
+          <button
+            className={`album-corner-btn album-corner-download${downloading ? ' is-active' : ''}`}
+            aria-label={downloading ? '已在下载队列' : '加入下载'}
+            disabled={downloading}
+            onClick={e => {
+              e.stopPropagation();
+              if (!downloading) onDownload(album);
+            }}
+          >
+            <Icon name={downloading ? 'download-done' : 'download'} size={16} />
           </button>
         ) : null}
         {onDelete ? (

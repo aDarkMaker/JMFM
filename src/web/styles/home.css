@@ -23,3 +23,13 @@
   gap: var(--space-4);
   min-width: 0;
 }
+
+.home-retry {
+  margin: var(--space-4) auto 0;
+  display: block;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--accent-primary);
+  color: var(--ink-inverse);
+  font-size: var(--text-sm);
+}

@@ -68,6 +68,17 @@
   transform: scale(0.9);
 }
 
+.album-corner-download {
+  top: auto;
+  bottom: var(--space-2);
+  right: var(--space-2);
+}
+
+.album-corner-download:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
 .album-corner-delete {
   top: auto;
   bottom: var(--space-2);

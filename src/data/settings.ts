@@ -1,5 +1,6 @@
 import {Capacitor} from '@capacitor/core';
 import {Preferences} from '@capacitor/preferences';
+import {isHardBlockedKeyword} from '../core/model/blocklist';
 
 export interface Settings {
   downloadPath: string;
@@ -9,6 +10,7 @@ export interface Settings {
   proxy: string;
   proxyEnabled: boolean;
   domains: string[];
+  blacklistTags: string[];
   theme: 'light' | 'dark';
   readerMode: 'scroll' | 'paged';
 }
@@ -27,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
     'jmcomic1.me',
     'jmcomic2.me',
   ],
+  blacklistTags: [],
   theme: 'light',
   readerMode: 'scroll',
 };
@@ -42,6 +45,7 @@ export function sanitizeSettings(raw: Partial<Settings>): Settings {
     proxy: raw.proxy?.trim() || '',
     proxyEnabled: raw.proxyEnabled === true,
     domains: sanitizeDomains(raw.domains),
+    blacklistTags: sanitizeBlacklist(raw.blacklistTags),
     theme: raw.theme === 'dark' ? 'dark' : 'light',
     readerMode: raw.readerMode === 'paged' ? 'paged' : 'scroll',
   };
@@ -52,6 +56,26 @@ function sanitizeDomains(raw: string[] | undefined): string[] {
     return [...DEFAULT_SETTINGS.domains];
   }
   return raw.map(d => String(d).trim()).filter(Boolean);
+}
+
+function sanitizeBlacklist(raw: string[] | undefined): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of raw) {
+    const tag = String(item).trim();
+    if (!tag || isHardBlockedKeyword(tag)) {
+      continue;
+    }
+    if (seen.has(tag)) {
+      continue;
+    }
+    seen.add(tag);
+    result.push(tag);
+  }
+  return result;
 }
 
 function normalizeInt(
