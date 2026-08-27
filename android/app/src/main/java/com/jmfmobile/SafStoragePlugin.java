@@ -119,29 +119,9 @@ public class SafStoragePlugin extends Plugin {
         Uri treeUri = Uri.parse(treeUriStr);
         String targetDocId = docIdFor(treeUri, relativePath);
         Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, targetDocId);
-        if (!documentExists(treeUri, targetDocId)) {
-            call.reject("entry not found");
-            return;
-        }
         JSObject result = new JSObject();
         result.put("uri", docUri.toString());
         call.resolve(result);
-    }
-
-    private boolean documentExists(Uri treeUri, String docId) {
-        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId);
-        try (Cursor cursor = getContext()
-            .getContentResolver()
-            .query(
-                docUri,
-                new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID},
-                null,
-                null,
-                null)) {
-            return cursor != null && cursor.getCount() > 0;
-        } catch (Exception ex) {
-            return false;
-        }
     }
 
     private String docIdFor(Uri treeUri, String relativePath) {
