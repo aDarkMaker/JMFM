@@ -39,21 +39,32 @@ jobs:
       - name: Install JS deps
         run: bun install --frozen-lockfile
 
+      - name: Read version
+        id: version
+        run: |
+          VERSION="$(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+          CODE="$(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().versionCode)")"
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
       - name: Build release APK
         env:
-          CI_VERSION_CODE: ${{ github.run_number }}
-          CI_VERSION_NAME: 0.1.${{ github.run_number }}
+          CI_VERSION_CODE: ${{ steps.version.outputs.code }}
+          CI_VERSION_NAME: ${{ steps.version.outputs.name }}
         run: bun run apk:release
 
-      - name: Prepare asset
+      - name: Prepare assets
         run: |
           mkdir -p dist-apk
           cp -f dist-apk/jmfmobile-release.apk dist-apk/JMFM.apk
-          ls -lh dist-apk/JMFM.apk
+          cp -f version.json dist-apk/version.json
+          ls -lh dist-apk/JMFM.apk dist-apk/version.json
 
       - name: Publish Latest release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
         run: |
           set -euo pipefail
           TAG=latest
@@ -61,15 +72,16 @@ jobs:
           NOTES="## JMFM 最新安装包
 
           - Commit: \`${SHORT_SHA}\`
-          - Version: \`0.1.${GITHUB_RUN_NUMBER}\` (versionCode ${GITHUB_RUN_NUMBER})
+          - Version: \`${VERSION_NAME}\` (versionCode ${VERSION_CODE})
           - Branch: \`${GITHUB_REF_NAME}\`
 
-          下载下方 **JMFM.apk** 安装即可。"
+          下载 **JMFM.apk** 安装；应用内「检查更新」通过 **version.json** 比对版本。"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release delete "$TAG" --yes --cleanup-tag
           fi
           gh release create "$TAG" \
             dist-apk/JMFM.apk \
+            dist-apk/version.json \
             --title "Latest" \
             --notes "$NOTES" \
             --latest

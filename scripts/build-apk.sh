@@ -44,8 +44,14 @@ chmod +x ./gradlew
 GRADLE_EXTRA=()
 if [[ -n "${CI_VERSION_CODE:-}" ]]; then
   GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
+elif command -v bun >/dev/null; then
+  CI_VERSION_CODE="$(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().versionCode)")"
+  GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
 fi
 if [[ -n "${CI_VERSION_NAME:-}" ]]; then
+  GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
+elif command -v bun >/dev/null; then
+  CI_VERSION_NAME="$(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
   GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
 fi
 ./gradlew "$GRADLE_TASK" --quiet "${GRADLE_EXTRA[@]}"
