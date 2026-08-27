@@ -6,6 +6,7 @@ import {
   mergeDiscovered,
   mergeLibraryDuplicates,
   parseLocalMeta,
+  repairAlbumIdsFromTitle,
 } from '@/web/library/discoverLibrary';
 import type {LocalAlbumMeta, LibraryScanner} from '@/web/library/discoverLibrary';
 import type {LibraryItem} from '@/web/stores/library';
@@ -190,6 +191,70 @@ describe('backfillCoverPaths', () => {
     );
     expect(changed).toBe(true);
     expect(patched[0]!.coverPath).toBe('Documents/JMFDownloads/漫画A/cover.jpg');
+  });
+});
+
+describe('repairAlbumIdsFromTitle', () => {
+  it('resolves hash id by exact title match', async () => {
+    const items = [
+      {
+        ...item('真实标题', 'Documents/JMFDownloads/真实标题/pages', 1_000_000_001),
+        filePath: 'Documents/JMFDownloads/真实标题',
+      },
+    ];
+    const resolver = {
+      searchAlbums: async () => ({
+        albums: [{albumId: 42, name: '真实标题'}],
+      }),
+    };
+    const {items: patched, changed} = await repairAlbumIdsFromTitle(items, resolver);
+    expect(changed).toBe(true);
+    expect(patched[0]!.albumId).toBe(42);
+  });
+
+  it('keeps hash id when search has no exact title match', async () => {
+    const items = [
+      {
+        ...item('标题A', 'Documents/JMFDownloads/标题A/pages', 1_000_000_001),
+        filePath: 'Documents/JMFDownloads/标题A',
+      },
+    ];
+    const resolver = {
+      searchAlbums: async () => ({
+        albums: [{albumId: 42, name: '别的标题'}],
+      }),
+    };
+    const {items: patched, changed} = await repairAlbumIdsFromTitle(items, resolver);
+    expect(changed).toBe(false);
+    expect(patched[0]!.albumId).toBe(1_000_000_001);
+  });
+
+  it('keeps item when search fails', async () => {
+    const items = [
+      {
+        ...item('标题B', 'Documents/JMFDownloads/标题B/pages', 1_000_000_002),
+        filePath: 'Documents/JMFDownloads/标题B',
+      },
+    ];
+    const resolver = {
+      searchAlbums: async () => {
+        throw new Error('network');
+      },
+    };
+    const {items: patched, changed} = await repairAlbumIdsFromTitle(items, resolver);
+    expect(changed).toBe(false);
+    expect(patched[0]!.albumId).toBe(1_000_000_002);
+  });
+
+  it('skips items that already have real album ids', async () => {
+    const items = [item('已有', 'Documents/JMFDownloads/已有/pages', 7)];
+    const resolver = {
+      searchAlbums: async () => {
+        throw new Error('should not search');
+      },
+    };
+    const {changed} = await repairAlbumIdsFromTitle(items, resolver);
+    expect(changed).toBe(false);
   });
 });
 
