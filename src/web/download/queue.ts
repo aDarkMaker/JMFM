@@ -7,6 +7,24 @@ const MAX_CONCURRENT = 1;
 const queue: QueuedTask[] = [];
 const running = new Set<string>();
 const queued = new Set<string>();
+const aborted = new Set<string>();
+
+export function isDownloadAborted(id: string): boolean {
+  return aborted.has(id);
+}
+
+export function abortDownload(id: string): void {
+  aborted.add(id);
+  const idx = queue.findIndex((t) => t.id === id);
+  if (idx >= 0) {
+    queue.splice(idx, 1);
+    queued.delete(id);
+  }
+}
+
+export function clearDownloadAborted(id: string): void {
+  aborted.delete(id);
+}
 
 function pump(): void {
   while (running.size < MAX_CONCURRENT && queue.length > 0) {
@@ -25,7 +43,7 @@ function pump(): void {
 }
 
 export function enqueueDownload(id: string, runner: () => Promise<void>): boolean {
-  if (running.has(id) || queued.has(id)) {
+  if (aborted.has(id) || running.has(id) || queued.has(id)) {
     return false;
   }
   queued.add(id);

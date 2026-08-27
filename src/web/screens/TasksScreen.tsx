@@ -31,7 +31,7 @@ export function TasksScreen() {
   const tasks = useDownloadStore((s) => s.tasks);
   const pauseAll = useDownloadStore((s) => s.pauseAll);
   const resumeAll = useDownloadStore((s) => s.resumeAll);
-  const {startDownload, cancel, enqueueAlbum} = useDownloadTask();
+  const {startDownload, cancel, removeTask, enqueueAlbum} = useDownloadTask();
   const [input, setInput] = useState('');
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
   const leavingRef = useRef(new Set<string>());
@@ -117,6 +117,7 @@ export function TasksScreen() {
   }, [tasks, startRemove]);
 
   function handleRemoveTask(taskId: string) {
+    removeTask(taskId);
     startRemove(taskId);
   }
 
@@ -185,7 +186,6 @@ export function TasksScreen() {
                   progress={(task.done / Math.max(1, task.total)) * 100}
                   status={task.status}
                   size="sm"
-                  showLabel={task.status === 'running' || task.status === 'paused'}
                 />
                 <span className="task-meta">
                   {task.status === 'running' || task.status === 'done'

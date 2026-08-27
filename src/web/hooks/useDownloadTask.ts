@@ -2,12 +2,13 @@ import {useCallback} from 'react';
 import {DownloadEvent, DownloadService, isCanceledError} from '../../core/download';
 import {ApiClient} from '../../core/api';
 import {createHttpClient} from '../../core/net';
-import {createRuntime} from '../../core/download/runtime';
+import {createDownloadRuntime} from '../download/createDownloadRuntime';
 import {useSettingsStore} from '../stores/settings';
 import {useDownloadStore} from '../stores/download';
 import {saveToLibrary, AlbumInfo} from '../library/saveToLibrary';
 import {useLibraryStore} from '../stores/library';
-import {enqueueDownload} from '../download/queue';
+import {enqueueDownload, abortDownload, isDownloadAborted, clearDownloadAborted} from '../download/queue';
+import {cleanupTaskFiles} from '../download/taskCleanup';
 import {uid} from '../library/uid';
 import {formatTaskError} from '../util/formatTaskError';
 
@@ -25,7 +26,7 @@ export function useDownloadTask() {
         ...(proxyEnabled && proxy ? {proxy} : {}),
         maxRetries: retryTimes,
       });
-      const runtime = createRuntime();
+      const runtime = createDownloadRuntime(useSettingsStore.getState().settings);
       const source = new ApiClient(http);
       const service = new DownloadService({
         http,
@@ -55,6 +56,10 @@ export function useDownloadTask() {
         const albumDir = await service.downloadAlbum(
           albumId,
           (e: DownloadEvent) => {
+            if (isDownloadAborted(taskId)) {
+              controller.cancel();
+              return;
+            }
             if (e.type === 'album-parsed') {
               albumInfo = {title: e.title, chapters: e.chapters, author: e.author, tags: e.tags};
               useDownloadStore.getState().setTitle(taskId, e.title);
@@ -69,7 +74,7 @@ export function useDownloadTask() {
           {controller}
         );
         useDownloadStore.getState().setStatus(taskId, 'done');
-        if (albumInfo) {
+        if (albumInfo && !isDownloadAborted(taskId)) {
           await saveToLibrary(
             albumId,
             albumInfo,
@@ -82,7 +87,9 @@ export function useDownloadTask() {
         }
       } catch (err) {
         if (isCanceledError(err)) {
-          useDownloadStore.getState().setStatus(taskId, 'paused');
+          if (!isDownloadAborted(taskId)) {
+            useDownloadStore.getState().setStatus(taskId, 'paused');
+          }
         } else {
           useDownloadStore
             .getState()
@@ -92,6 +99,8 @@ export function useDownloadTask() {
               formatTaskError(err instanceof Error ? err.message : String(err))
             );
         }
+      } finally {
+        clearDownloadAborted(taskId);
       }
     },
     [downloadPath, proxyEnabled, proxy, retryTimes, imageThreads, imageFormat]
@@ -109,6 +118,20 @@ export function useDownloadTask() {
   const cancel = useCallback((taskId: string) => {
     const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
     task?.controller?.cancel();
+  }, []);
+
+  const removeTask = useCallback((taskId: string) => {
+    const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
+    if (!task) {
+      return;
+    }
+    abortDownload(taskId);
+    task.controller?.cancel();
+    if (task.status !== 'done') {
+      void cleanupTaskFiles(task).then(() => {
+        useLibraryStore.getState().remove(task.albumId);
+      });
+    }
   }, []);
 
   const enqueueAlbum = useCallback(
@@ -165,5 +188,5 @@ export function useDownloadTask() {
     [startDownload]
   );
 
-  return {startDownload, cancel, enqueueAlbum, enqueueAlbumsForRepair};
+  return {startDownload, cancel, removeTask, enqueueAlbum, enqueueAlbumsForRepair};
 }
