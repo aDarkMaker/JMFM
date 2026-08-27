@@ -108,6 +108,8 @@ export function HomeScreen() {
   );
 
   const handleRefresh = useCallback(() => {
+    enrichedRef.current.clear();
+    setExtraTags({});
     void refresh(recommendationIds);
   }, [refresh, recommendationIds]);
 

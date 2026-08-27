@@ -12,6 +12,57 @@ import {readCache, writeCache, clearStaleCaches} from '../library/dailyCache';
 
 const MAX_PAGES = 8;
 const PAGE_SIZE_HINT = 80;
+const TAG_CACHE_PREFIX = 'jmf.tags.';
+
+function readTagCache(albumId: number): string[] | null {
+  try {
+    const raw = localStorage.getItem(`${TAG_CACHE_PREFIX}${albumId}`);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+    const tags = parsed.map(String).filter(Boolean);
+    return tags.length > 0 ? tags : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeTagCache(albumId: number, tags: string[]): void {
+  try {
+    localStorage.setItem(`${TAG_CACHE_PREFIX}${albumId}`, JSON.stringify(tags));
+  } catch {
+    // ignore
+  }
+}
+
+async function fetchTagsForAlbum(
+  api: ApiClient,
+  albumId: number
+): Promise<string[] | null> {
+  const cached = readTagCache(albumId);
+  if (cached) {
+    return cached;
+  }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const detail = await api.getAlbum(albumId);
+      if (detail.tags.length > 0) {
+        writeTagCache(albumId, detail.tags);
+        return detail.tags;
+      }
+      return null;
+    } catch {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+  }
+  return null;
+}
 
 interface DailyState {
   date: string;
@@ -211,18 +262,12 @@ export const useDailyStore = create<DailyState>((set, get) => ({
       retryTimes: settings.retryTimes,
     });
     const result = new Map<number, string[]>();
-    await Promise.all(
-      albumIds.map(async (id) => {
-        try {
-          const detail = await api.getAlbum(id);
-          if (detail.tags.length > 0) {
-            result.set(id, detail.tags);
-          }
-        } catch {
-          // ignore single-album failure
-        }
-      })
-    );
+    for (const id of albumIds) {
+      const tags = await fetchTagsForAlbum(api, id);
+      if (tags) {
+        result.set(id, tags);
+      }
+    }
     return result;
   },
 }));
