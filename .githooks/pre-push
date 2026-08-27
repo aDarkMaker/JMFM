@@ -76,8 +76,8 @@ if [[ "$bumped" == "true" ]]; then
   echo "Version bump committed; pushing with bumped version ..."
   if JMFM_SKIP_VERSION_BUMP=1 git push "$remote" "HEAD:${main_remote_ref}"; then
     echo "Push finished (includes version bump)."
-    # Abort the in-flight push: it still targets the pre-bump SHA.
-    exit 1
+    # Outer push still targets the pre-bump SHA; remote is already ahead → no-op.
+    exit 0
   fi
   echo "Push failed after version bump." >&2
   exit 1
