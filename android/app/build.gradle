@@ -6,6 +6,16 @@ def ciVersionName = (project.findProperty('ciVersionName') ?: '1.0').toString()
 android {
     namespace = "com.jmfmobile"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        // Shared keystore (committed) so local builds and CI releases share one
+        // signature; otherwise in-app APK updates fail with "package conflict".
+        debug {
+            storeFile file('jmf.keystore')
+            storePassword System.getenv('JMF_KEYSTORE_PASS') ?: 'jmf123456'
+            keyAlias 'jmf'
+            keyPassword System.getenv('JMF_KEYSTORE_PASS') ?: 'jmf123456'
+        }
+    }
     defaultConfig {
         applicationId "com.jmfmobile"
         minSdkVersion rootProject.ext.minSdkVersion
