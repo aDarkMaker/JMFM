@@ -16,6 +16,30 @@ case "$VARIANT" in
   *) fail "Usage: scripts/build-apk.sh [debug|release]" ;;
 esac
 
+# Signing keystore lives outside the repo (~/.jmf) and is generated on demand.
+# CI sets JMF_KEYSTORE_FILE/JMF_KEYSTORE_PASS from secrets instead.
+ensure_keystore() {
+  if [[ -n "${JMF_KEYSTORE_FILE:-}" ]]; then
+    [[ -f "$JMF_KEYSTORE_FILE" ]] || fail "JMF_KEYSTORE_FILE set but not found: $JMF_KEYSTORE_FILE"
+    return
+  fi
+  local dir="$HOME/.jmf"
+  local ks="$dir/jmf.keystore"
+  if [[ -f "$ks" ]]; then
+    export JMF_KEYSTORE_FILE="$ks"
+    return
+  fi
+  command -v keytool >/dev/null || fail "keytool not found. Install JDK 21+ to generate the signing keystore."
+  mkdir -p "$dir"
+  log "Generating signing keystore at $ks ..."
+  keytool -genkeypair -v -keystore "$ks" -alias jmf \
+    -keyalg RSA -keysize 2048 -validity 10000 \
+    -storepass "${JMF_KEYSTORE_PASS:-jmf123456}" \
+    -keypass "${JMF_KEYSTORE_PASS:-jmf123456}" \
+    -dname "CN=JMFM, OU=Dev, O=JMFM, L=Unknown, ST=Unknown, C=CN" >/dev/null 2>&1
+  export JMF_KEYSTORE_FILE="$ks"
+}
+
 require_java21() {
   if ! command -v java >/dev/null; then
     fail "JDK not found. Capacitor 8 requires JDK 21+. Install one, e.g. brew install openjdk@21"
@@ -42,6 +66,9 @@ log "Assembling $VARIANT APK ..."
 cd "$ROOT/android"
 chmod +x ./gradlew
 GRADLE_EXTRA=()
+if [[ "$VARIANT" == "release" ]]; then
+  ensure_keystore
+fi
 if [[ -n "${CI_VERSION_CODE:-}" ]]; then
   GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
 elif command -v bun >/dev/null; then
