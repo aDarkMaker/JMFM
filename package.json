@@ -1,6 +1,6 @@
 {
   "name": "JMFMobile",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
   "scripts": {
     "build": "rm -rf dist && bun build ./src/web/index.html --outdir=dist --target=browser $(bash scripts/version-define.sh) --define:process.env.NODE_ENV='\"production\"' && bun build ./src/core/pdf/worker-entry.ts --outfile=dist/pdf-worker.js --target=browser && cp node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs dist/pdf.worker.min.mjs",
