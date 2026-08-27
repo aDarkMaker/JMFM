@@ -3,7 +3,7 @@ import {createRuntime} from '../../core/download/runtime';
 import {createHttpClient} from '../../core/net';
 import {ApiClient} from '../../core/api';
 import {scanLibraryRepair, repairItem, deleteAlbumDir} from '../library/repairLibrary';
-import {useLibraryStore} from '../stores/library';
+import {useLibraryStore, waitForLibraryLoaded} from '../stores/library';
 import {useSettingsStore} from '../stores/settings';
 import {useDownloadTask} from './useDownloadTask';
 import type {LibraryItem} from '../stores/library';
@@ -88,14 +88,21 @@ export function useLibraryRepair(imageFormat: string) {
       if (repairing) {
         return {kind: 'none'};
       }
-      if (libraryItems.length === 0) {
+      await waitForLibraryLoaded();
+      let items = libraryItems;
+      if (items.length === 0) {
+        // Re-scan disk in case metadata was empty on a previous load.
+        await useLibraryStore.getState().load();
+        items = useLibraryStore.getState().items;
+      }
+      if (items.length === 0) {
         return {kind: 'alert', title: '修复文件', message: '漫画库为空，无需修复'};
       }
       setRepairing(true);
       try {
         const downloadPath = useSettingsStore.getState().settings.downloadPath;
         const {compliant, remapped, issues} = await scanLibraryRepair(
-          libraryItems,
+          items,
           imageFormat,
           downloadPath,
         );
@@ -106,7 +113,7 @@ export function useLibraryRepair(imageFormat: string) {
             coverPath: item.coverPath,
           });
         }
-        const total = libraryItems.length;
+        const total = items.length;
         if (issues.length === 0) {
           const message =
             remapped.length > 0

@@ -1,7 +1,12 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {LibraryItem} from '../stores/library';
 
-export const LEGACY_PREFIXES = ['JMFMobile/downloads', 'JMFMobile/JMFDownloads'] as const;
+export const LEGACY_PREFIXES = [
+  'JMFMobile/downloads',
+  'JMFMobile/JMFDownloads',
+  'Download/JMFDownloads',
+  'JMFDownloads',
+] as const;
 
 export function safeTitle(title: string): string {
   return title.replace(/[/\\:*?"<>|]/g, '_');

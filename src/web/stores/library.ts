@@ -3,6 +3,7 @@ import {Capacitor} from '@capacitor/core';
 import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
 import {waitForSettingsLoaded, useSettingsStore} from './settings';
 import {resolveLibraryPaths} from '../library/resolveLibraryPaths';
+import {discoverLibraryFromDisk, mergeDiscovered} from '../library/discoverLibrary';
 
 export interface LibraryItem {
   albumId: number;
@@ -88,6 +89,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       if (fixed.length > 0) {
         const byAlbum = new Map(fixed.map(i => [i.albumId, i]));
         items = items.map(i => byAlbum.get(i.albumId) ?? i);
+      }
+      const discovered = await discoverLibraryFromDisk(items, settings.downloadPath);
+      if (discovered.length > 0) {
+        items = mergeDiscovered(items, discovered);
+      }
+      if (fixed.length > 0 || discovered.length > 0) {
         try {
           await storage.set(KEY, JSON.stringify(items));
         } catch {
