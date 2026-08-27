@@ -1,4 +1,4 @@
-import {AxiosHttpClient} from '../src/core/net';
+import {AxiosHttpClient} from './shared/axios-http';
 import {ApiClient} from '../src/core/api';
 import {DownloadService} from '../src/core/download';
 import {CDN_DOMAINS, REQUEST} from '../src/core/constants';
