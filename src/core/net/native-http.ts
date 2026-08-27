@@ -2,8 +2,7 @@ import {CapacitorHttp} from '@capacitor/core';
 import {HTML_DOMAINS, REQUEST} from '../constants';
 import {base64ToBytes} from '../util/base64';
 import {buildBaseUrls, FetchResult, HttpClient, HttpOptions} from './http';
-
-const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+import {requestWithRetry} from './retry';
 
 export class NativeHttpClient implements HttpClient {
   private opts: HttpOptions;
@@ -35,26 +34,14 @@ export class NativeHttpClient implements HttpClient {
     return this.request(urls, headers, true);
   }
 
-  private async request(
+  private request(
     urls: string[],
     headers: Record<string, string> | undefined,
     binary: boolean,
   ): Promise<FetchResult> {
-    const maxRetries = this.opts.maxRetries ?? REQUEST.MAX_RETRIES;
-    let lastError = '';
-    for (const url of urls) {
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const result = await this.tryOnce(url, headers, binary);
-        if (result.ok) {
-          return result;
-        }
-        lastError = result.error || `status ${result.status}`;
-        if (attempt < maxRetries - 1) {
-          await sleep(REQUEST.RETRY_INTERVAL_MS);
-        }
-      }
-    }
-    return {ok: false, status: 0, error: lastError};
+    return requestWithRetry(urls, this.opts.maxRetries, url =>
+      this.tryOnce(url, headers, binary),
+    );
   }
 
   private async tryOnce(

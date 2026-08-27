@@ -1,7 +1,5 @@
-import {REQUEST} from '../constants';
-import {FetchResult, HttpClient, HttpOptions} from './http';
-
-const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+import {FetchResult, HttpClient, HttpOptions, buildBaseUrls} from './http';
+import {requestWithRetry} from './retry';
 
 export class FetchHttpClient implements HttpClient {
   private opts: HttpOptions;
@@ -15,7 +13,6 @@ export class FetchHttpClient implements HttpClient {
     domains?: readonly string[],
     headers?: Record<string, string>,
   ): Promise<FetchResult> {
-    const {buildBaseUrls} = await import('./http');
     const urls = buildBaseUrls(domains ?? [], path);
     return this.request(urls, headers, false);
   }
@@ -34,24 +31,14 @@ export class FetchHttpClient implements HttpClient {
     return this.request(urls, headers, true);
   }
 
-  private async request(
+  private request(
     urls: string[],
     headers: Record<string, string> | undefined,
     binary: boolean,
   ): Promise<FetchResult> {
-    const maxRetries = this.opts.maxRetries ?? REQUEST.MAX_RETRIES;
-    for (const url of urls) {
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const result = await this.tryOnce(url, headers, binary);
-        if (result.ok) {
-          return result;
-        }
-        if (attempt < maxRetries - 1) {
-          await sleep(REQUEST.RETRY_INTERVAL_MS);
-        }
-      }
-    }
-    return {ok: false, status: 0};
+    return requestWithRetry(urls, this.opts.maxRetries, url =>
+      this.tryOnce(url, headers, binary),
+    );
   }
 
   private async tryOnce(
