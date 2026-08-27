@@ -158,6 +158,16 @@
   box-shadow: var(--shadow-1);
 }
 
+/* whitelist tag chips */
+.tag-whitelist-chip {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--accent-primary);
+  background: var(--accent-primary-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
 /* theme segmented control */
 .theme-segmented {
   display: flex;

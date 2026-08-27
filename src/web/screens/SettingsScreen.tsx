@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {FilePicker} from '@capawesome/capacitor-file-picker';
 import {useSettingsStore} from '../stores/settings';
 import {useLibraryStore, LibraryItem} from '../stores/library';
+import {parsePickedDirectory} from '../library/resolveLibraryPaths';
 import {ListTile} from '../components/ListTile';
 import {SectionHeader} from '../components/SectionHeader';
 import {ConfirmDialog} from '../components/ConfirmDialog';
@@ -9,8 +10,7 @@ import {isHardBlockedKeyword} from '../../core/model/blocklist';
 import {useLibraryRepair, RepairOutcome} from '../hooks/useLibraryRepair';
 import {useAppUpdate} from '../hooks/useAppUpdate';
 import {ProgressBar} from '../components/ProgressBar';
-
-const JMF_DIR = 'JMFDownloads';
+import type {Defect} from '../library/repairLibrary';
 
 type DialogState =
   | {mode: 'alert'; title: string; message: string}
@@ -20,7 +20,7 @@ type DialogState =
       message: string;
       confirmLabel?: string;
       danger?: boolean;
-      payload: LibraryItem[];
+      payload: {item: LibraryItem; defects: Defect[]}[];
     }
   | {mode: 'update'; title: string; message: string};
 
@@ -43,6 +43,7 @@ export function SettingsScreen() {
 
   const [newDomain, setNewDomain] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [newWhitelistTag, setNewWhitelistTag] = useState('');
   const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
@@ -57,9 +58,7 @@ export function SettingsScreen() {
       if (!result?.path) {
         return;
       }
-      const name =
-        result.path.split('/').filter(Boolean).pop()?.split(':').pop() || '已选目录';
-      void update({downloadPath: `${name}/${JMF_DIR}`});
+      void update({downloadPath: parsePickedDirectory(result.path)});
     } catch (err) {
       console.error('Failed to pick directory:', err);
     }
@@ -97,6 +96,21 @@ export function SettingsScreen() {
     setNewTag('');
   };
 
+  const handleAddWhitelistTag = () => {
+    const value = newWhitelistTag.trim();
+    if (!value) {
+      return;
+    }
+    if (isHardBlockedKeyword(value)) {
+      setNewWhitelistTag('');
+      return;
+    }
+    if (!settings.whitelistTags.includes(value)) {
+      void update({whitelistTags: [...settings.whitelistTags, value]});
+    }
+    setNewWhitelistTag('');
+  };
+
   const applyRepairOutcome = (outcome: RepairOutcome) => {
     switch (outcome.kind) {
       case 'none':
@@ -107,10 +121,10 @@ export function SettingsScreen() {
       case 'confirm':
         setDialog({
           mode: 'confirm',
-          title: '资源修复',
-          message: `共 ${outcome.total} 本，需修复 ${outcome.count} 本（已合规 ${outcome.compliant} 本），是否开始？\n修复将删除旧文件并重新下载。`,
+          title: '修复文件',
+          message: `共 ${outcome.total} 本，需修复 ${outcome.count} 本（已合规 ${outcome.compliant} 本），是否开始？\n将补齐缺失的页面与封面，尽量无需重新下载整本。`,
           confirmLabel: '开始修复',
-          payload: outcome.payload,
+          payload: outcome.issues,
         });
         return;
     }
@@ -276,7 +290,7 @@ export function SettingsScreen() {
         <div className="settings-group">
           <span className="settings-group-title">内容过滤</span>
           <span className="settings-hint">
-            命中标签的漫画不会出现或被下载
+            黑名单命中不会出现或被下载；白名单优先推荐
           </span>
           <div className="domain-list">
             {settings.blacklistTags.map((tag, index) => (
@@ -311,18 +325,52 @@ export function SettingsScreen() {
               </button>
             </div>
           </div>
+          <span className="settings-hint">白名单标签</span>
+          <div className="domain-list">
+            {settings.whitelistTags.map((tag, index) => (
+              <div className="domain-item" key={index}>
+                <span className="tag-whitelist-chip">{tag}</span>
+                <button
+                  className="domain-remove"
+                  aria-label={`移除 ${tag}`}
+                  onClick={() => {
+                    const next = settings.whitelistTags.filter((_, i) => i !== index);
+                    void update({whitelistTags: next});
+                  }}>
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className="domain-add">
+              <input
+                className="domain-input"
+                type="text"
+                placeholder="添加白名单标签"
+                value={newWhitelistTag}
+                onChange={e => setNewWhitelistTag(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddWhitelistTag();
+                  }
+                }}
+              />
+              <button className="domain-add-btn" onClick={handleAddWhitelistTag}>
+                添加
+              </button>
+            </div>
+          </div>
         </div>
         <div className="settings-group">
           <span className="settings-group-title">通用</span>
           <ListTile
-            icon="build"
-            title="资源修复"
+            icon="healing"
+            title="修复文件"
             subtitle={
               repairing && repairProgress
-                ? `清理中 ${repairProgress.done}/${repairProgress.total}`
+                ? `修复中 ${repairProgress.done}/${repairProgress.total}`
                 : repairing
                   ? '扫描中…'
-                  : '将不符合格式的漫画重新下载'
+                  : '检查并补齐缺失的页面与封面'
             }
             onClick={() => void handleRepairClick()}
           />
@@ -334,7 +382,12 @@ export function SettingsScreen() {
           />
           {(updateStatus === 'downloading' || updateStatus === 'installing') && (
             <div className="settings-update-progress">
-              <ProgressBar progress={updateProgress} status="running" />
+              <ProgressBar
+                progress={updateProgress}
+                status={updateStatus === 'installing' ? 'running' : 'running'}
+                showLabel={updateStatus === 'downloading'}
+                indeterminate={updateStatus === 'installing'}
+              />
             </div>
           )}
           <ListTile

@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {App} from '@capacitor/app';
-import {Capacitor} from '@capacitor/core';
+import {Capacitor, type PluginListenerHandle} from '@capacitor/core';
 import {
   downloadApkToCache,
   fetchLatestRelease,
@@ -42,6 +42,7 @@ export function useAppUpdate() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const apkUrlRef = useRef<string | null>(null);
+  const apkSha256Ref = useRef<string | undefined>(undefined);
 
   const loadCurrentVersion = useCallback(async (): Promise<LocalAppInfo> => {
     const info = await loadLocalInfo();
@@ -51,12 +52,26 @@ export function useAppUpdate() {
 
   useEffect(() => {
     void loadCurrentVersion();
+    let handle: PluginListenerHandle | null = null;
+    if (Capacitor.isNativePlatform()) {
+      void App.addListener('appStateChange', ({isActive}) => {
+        if (isActive) {
+          void loadCurrentVersion();
+        }
+      }).then(h => {
+        handle = h;
+      });
+    }
+    return () => {
+      void handle?.remove();
+    };
   }, [loadCurrentVersion]);
 
   const checkUpdate = useCallback(async (): Promise<CheckUpdateResult> => {
     setStatus('checking');
     setError(null);
     apkUrlRef.current = null;
+    apkSha256Ref.current = undefined;
     try {
       const local = await loadCurrentVersion();
       const release = await fetchLatestRelease();
@@ -69,6 +84,7 @@ export function useAppUpdate() {
         return {kind: 'up-to-date', current: local.version};
       }
       apkUrlRef.current = release.apkDownloadUrl;
+      apkSha256Ref.current = release.version.apkSha256;
       setStatus('idle');
       return {
         kind: 'available',
@@ -96,7 +112,7 @@ export function useAppUpdate() {
     setProgress(0);
     setError(null);
     try {
-      await downloadApkToCache(url, (loaded, total) => {
+      await downloadApkToCache(url, apkSha256Ref.current, (loaded, total) => {
         setProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
       });
       setStatus('installing');

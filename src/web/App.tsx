@@ -48,6 +48,10 @@ export function App() {
   }, [loaded, load]);
 
   useEffect(() => {
+    void useLibraryStore.getState().load();
+  }, []);
+
+  useEffect(() => {
     const warm = () => {
       void preloadCovers(useLibraryStore.getState().items.map(i => i.coverPath));
     };

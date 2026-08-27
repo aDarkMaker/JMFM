@@ -1,8 +1,24 @@
+.progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.progress-wrap.is-sm {
+  gap: 3px;
+}
+
 .progress-track {
   height: 8px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
   overflow: hidden;
+  position: relative;
+}
+
+.progress-wrap.is-sm .progress-track {
+  height: 6px;
 }
 
 .progress-fill {
@@ -18,4 +34,29 @@
 
 .progress-fill.is-error {
   background: var(--accent-danger);
+}
+
+.progress-fill.is-paused {
+  background: var(--ink-tertiary);
+}
+
+.progress-fill.is-indeterminate {
+  width: 40% !important;
+  background: var(--accent-primary);
+  animation: progress-indeterminate 1.1s var(--ease-spring) infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.progress-label {
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  line-height: 1;
 }

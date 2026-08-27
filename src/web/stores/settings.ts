@@ -28,3 +28,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     await storage.save(settings);
   },
 }));
+
+/** Await settings load so consumers never filter against default values. */
+export function waitForSettingsLoaded(): Promise<void> {
+  return new Promise(resolve => {
+    if (useSettingsStore.getState().loaded) {
+      resolve();
+      return;
+    }
+    const unsubscribe = useSettingsStore.subscribe(state => {
+      if (state.loaded) {
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
+}

@@ -1,4 +1,5 @@
 import type {AlbumSummary} from '../../core/model';
+import {isLanguageTag} from './tags';
 
 function shuffleInPlace<T>(arr: T[], random = Math.random): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -10,52 +11,65 @@ function shuffleInPlace<T>(arr: T[], random = Math.random): T[] {
   return arr;
 }
 
+export interface RecommendOptions {
+  whitelistTags?: string[];
+  excludeIds?: Set<number>;
+}
+
 /**
- * Prefer albums whose tags intersect favTags; fill remainder randomly from the rest.
- * When favTags is empty, all slots are filled randomly from dailyAlbums.
+ * Three-tier ranking: whitelist hit -> favTag hit -> shuffled rest.
+ * Language tags never count as matches; dismissed ids are excluded;
+ * leftover slots are backfilled from the remaining pool.
  */
 export function buildRecommendations(
   dailyAlbums: AlbumSummary[],
   favTags: string[],
   count = 6,
   random = Math.random,
+  options?: RecommendOptions,
 ): AlbumSummary[] {
   if (dailyAlbums.length === 0 || count <= 0) {
     return [];
   }
 
   const favSet = new Set(favTags.map(t => t.trim()).filter(Boolean));
+  const whitelistSet = new Set(
+    (options?.whitelistTags ?? []).map(t => t.trim()).filter(Boolean),
+  );
+  const excludeIds = options?.excludeIds ?? new Set<number>();
+
+  const whitelisted: AlbumSummary[] = [];
   const matched: AlbumSummary[] = [];
   const rest: AlbumSummary[] = [];
 
+  const tagHits = (album: AlbumSummary, wanted: Set<string>): boolean =>
+    album.tags.some(t => wanted.has(t) && !isLanguageTag(t));
+
   for (const album of dailyAlbums) {
-    const hit =
-      favSet.size > 0 &&
-      album.tags.some(t => favSet.has(t));
-    if (hit) {
+    if (excludeIds.has(album.albumId)) continue;
+    if (whitelistSet.size > 0 && tagHits(album, whitelistSet)) {
+      whitelisted.push(album);
+    } else if (favSet.size > 0 && tagHits(album, favSet)) {
       matched.push(album);
     } else {
       rest.push(album);
     }
   }
 
+  shuffleInPlace(whitelisted, random);
   shuffleInPlace(matched, random);
   shuffleInPlace(rest, random);
 
   const picked: AlbumSummary[] = [];
   const seen = new Set<number>();
 
-  for (const album of matched) {
-    if (picked.length >= count) break;
-    if (seen.has(album.albumId)) continue;
-    seen.add(album.albumId);
-    picked.push(album);
-  }
-  for (const album of rest) {
-    if (picked.length >= count) break;
-    if (seen.has(album.albumId)) continue;
-    seen.add(album.albumId);
-    picked.push(album);
+  for (const tier of [whitelisted, matched, rest]) {
+    for (const album of tier) {
+      if (picked.length >= count) break;
+      if (seen.has(album.albumId)) continue;
+      seen.add(album.albumId);
+      picked.push(album);
+    }
   }
 
   return picked;

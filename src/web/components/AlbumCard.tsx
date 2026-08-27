@@ -2,7 +2,6 @@ import {memo, useEffect, useState} from 'react';
 import {Icon} from './Icon';
 import {useCoverSrc} from '../hooks/useCoverSrc';
 import {hasJapanese} from '../hooks/useJapaneseFont';
-import {useOverflowFade} from '../hooks/useOverflowFade';
 
 export interface AlbumCardData {
   albumId: number;
@@ -22,6 +21,7 @@ export interface AlbumCardProps {
   onFavorite?: (album: AlbumCardData) => void;
   onDelete?: (album: AlbumCardData) => void;
   onDownload?: (album: AlbumCardData) => void;
+  onDismiss?: (album: AlbumCardData) => void;
   downloading?: boolean;
 }
 
@@ -37,11 +37,11 @@ export const AlbumCard = memo(function AlbumCard({
   onFavorite,
   onDelete,
   onDownload,
+  onDismiss,
   downloading,
 }: AlbumCardProps) {
   const coverSrc = useCoverSrc(album.coverPath);
   const [imgFailed, setImgFailed] = useState(false);
-  const {ref: tagsRef, overflow: tagsOverflow} = useOverflowFade<HTMLDivElement>();
 
   useEffect(() => {
     setImgFailed(false);
@@ -108,6 +108,18 @@ export const AlbumCard = memo(function AlbumCard({
             <Icon name="delete" size={16} />
           </button>
         ) : null}
+        {onDismiss ? (
+          <button
+            className="album-corner-btn album-corner-dismiss"
+            aria-label="不再推荐"
+            onClick={e => {
+              e.stopPropagation();
+              onDismiss(album);
+            }}
+          >
+            <Icon name="close" size={16} />
+          </button>
+        ) : null}
       </div>
       <div className="album-info">
         <span className={`album-title${hasJapanese(album.title) ? ' is-ja' : ''}`}>{album.title}</span>
@@ -116,15 +128,9 @@ export const AlbumCard = memo(function AlbumCard({
         ) : null}
         {tags.length > 0 ? (
           <div className="album-tags">
-            <div
-              ref={tagsRef}
-              className={`album-tags-fade${tagsOverflow ? ' is-overflow' : ''}`}
-            >
-              {tags.map(tag => (
-                <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>{tag}</span>
-              ))}
-            </div>
-            {tagsOverflow ? <span className="album-tags-more">…</span> : null}
+            {tags.map(tag => (
+              <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>{tag}</span>
+            ))}
           </div>
         ) : null}
         <span className="album-stats">

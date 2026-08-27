@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AlbumCard, AlbumCardData} from '../components/AlbumCard';
 import {SectionHeader} from '../components/SectionHeader';
 import {EmptyState} from '../components/EmptyState';
@@ -13,15 +13,23 @@ import {filterBlockedAlbums, isBlockedAlbum} from '../../core/model/blocklist';
 
 export function HomeScreen() {
   const albums = useDailyStore(s => s.albums);
+  const dismissed = useDailyStore(s => s.dismissed);
   const loading = useDailyStore(s => s.loading);
   const error = useDailyStore(s => s.error);
   const load = useDailyStore(s => s.load);
   const refresh = useDailyStore(s => s.refresh);
+  const dismiss = useDailyStore(s => s.dismiss);
+  const resetDismissed = useDailyStore(s => s.resetDismissed);
+  const fetchAlbumTags = useDailyStore(s => s.fetchAlbumTags);
 
   const libraryItems = useLibraryStore(s => s.items);
   const tasks = useDownloadStore(s => s.tasks);
   const blacklistTags = useSettingsStore(s => s.settings.blacklistTags);
+  const whitelistTags = useSettingsStore(s => s.settings.whitelistTags);
   const {enqueueAlbum} = useDownloadTask();
+
+  const [extraTags, setExtraTags] = useState<Record<number, string[]>>({});
+  const enrichedRef = useRef<Set<number>>(new Set());
 
   const favTags = useMemo(() => topTags(libraryItems, 4), [libraryItems]);
 
@@ -29,11 +37,39 @@ export function HomeScreen() {
     void load();
   }, [load]);
 
+  const dismissedSet = useMemo(() => new Set(dismissed), [dismissed]);
+
   const recommendations = useMemo(
     () =>
-      filterBlockedAlbums(buildRecommendations(albums, favTags, 6), blacklistTags),
-    [albums, favTags, blacklistTags],
+      filterBlockedAlbums(
+        buildRecommendations(albums, favTags, 6, undefined, {
+          whitelistTags,
+          excludeIds: dismissedSet,
+        }),
+        blacklistTags,
+      ),
+    [albums, favTags, blacklistTags, whitelistTags, dismissedSet],
   );
+
+  const recommendationIds = useMemo(
+    () => recommendations.map(a => a.albumId),
+    [recommendations],
+  );
+
+  useEffect(() => {
+    const ids = recommendationIds.filter(id => !enrichedRef.current.has(id));
+    if (ids.length === 0) return;
+    ids.forEach(id => enrichedRef.current.add(id));
+    void fetchAlbumTags(ids).then(tagsMap => {
+      setExtraTags(prev => {
+        const next = {...prev};
+        for (const [id, tags] of tagsMap) {
+          next[id] = tags;
+        }
+        return next;
+      });
+    });
+  }, [recommendationIds, fetchAlbumTags]);
 
   const queuedIds = useMemo(() => {
     const ids = new Set(tasks.map(t => t.albumId));
@@ -52,6 +88,25 @@ export function HomeScreen() {
     [queuedIds, blacklistTags, enqueueAlbum],
   );
 
+  const handleDismiss = useCallback(
+    (album: AlbumCardData) => {
+      void dismiss(album.albumId);
+    },
+    [dismiss],
+  );
+
+  const handleRefresh = useCallback(() => {
+    void refresh(recommendationIds);
+  }, [refresh, recommendationIds]);
+
+  const handleEmptyRefresh = useCallback(() => {
+    if (albums.length > 0 && dismissed.length > 0) {
+      void resetDismissed().then(() => refresh());
+    } else {
+      void refresh();
+    }
+  }, [albums.length, dismissed.length, resetDismissed, refresh]);
+
   const subtitle =
     favTags.length > 0
       ? `偏爱 · ${favTags.join(' / ')}`
@@ -63,7 +118,12 @@ export function HomeScreen() {
         <span className="home-hero-title">JMFM</span>
         <span className="home-hero-subtitle">{subtitle}</span>
       </div>
-      <SectionHeader title="今日推荐" />
+      <SectionHeader
+        title="今日推荐"
+        actionLabel="刷新"
+        actionIcon="refresh"
+        onAction={handleRefresh}
+      />
       {error && albums.length === 0 ? (
         <div className="app-empty">
           <EmptyState
@@ -81,8 +141,8 @@ export function HomeScreen() {
         </div>
       ) : recommendations.length === 0 ? (
         <div className="app-empty">
-          <EmptyState icon="photo-library" title="暂无今日推荐" hint="稍后再试或下拉刷新" />
-          <button className="home-retry" type="button" onClick={() => void refresh()}>
+          <EmptyState icon="photo-library" title="暂无今日推荐" hint="稍后再试或刷新换一批" />
+          <button className="home-retry" type="button" onClick={handleEmptyRefresh}>
             刷新
           </button>
         </div>
@@ -95,10 +155,16 @@ export function HomeScreen() {
                 albumId: album.albumId,
                 title: album.name,
                 author: album.author,
-                tags: album.tags,
+                tags: [
+                  ...new Set([
+                    ...(album.tags ?? []),
+                    ...(extraTags[album.albumId] ?? []),
+                  ]),
+                ],
                 coverPath: album.coverUrl,
               }}
               onDownload={handleDownload}
+              onDismiss={handleDismiss}
               downloading={queuedIds.has(album.albumId)}
             />
           ))}

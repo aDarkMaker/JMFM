@@ -193,6 +193,8 @@ export function TasksScreen() {
                 <ProgressBar
                   progress={(task.done / Math.max(1, task.total)) * 100}
                   status={task.status}
+                  size="sm"
+                  showLabel={task.status === 'running' || task.status === 'paused'}
                 />
                 <span className="task-meta">
                   {task.status === 'running' || task.status === 'done'

@@ -1,4 +1,8 @@
 import {create} from 'zustand';
+import {Capacitor} from '@capacitor/core';
+import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
+import {waitForSettingsLoaded, useSettingsStore} from './settings';
+import {resolveLibraryPaths} from '../library/resolveLibraryPaths';
 
 export interface LibraryItem {
   albumId: number;
@@ -18,10 +22,11 @@ export interface LibraryItem {
 const KEY = 'jmf.library';
 const SAVE_DEBOUNCE_MS = 400;
 
-function load(): LibraryItem[] {
+const storage = createUserStorage();
+
+function parseItems(raw: string | null): LibraryItem[] {
+  if (!raw) return [];
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
     const data = JSON.parse(raw) as LibraryItem[];
     return Array.isArray(data) ? data : [];
   } catch {
@@ -38,7 +43,7 @@ function flushSave(): void {
   const snapshot = pendingSave;
   pendingSave = null;
   try {
-    localStorage.setItem(KEY, JSON.stringify(snapshot));
+    void storage.set(KEY, JSON.stringify(snapshot));
   } catch {
     // ignore
   }
@@ -56,14 +61,42 @@ if (typeof window !== 'undefined') {
 
 interface LibraryState {
   items: LibraryItem[];
+  loaded: boolean;
+  load(): Promise<void>;
   add(item: Omit<LibraryItem, 'downloadedAt'>): void;
+  patchItem(albumId: number, patch: Partial<Omit<LibraryItem, 'albumId'>>): void;
   remove(albumId: number): void;
   toggleFavorite(albumId: number): void;
   markOpened(albumId: number): void;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
-  items: load(),
+  items: [],
+  loaded: false,
+  async load() {
+    const raw = await migrateFromLocalStorage(storage, KEY);
+    const stored = parseItems(raw);
+    const existing = get().items;
+    const byId = new Map<number, LibraryItem>();
+    for (const item of stored) byId.set(item.albumId, item);
+    for (const item of existing) byId.set(item.albumId, item);
+    let items = [...byId.values()];
+    if (Capacitor.isNativePlatform()) {
+      await waitForSettingsLoaded();
+      const {settings} = useSettingsStore.getState();
+      const fixed = await resolveLibraryPaths(items, settings.downloadPath);
+      if (fixed.length > 0) {
+        const byAlbum = new Map(fixed.map(i => [i.albumId, i]));
+        items = items.map(i => byAlbum.get(i.albumId) ?? i);
+        try {
+          await storage.set(KEY, JSON.stringify(items));
+        } catch {
+          // ignore
+        }
+      }
+    }
+    set({items, loaded: true});
+  },
   add(item) {
     const items = [{...item, downloadedAt: Date.now()}, ...get().items.filter(i => i.albumId !== item.albumId)];
     set({items});
@@ -71,6 +104,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
   remove(albumId) {
     const items = get().items.filter(i => i.albumId !== albumId);
+    set({items});
+    scheduleSave(items);
+  },
+  patchItem(albumId, patch) {
+    const items = get().items.map(i =>
+      i.albumId === albumId ? {...i, ...patch} : i,
+    );
     set({items});
     scheduleSave(items);
   },
@@ -89,3 +129,19 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     scheduleSave(items);
   },
 }));
+
+  /** Await library load so consumers never read a half-initialized store. */
+export function waitForLibraryLoaded(): Promise<void> {
+  return new Promise(resolve => {
+    if (useLibraryStore.getState().loaded) {
+      resolve();
+      return;
+    }
+    const unsubscribe = useLibraryStore.subscribe(state => {
+      if (state.loaded) {
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
+}

@@ -1,7 +1,7 @@
-import {CDN_DOMAINS, REQUEST} from '../../core/constants';
 import {HttpClient} from '../../core/net';
 import {DownloadRuntime} from '../../core/download';
 import {preloadCovers} from './coverCache';
+import {downloadCover} from './cover';
 import {clearImageDocCache, loadImageDocMeta} from '../reader/image-doc';
 
 export interface AlbumInfo {
@@ -36,19 +36,7 @@ export async function saveToLibrary(
 ): Promise<void> {
   let coverPath: string | undefined;
   try {
-    for (const domain of CDN_DOMAINS) {
-      const resp = await http.getBytes(
-        `https://${domain}/media/albums/${albumId}_3x4.jpg`,
-        {Referer: REQUEST.REFERER, Accept: REQUEST.ACCEPT_IMAGE},
-      );
-      if (!resp.ok || !resp.bytes) {
-        continue;
-      }
-      const cover = `${albumDir}/cover.jpg`;
-      await runtime.fs.writeFile(cover, resp.bytes);
-      coverPath = cover;
-      break;
-    }
+    coverPath = await downloadCover(http, runtime.fs, albumId, albumDir);
   } catch {
     // cover download failure is non-fatal
   }

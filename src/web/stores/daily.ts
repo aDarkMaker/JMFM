@@ -2,68 +2,28 @@ import {create} from 'zustand';
 import type {AlbumSummary} from '../../core/model';
 import {ApiClient} from '../../core/api';
 import {createHttpClient} from '../../core/net';
-import {useSettingsStore} from './settings';
-import {useLibraryStore} from './library';
+import {waitForSettingsLoaded, useSettingsStore} from './settings';
+import {waitForLibraryLoaded, useLibraryStore} from './library';
 import {topTags} from '../library/tags';
 import {filterBlockedAlbums} from '../../core/model/blocklist';
 import {isSameLocalDay, todayKey} from '../library/daily';
+import {readDismissed, addDismissed, clearDismissed} from '../library/dismissed';
+import {readCache, writeCache, clearStaleCaches} from '../library/dailyCache';
 
-const KEY_PREFIX = 'jmf.daily.';
 const MAX_PAGES = 8;
 const PAGE_SIZE_HINT = 80;
-
-interface DailyCache {
-  date: string;
-  albums: AlbumSummary[];
-}
 
 interface DailyState {
   date: string;
   albums: AlbumSummary[];
+  dismissed: number[];
   loading: boolean;
   error?: string;
   load(): Promise<void>;
-  refresh(): Promise<void>;
-}
-
-function cacheKey(date: string): string {
-  return `${KEY_PREFIX}${date}`;
-}
-
-function readCache(date: string): AlbumSummary[] | null {
-  try {
-    const raw = localStorage.getItem(cacheKey(date));
-    if (!raw) return null;
-    const data = JSON.parse(raw) as DailyCache;
-    if (data.date !== date || !Array.isArray(data.albums)) return null;
-    return data.albums;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(date: string, albums: AlbumSummary[]): void {
-  try {
-    const payload: DailyCache = {date, albums};
-    localStorage.setItem(cacheKey(date), JSON.stringify(payload));
-  } catch {
-    // ignore quota errors
-  }
-}
-
-function clearStaleCaches(keepDate: string): void {
-  try {
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(KEY_PREFIX) && k !== cacheKey(keepDate)) {
-        keys.push(k);
-      }
-    }
-    keys.forEach(k => localStorage.removeItem(k));
-  } catch {
-    // ignore
-  }
+  refresh(excludeRecommended?: number[]): Promise<void>;
+  dismiss(albumId: number): Promise<void>;
+  resetDismissed(): Promise<void>;
+  fetchAlbumTags(albumIds: number[]): Promise<Map<number, string[]>>;
 }
 
 interface DailyOptions {
@@ -154,7 +114,7 @@ async function enrichTagsBySearch(
 
 async function fetchAndCache(opts: DailyOptions): Promise<{date: string; albums: AlbumSummary[]}> {
   const date = todayKey();
-  clearStaleCaches(date);
+  await clearStaleCaches(date);
   const api = createApi(opts);
   const raw = filterBlockedAlbums(await fetchTodayAlbums(api), opts.blacklistTags);
   const albums = await enrichTagsBySearch(api, raw, opts.favTags);
@@ -176,17 +136,21 @@ function collectOptions(): DailyOptions {
 export const useDailyStore = create<DailyState>((set, get) => ({
   date: todayKey(),
   albums: [],
+  dismissed: [],
   loading: false,
   error: undefined,
 
   async load() {
     const date = todayKey();
-    clearStaleCaches(date);
-    const cached = readCache(date);
+    await clearStaleCaches(date);
+    await Promise.all([waitForSettingsLoaded(), waitForLibraryLoaded()]);
+    const dismissed = await readDismissed(date);
+    const cached = await readCache(date);
     if (cached && cached.length > 0) {
       const {blacklistTags} = collectOptions();
       set({
         date,
+        dismissed,
         albums: filterBlockedAlbums(cached, blacklistTags),
         loading: false,
         error: undefined,
@@ -194,10 +158,10 @@ export const useDailyStore = create<DailyState>((set, get) => ({
       return;
     }
     if (get().loading) return;
-    set({loading: true, error: undefined, date});
+    set({loading: true, error: undefined, date, dismissed});
     try {
       const result = await fetchAndCache(collectOptions());
-      set({...result, loading: false, error: undefined});
+      set({...result, dismissed, loading: false, error: undefined});
     } catch (e) {
       set({
         loading: false,
@@ -206,13 +170,18 @@ export const useDailyStore = create<DailyState>((set, get) => ({
     }
   },
 
-  async refresh() {
+  async refresh(excludeRecommended) {
     if (get().loading) return;
     const date = todayKey();
+    await Promise.all([waitForSettingsLoaded(), waitForLibraryLoaded()]);
+    if (excludeRecommended && excludeRecommended.length > 0) {
+      await addDismissed(date, excludeRecommended);
+    }
     set({loading: true, error: undefined, date});
     try {
       const result = await fetchAndCache(collectOptions());
-      set({...result, loading: false, error: undefined});
+      const dismissed = await readDismissed(date);
+      set({...result, dismissed, loading: false, error: undefined});
     } catch (e) {
       set({
         loading: false,
@@ -220,4 +189,51 @@ export const useDailyStore = create<DailyState>((set, get) => ({
       });
     }
   },
+
+  async dismiss(albumId) {
+    const date = get().date;
+    const dismissed = [...get().dismissed, albumId];
+    set({dismissed});
+    await addDismissed(date, [albumId]);
+  },
+
+  async resetDismissed() {
+    const date = todayKey();
+    await clearDismissed(date);
+    set({dismissed: []});
+  },
+
+  async fetchAlbumTags(albumIds) {
+    const {settings} = useSettingsStore.getState();
+    const api = createApi({
+      proxyEnabled: settings.proxyEnabled,
+      proxy: settings.proxy,
+      retryTimes: settings.retryTimes,
+    });
+    const result = new Map<number, string[]>();
+    await Promise.all(
+      albumIds.map(async id => {
+        try {
+          const detail = await api.getAlbum(id);
+          if (detail.tags.length > 0) {
+            result.set(id, detail.tags);
+          }
+        } catch {
+          // ignore single-album failure
+        }
+      }),
+    );
+    return result;
+  },
 }));
+
+// Re-filter cached results whenever the blacklist changes
+useSettingsStore.subscribe((state, prev) => {
+  if (!state.loaded || !prev.loaded) return;
+  if (state.settings.blacklistTags === prev.settings.blacklistTags) return;
+  const {albums} = useDailyStore.getState();
+  if (albums.length === 0) return;
+  useDailyStore.setState({
+    albums: filterBlockedAlbums(albums, state.settings.blacklistTags),
+  });
+});
