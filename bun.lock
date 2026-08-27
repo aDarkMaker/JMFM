@@ -12,6 +12,7 @@
         "@capacitor/keyboard": "^8.0.5",
         "@capacitor/preferences": "^8.0.1",
         "@capacitor/share": "^8.0.1",
+        "@capawesome-team/capacitor-file-opener": "^8.0.0",
         "@capawesome/capacitor-file-picker": "^8.0.4",
         "axios": "^1.19.0",
         "crypto-js": "^4.2.0",
@@ -54,6 +55,8 @@
     "@capacitor/share": ["@capacitor/share@8.0.1", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-3cSBKBCJVon54rKDROP2rqGyeGks4pBh9TbaEk9S375Kbek/ZHe72N50zIa0Vn9Eac/SuhwgehO/mmA4CsUOiw=="],
 
     "@capacitor/synapse": ["@capacitor/synapse@1.0.4", "", {}, "sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw=="],
+
+    "@capawesome-team/capacitor-file-opener": ["@capawesome-team/capacitor-file-opener@8.0.2", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-sVv/VwZnMDbk3tDEg5/3ZQ/XYTUMM0RXsTy3vzm5RU1czBRTpEjezqCoB/kcp0qGTaErL/hhYHnr4XUVDhIrYw=="],
 
     "@capawesome/capacitor-file-picker": ["@capawesome/capacitor-file-picker@8.0.4", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-BanQxY2kgjw0Azm7F+k6L+Gf6p0h6jQ0ecnOCvayAS7Wjq7Jpr63+djgIGACINLQgDWXeo/Bu3ttf2+yFym8UQ=="],
 
