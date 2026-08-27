@@ -71,8 +71,7 @@ case "$choice" in
 esac
 
 if [[ "$bumped" == "true" ]]; then
-  echo "Pushing version bump commit ..."
-  JMFM_SKIP_VERSION_BUMP=1 git push "$remote" HEAD:refs/heads/main
+  echo "Version bump committed; continuing with your push ..."
 fi
 
 exit 0
