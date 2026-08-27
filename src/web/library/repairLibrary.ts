@@ -12,6 +12,11 @@ const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 export type Defect =
   {kind: 'path'} | {kind: 'metadata'} | {kind: 'cover'} | {kind: 'pages'} | {kind: 'missing'};
 
+/** Only missing albums should be re-downloaded via the repair queue. */
+export function needsRedownload(defects: Defect[]): boolean {
+  return defects.some((d) => d.kind === 'missing');
+}
+
 export interface RepairDeps extends PagesContext {
   downloadPath: string;
 }
@@ -78,38 +83,85 @@ async function pathExists(path: string, treeUri?: string, downloadPath?: string)
   }
 }
 
+async function safListDir(
+  path: string,
+  treeUri: string,
+  downloadPath: string
+): Promise<{name: string; type: string}[]> {
+  try {
+    const rel = toSafRelativePath(path, downloadPath);
+    const entries = await safListDirectory(treeUri, rel);
+    return entries.map((e) => ({
+      name: e.name,
+      type: e.type === 'directory' ? 'directory' : 'file',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function pagesDirHasImages(
+  pagesDir: string,
+  treeUri?: string,
+  downloadPath?: string
+): Promise<boolean> {
+  if (treeUri && downloadPath) {
+    const files = await safListDir(pagesDir, treeUri, downloadPath);
+    return files.some((e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)));
+  }
+  return pathExists(pagesDir, treeUri, downloadPath);
+}
+
+async function albumHasCover(
+  item: LibraryItem,
+  treeUri?: string,
+  downloadPath?: string
+): Promise<boolean> {
+  const albumDir = item.filePath || item.pagesDir?.replace(/\/pages$/, '');
+  if (!albumDir) {
+    return false;
+  }
+  if (treeUri && downloadPath) {
+    const files = await safListDir(albumDir, treeUri, downloadPath);
+    return files.some((e) => e.type === 'file' && e.name === 'cover.jpg');
+  }
+  if (item.coverPath && (await pathExists(item.coverPath, treeUri, downloadPath))) {
+    return true;
+  }
+  return pathExists(`${albumDir}/cover.jpg`, treeUri, downloadPath);
+}
+
 async function inspectItem(
   item: LibraryItem,
   format: string,
   treeUri?: string,
   downloadPath?: string
 ): Promise<Defect[]> {
-  if (
-    !item.pagesDir ||
-    item.filePath.toLowerCase().endsWith('.pdf') ||
-    item.pageCount == null ||
-    item.pageCount <= 0
-  ) {
-    const hasDir = item.pagesDir && (await pathExists(item.pagesDir, treeUri, downloadPath));
-    return hasDir ? [{kind: 'pages'}] : [{kind: 'missing'}];
-  }
-  if (!(await pathExists(item.pagesDir, treeUri, downloadPath))) {
+  if (!item.pagesDir || item.filePath.toLowerCase().endsWith('.pdf')) {
     return [{kind: 'missing'}];
   }
+  const pagesOk = await pagesDirHasImages(item.pagesDir, treeUri, downloadPath);
+  if (!pagesOk) {
+    return [{kind: 'missing'}];
+  }
+  const defects: Defect[] = [];
   const want = normalizeFormat(format);
   const pageFiles = (await listDir(item.pagesDir, treeUri, downloadPath)).filter(
     (e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name))
   );
-  const defects: Defect[] = [];
   const formatOk = (name: string) => {
     const ext = extOf(name);
     if (!IMAGE_EXTS.has(ext)) return true;
     return (ext === 'jpeg' ? 'jpg' : ext) === want;
   };
-  if (pageFiles.length !== item.pageCount || pageFiles.some((e) => !formatOk(e.name))) {
+  if (
+    item.pageCount != null &&
+    item.pageCount > 0 &&
+    (pageFiles.length !== item.pageCount || pageFiles.some((e) => !formatOk(e.name)))
+  ) {
     defects.push({kind: 'pages'});
   }
-  if (!item.coverPath || !(await pathExists(item.coverPath, treeUri, downloadPath))) {
+  if (!(await albumHasCover(item, treeUri, downloadPath))) {
     defects.push({kind: 'cover'});
   }
   if (!item.tags || item.tags.length === 0) {
