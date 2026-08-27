@@ -27,16 +27,11 @@ function parseIds(input: string): number[] {
     .map(Number);
 }
 
-function uid(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export function TasksScreen() {
   const tasks = useDownloadStore(s => s.tasks);
-  const addBatch = useDownloadStore(s => s.addBatch);
   const pauseAll = useDownloadStore(s => s.pauseAll);
   const resumeAll = useDownloadStore(s => s.resumeAll);
-  const {startDownload, cancel} = useDownloadTask();
+  const {startDownload, cancel, enqueueAlbum} = useDownloadTask();
   const [input, setInput] = useState('');
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
   const leavingRef = useRef(new Set<string>());
@@ -134,14 +129,8 @@ export function TasksScreen() {
       setInput('');
       return;
     }
-    addBatch(fresh.map(id => ({id: uid(), albumId: id, title: `漫画 ${id}`})));
+    fresh.forEach(id => enqueueAlbum(id, `漫画 ${id}`));
     setInput('');
-    fresh.forEach(id => {
-      const task = useDownloadStore.getState().tasks.find(t => t.albumId === id);
-      if (task) {
-        void startDownload(task.id);
-      }
-    });
   }
 
   function handleResume(taskId: string) {

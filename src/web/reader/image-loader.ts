@@ -30,7 +30,3 @@ export function applyToImg(img: HTMLImageElement, url: string): void {
     markReady(img);
   }
 }
-
-export function clearImageLoaderCache(): void {
-  // no-op: loader no longer keeps a URL cache
-}

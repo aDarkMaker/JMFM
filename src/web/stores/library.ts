@@ -16,6 +16,7 @@ export interface LibraryItem {
 }
 
 const KEY = 'jmf.library';
+const SAVE_DEBOUNCE_MS = 400;
 
 function load(): LibraryItem[] {
   try {
@@ -28,12 +29,29 @@ function load(): LibraryItem[] {
   }
 }
 
-function save(items: LibraryItem[]): void {
+let pendingSave: LibraryItem[] | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushSave(): void {
+  saveTimer = null;
+  if (!pendingSave) return;
+  const snapshot = pendingSave;
+  pendingSave = null;
   try {
-    localStorage.setItem(KEY, JSON.stringify(items));
+    localStorage.setItem(KEY, JSON.stringify(snapshot));
   } catch {
     // ignore
   }
+}
+
+function scheduleSave(items: LibraryItem[]): void {
+  pendingSave = items;
+  if (saveTimer) return;
+  saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', flushSave);
 }
 
 interface LibraryState {
@@ -49,25 +67,25 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   add(item) {
     const items = [{...item, downloadedAt: Date.now()}, ...get().items.filter(i => i.albumId !== item.albumId)];
     set({items});
-    save(items);
+    scheduleSave(items);
   },
   remove(albumId) {
     const items = get().items.filter(i => i.albumId !== albumId);
     set({items});
-    save(items);
+    scheduleSave(items);
   },
   toggleFavorite(albumId) {
     const items = get().items.map(i =>
       i.albumId === albumId ? {...i, favorite: !i.favorite} : i,
     );
     set({items});
-    save(items);
+    scheduleSave(items);
   },
   markOpened(albumId) {
     const items = get().items.map(i =>
       i.albumId === albumId ? {...i, lastOpenedAt: Date.now()} : i,
     );
     set({items});
-    save(items);
+    scheduleSave(items);
   },
 }));

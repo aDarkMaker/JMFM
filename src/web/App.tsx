@@ -10,7 +10,7 @@ import {useSettingsStore} from './stores/settings';
 import {useLibraryStore} from './stores/library';
 import {preloadCovers} from './library/coverCache';
 import {useKeyboardVisibility} from './hooks/useKeyboardVisibility';
-import {useReaderLifecycle} from './hooks/usePlatformBack';
+import {useReaderLifecycle} from './hooks/reader-lifecycle';
 
 type TabId = 'home' | 'library' | 'tasks' | 'settings';
 
@@ -21,11 +21,14 @@ const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download
   {id: 'settings', label: '设置', icon: 'settings'},
 ];
 
-const SCREENS: Record<Exclude<TabId, 'library'>, () => import('react').ReactElement> = {
-  home: HomeScreen,
-  tasks: TasksScreen,
-  settings: SettingsScreen,
-};
+const SCREEN_ENTRIES: [
+  Exclude<TabId, 'library'>,
+  () => import('react').ReactElement,
+][] = [
+  ['home', HomeScreen],
+  ['tasks', TasksScreen],
+  ['settings', SettingsScreen],
+];
 
 export function App() {
   const [tab, setTab] = useState<TabId>('home');
@@ -49,7 +52,9 @@ export function App() {
       void preloadCovers(useLibraryStore.getState().items.map(i => i.coverPath));
     };
     warm();
-    return useLibraryStore.subscribe(warm);
+    return useLibraryStore.subscribe((state, prev) => {
+      if (state.items !== prev.items) warm();
+    });
   }, []);
 
   useEffect(() => {
@@ -104,7 +109,7 @@ export function App() {
             onOpenReader={item => openReader({filePath: item.filePath, title: item.title, pageCount: item.pageCount, pagesDir: item.pagesDir})}
           />
         ) : (
-          Object.entries(SCREENS).map(([id, Screen]) =>
+          SCREEN_ENTRIES.map(([id, Screen]) =>
             tab === id ? <Screen key={id} /> : null,
           )
         )}
@@ -131,6 +136,8 @@ export function App() {
   );
 }
 
+const TAB_INDEX = new Map(TABS.map((t, i) => [t.id, i]));
+
 function getTabIndex(id: TabId): number {
-  return TABS.findIndex(t => t.id === id);
+  return TAB_INDEX.get(id) ?? 0;
 }

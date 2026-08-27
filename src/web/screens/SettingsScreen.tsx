@@ -1,20 +1,14 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {FilePicker} from '@capawesome/capacitor-file-picker';
 import {useSettingsStore} from '../stores/settings';
 import {useLibraryStore, LibraryItem} from '../stores/library';
-import {useDownloadStore} from '../stores/download';
 import {ListTile} from '../components/ListTile';
 import {SectionHeader} from '../components/SectionHeader';
 import {ConfirmDialog} from '../components/ConfirmDialog';
-import {createRuntime} from '../../core/download/runtime';
-import {scanLibraryRepair, repairLibraryItems} from '../library/repairLibrary';
-import {useDownloadTask} from '../hooks/useDownloadTask';
+import {isHardBlockedKeyword} from '../../core/model/blocklist';
+import {useLibraryRepair, RepairOutcome} from '../hooks/useLibraryRepair';
 
 const JMF_DIR = 'JMFDownloads';
-
-function uid(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 type DialogState =
   | {mode: 'alert'; title: string; message: string}
@@ -33,12 +27,11 @@ export function SettingsScreen() {
   const settings = useSettingsStore(s => s.settings);
   const update = useSettingsStore(s => s.update);
   const libraryItems = useLibraryStore(s => s.items);
-  const addBatch = useDownloadStore(s => s.addBatch);
-  const {startDownload} = useDownloadTask();
+  const {repairing, repairProgress, runRepair, handleRepair} =
+    useLibraryRepair(settings.imageFormat);
 
   const [newDomain, setNewDomain] = useState('');
-  const [repairing, setRepairing] = useState(false);
-  const [repairProgress, setRepairProgress] = useState<{done: number; total: number} | null>(null);
+  const [newTag, setNewTag] = useState('');
   const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
@@ -78,93 +71,44 @@ export function SettingsScreen() {
     void update({domains: next});
   };
 
-  const runRepair = useCallback(
-    async (needsRepair: LibraryItem[]) => {
-      setRepairing(true);
-      try {
-        const runtime = createRuntime();
-        await repairLibraryItems(needsRepair, runtime.fs, (done, t) => {
-          setRepairProgress({done, total: t});
-        });
-
-        const tasks = needsRepair.map(item => ({
-          id: uid(),
-          albumId: item.albumId,
-          title: item.title,
-        }));
-        for (const item of needsRepair) {
-          const existing = useDownloadStore.getState().tasks.find(t => t.albumId === item.albumId);
-          if (existing) {
-            existing.controller?.cancel();
-            useDownloadStore.getState().remove(existing.id);
-          }
-        }
-        addBatch(tasks);
-        for (const t of tasks) {
-          const added = useDownloadStore.getState().tasks.find(x => x.id === t.id);
-          if (added) {
-            startDownload(added.id);
-          }
-        }
-        setDialog({
-          mode: 'alert',
-          title: '资源修复',
-          message: `已将 ${needsRepair.length} 本加入下载队列，可到任务页查看进度`,
-        });
-      } catch (err) {
-        setDialog({
-          mode: 'alert',
-          title: '修复失败',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      } finally {
-        setRepairing(false);
-        setRepairProgress(null);
-      }
-    },
-    [addBatch, startDownload],
-  );
-
-  const handleRepair = useCallback(async () => {
-    if (repairing) return;
-    if (libraryItems.length === 0) {
-      setDialog({mode: 'alert', title: '资源修复', message: '漫画库为空，无需修复'});
+  const handleAddTag = () => {
+    const value = newTag.trim();
+    if (!value) {
       return;
     }
-    setRepairing(true);
-    try {
-      const {compliant, needsRepair} = await scanLibraryRepair(
-        libraryItems,
-        settings.imageFormat,
-      );
-      const total = libraryItems.length;
-      const m = needsRepair.length;
-      if (m === 0) {
+    if (isHardBlockedKeyword(value)) {
+      setNewTag('');
+      return;
+    }
+    if (!settings.blacklistTags.includes(value)) {
+      void update({blacklistTags: [...settings.blacklistTags, value]});
+    }
+    setNewTag('');
+  };
+
+  const applyRepairOutcome = (outcome: RepairOutcome) => {
+    switch (outcome.kind) {
+      case 'none':
+        return;
+      case 'alert':
+        setDialog({mode: 'alert', title: outcome.title, message: outcome.message});
+        return;
+      case 'confirm':
         setDialog({
-          mode: 'alert',
+          mode: 'confirm',
           title: '资源修复',
-          message: `所有资源已是最新格式（共 ${total} 本）`,
+          message: `共 ${outcome.total} 本，需修复 ${outcome.count} 本（已合规 ${outcome.compliant} 本），是否开始？\n修复将删除旧文件并重新下载。`,
+          confirmLabel: '开始修复',
+          payload: outcome.payload,
         });
         return;
-      }
-      setDialog({
-        mode: 'confirm',
-        title: '资源修复',
-        message: `共 ${total} 本，需修复 ${m} 本（已合规 ${compliant} 本），是否开始？\n修复将删除旧文件并重新下载。`,
-        confirmLabel: '开始修复',
-        payload: needsRepair,
-      });
-    } catch (err) {
-      setDialog({
-        mode: 'alert',
-        title: '修复失败',
-        message: err instanceof Error ? err.message : String(err),
-      });
-    } finally {
-      setRepairing(false);
-      setRepairProgress(null);
     }
-  }, [repairing, libraryItems, settings.imageFormat]);
+  };
+
+  const handleRepairClick = async () => {
+    const outcome = await handleRepair(libraryItems);
+    applyRepairOutcome(outcome);
+  };
 
   return (
     <div className="app-screen">
@@ -274,6 +218,45 @@ export function SettingsScreen() {
           </div>
         </div>
         <div className="settings-group">
+          <span className="settings-group-title">内容过滤</span>
+          <span className="settings-hint">
+            命中标签的漫画不会出现或被下载
+          </span>
+          <div className="domain-list">
+            {settings.blacklistTags.map((tag, index) => (
+              <div className="domain-item" key={index}>
+                <span className="tag-blacklist-chip">{tag}</span>
+                <button
+                  className="domain-remove"
+                  aria-label={`移除 ${tag}`}
+                  onClick={() => {
+                    const next = settings.blacklistTags.filter((_, i) => i !== index);
+                    void update({blacklistTags: next});
+                  }}>
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className="domain-add">
+              <input
+                className="domain-input"
+                type="text"
+                placeholder="添加黑名单标签"
+                value={newTag}
+                onChange={e => setNewTag(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddTag();
+                  }
+                }}
+              />
+              <button className="domain-add-btn" onClick={handleAddTag}>
+                添加
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="settings-group">
           <span className="settings-group-title">通用</span>
           <ListTile
             icon="build"
@@ -285,7 +268,7 @@ export function SettingsScreen() {
                   ? '扫描中…'
                   : '将不符合格式的漫画重新下载'
             }
-            onClick={() => void handleRepair()}
+            onClick={() => void handleRepairClick()}
           />
           <ListTile
             icon="info"
@@ -306,7 +289,7 @@ export function SettingsScreen() {
           if (dialog?.mode === 'confirm') {
             const payload = dialog.payload;
             setDialog(null);
-            void runRepair(payload);
+            void runRepair(payload).then(applyRepairOutcome);
             return;
           }
           setDialog(null);

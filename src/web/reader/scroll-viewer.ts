@@ -34,7 +34,7 @@ export function getScrollPage(ctx: ScrollViewerCtx): number {
   return cur;
 }
 
-export async function presizeScrollPages(ctx: ScrollViewerCtx, seq: number): Promise<void> {
+async function presizeScrollPages(ctx: ScrollViewerCtx, seq: number): Promise<void> {
   const doc = ctx.docRef.current;
   if (!doc) return;
   const first = await doc.getPage(1);
@@ -121,7 +121,7 @@ export function onScrollAreaScroll(ctx: ScrollViewerCtx): void {
   }
 }
 
-export function rerenderScrollWithAnchor(
+function rerenderScrollWithAnchor(
   ctx: ScrollViewerCtx,
   render: (onLayoutChanged?: () => void) => Promise<void>,
   focalY?: number,

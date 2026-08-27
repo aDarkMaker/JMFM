@@ -13,7 +13,6 @@ const CACHE_LIMIT = 3;
 const imageCache = new Map<string, ImageDocMeta>();
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp']);
-const PREFETCH_BATCH = 4;
 
 function isImageFile(name: string): boolean {
   return IMAGE_EXTS.has((name.split('.').pop() ?? '').toLowerCase());
@@ -91,40 +90,3 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
   return entry;
 }
 
-export async function prefetchPageSrcs(
-  meta: ImageDocMeta,
-  indices: number[],
-  onBatch?: () => void,
-): Promise<void> {
-  if (meta.baseSrc) {
-    fillSrcsFromBase(meta);
-    onBatch?.();
-    return;
-  }
-  const todo = indices.filter(i => i >= 0 && i < meta.pageCount && !meta.srcs[i]);
-  for (let i = 0; i < todo.length; i += PREFETCH_BATCH) {
-    const batch = todo.slice(i, i + PREFETCH_BATCH);
-    await Promise.all(
-      batch.map(async index => {
-        const name = meta.files[index];
-        if (!name) return;
-        const r = await Filesystem.getUri({
-          path: `${meta.pagesDir}/${name}`,
-          directory: Directory.Documents,
-        });
-        meta.srcs[index] = Capacitor.convertFileSrc(r.uri);
-      }),
-    );
-    onBatch?.();
-  }
-}
-
-export function prefetchAllPageSrcs(meta: ImageDocMeta, onBatch?: () => void): Promise<void> {
-  if (meta.baseSrc) {
-    fillSrcsFromBase(meta);
-    onBatch?.();
-    return Promise.resolve();
-  }
-  const indices = Array.from({length: meta.pageCount}, (_, i) => i);
-  return prefetchPageSrcs(meta, indices, onBatch);
-}

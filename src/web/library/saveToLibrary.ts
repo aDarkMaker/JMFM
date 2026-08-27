@@ -1,7 +1,6 @@
 import {CDN_DOMAINS, REQUEST} from '../../core/constants';
 import {HttpClient} from '../../core/net';
 import {DownloadRuntime} from '../../core/download';
-import {useLibraryStore} from '../stores/library';
 import {preloadCovers} from './coverCache';
 import {clearImageDocCache, loadImageDocMeta} from '../reader/image-doc';
 
@@ -12,6 +11,20 @@ export interface AlbumInfo {
   tags: string[];
 }
 
+interface LibraryWriter {
+  add(item: {
+    albumId: number;
+    title: string;
+    author?: string;
+    tags?: string[];
+    chapterCount: number;
+    pageCount: number;
+    filePath: string;
+    pagesDir?: string;
+    coverPath?: string;
+  }): void;
+}
+
 export async function saveToLibrary(
   albumId: number,
   info: AlbumInfo,
@@ -19,6 +32,7 @@ export async function saveToLibrary(
   albumDir: string,
   http: HttpClient,
   runtime: DownloadRuntime,
+  writer: LibraryWriter,
 ): Promise<void> {
   let coverPath: string | undefined;
   try {
@@ -38,7 +52,7 @@ export async function saveToLibrary(
   } catch {
     // cover download failure is non-fatal
   }
-  useLibraryStore.getState().add({
+  writer.add({
     albumId,
     title: info.title,
     author: info.author,

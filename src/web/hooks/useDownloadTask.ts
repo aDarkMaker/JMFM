@@ -5,8 +5,10 @@ import {createHttpClient} from '../../core/net';
 import {createRuntime} from '../../core/download/runtime';
 import {useSettingsStore} from '../stores/settings';
 import {useDownloadStore} from '../stores/download';
-import {saveToLibrary} from '../library/saveToLibrary';
+import {saveToLibrary, AlbumInfo} from '../library/saveToLibrary';
+import {useLibraryStore} from '../stores/library';
 import {enqueueDownload} from '../download/queue';
+import {uid} from '../library/uid';
 
 export function useDownloadTask() {
   const downloadPath = useSettingsStore(s => s.settings.downloadPath);
@@ -38,7 +40,7 @@ export function useDownloadTask() {
       const task = useDownloadStore.getState().tasks.find(t => t.id === taskId);
       if (!task) return;
       const albumId = task.albumId;
-      let albumInfo: {title: string; chapters: number; author: string; tags: string[]} | null = null;
+      let albumInfo: AlbumInfo | null = null;
       let albumTotal = 0;
       const controller = {paused: false, cancel() { this.paused = true; }};
       useDownloadStore.getState().setController(taskId, controller);
@@ -63,7 +65,15 @@ export function useDownloadTask() {
         );
         useDownloadStore.getState().setStatus(taskId, 'done');
         if (albumInfo) {
-          await saveToLibrary(albumId, albumInfo, albumTotal, albumDir, http, runtime);
+          await saveToLibrary(
+            albumId,
+            albumInfo,
+            albumTotal,
+            albumDir,
+            http,
+            runtime,
+            useLibraryStore.getState(),
+          );
         }
       } catch (err) {
         if (isCanceledError(err)) {
@@ -94,5 +104,17 @@ export function useDownloadTask() {
     task?.controller?.cancel();
   }, []);
 
-  return {startDownload, cancel};
+  const enqueueAlbum = useCallback(
+    (albumId: number, title: string): void => {
+      const id = uid();
+      useDownloadStore.getState().addBatch([{id, albumId, title}]);
+      const task = useDownloadStore.getState().tasks.find(t => t.albumId === albumId);
+      if (task) {
+        startDownload(task.id);
+      }
+    },
+    [startDownload],
+  );
+
+  return {startDownload, cancel, enqueueAlbum};
 }

@@ -1,13 +1,12 @@
 import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef} from 'react';
 import {clamp, SCALE_MAX, SCALE_MIN} from './types';
 import {getImageDocMeta, loadImageDocMeta, ImageDocMeta} from './image-doc';
-import {applyToImg, clearImageLoaderCache} from './image-loader';
+import {applyToImg} from './image-loader';
 
 export interface ImageReaderHandle {
   goTo: (n: number) => void;
   zoom: (factor: number) => void;
   fitToWidth: () => void;
-  getPage: () => number;
 }
 
 interface ImageReaderProps {
@@ -364,7 +363,6 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
     goTo,
     zoom,
     fitToWidth,
-    getPage: () => pageRef.current,
   }), [goTo, zoom, fitToWidth]);
 
   useEffect(() => {
@@ -407,7 +405,6 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       poolRef.current.clear();
       scrollPagesRef.current?.replaceChildren();
       scrollWindowRef.current = {start: -1, end: -1};
-      clearImageLoaderCache();
     };
   }, [pagesDir, mode, measureSlots, ensureScrollWindow, paintPagedSlides, setTrackX]);
 

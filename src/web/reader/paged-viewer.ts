@@ -29,7 +29,7 @@ export function positionCanvas(
   canvas.style.top = `${Math.max((area.clientHeight - h) / 2, 0)}px`;
 }
 
-export function swapCanvases(
+function swapCanvases(
   ctx: PagedViewerCtx,
   opts?: {outgoingTransform?: string},
 ): void {
