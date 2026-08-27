@@ -9,6 +9,7 @@ import {saveToLibrary, AlbumInfo} from '../library/saveToLibrary';
 import {useLibraryStore} from '../stores/library';
 import {enqueueDownload} from '../download/queue';
 import {uid} from '../library/uid';
+import {formatTaskError} from '../util/formatTaskError';
 
 export function useDownloadTask() {
   const downloadPath = useSettingsStore(s => s.settings.downloadPath);
@@ -82,7 +83,7 @@ export function useDownloadTask() {
           useDownloadStore.getState().setStatus(
             taskId,
             'error',
-            err instanceof Error ? err.message : String(err),
+            formatTaskError(err instanceof Error ? err.message : String(err)),
           );
         }
       }

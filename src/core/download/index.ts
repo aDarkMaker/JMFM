@@ -4,7 +4,7 @@ import {
   PhotoDetail,
 } from '../model';
 import {REQUEST} from '../constants';
-import {HttpClient} from '../net';
+import {HttpClient, sleep} from '../net';
 import {getNum} from '../transcode';
 import {DownloadRuntime, DecodeFormat} from './types';
 import {calcConcurrency, decideImageStrategy, mapWithConcurrency} from './scheduler';
@@ -140,7 +140,7 @@ export class DownloadService {
     albumDoneOffset: number,
     albumTotal: number,
   ): Promise<{paths: string[]; sizes: PageSize[]; done: number}> {
-    const {http, runtime} = this.deps;
+    const {runtime} = this.deps;
     const limit = calcConcurrency(
       items.length,
       this.deps.cpuCount ?? 4,
@@ -167,14 +167,7 @@ export class DownloadService {
         });
         return;
       }
-      const resp = await http.getBytes(item.url, {
-        Referer: REQUEST.REFERER,
-        Accept: REQUEST.ACCEPT_IMAGE,
-      });
-      this.checkCanceled(controller);
-      if (!resp.ok || !resp.bytes) {
-        throw new Error(`failed to download ${item.url}`);
-      }
+      const resp = await this.fetchImageBytes(item, controller);
       const num = getNum(item.scrambleId, item.aid, item.fileName);
       const strategy = decideImageStrategy(num, item.suffix);
       let ext = item.suffix;
@@ -204,6 +197,30 @@ export class DownloadService {
     });
 
     return {paths: pages, sizes, done};
+  }
+
+  private async fetchImageBytes(
+    item: ImageItem,
+    controller: DownloadController | undefined,
+  ): Promise<{bytes: Uint8Array}> {
+    const {http} = this.deps;
+    let last: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      this.checkCanceled(controller);
+      const resp = await http.getBytes(item.url, {
+        Referer: REQUEST.REFERER,
+        Accept: REQUEST.ACCEPT_IMAGE,
+      });
+      this.checkCanceled(controller);
+      if (resp.ok && resp.bytes) {
+        return {bytes: resp.bytes};
+      }
+      last = new Error(`failed to download ${item.url}`);
+      if (attempt < 2) {
+        await sleep(500);
+      }
+    }
+    throw last;
   }
 
   private async findExisting(base: string): Promise<string | null> {
