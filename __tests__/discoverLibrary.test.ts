@@ -1,8 +1,10 @@
 import {
   albumIdForLocalPath,
+  backfillCoverPaths,
   dedupeLibraryItems,
   discoverLibraryFromDisk,
   mergeDiscovered,
+  mergeLibraryDuplicates,
   parseLocalMeta,
 } from '@/web/library/discoverLibrary';
 import type {LocalAlbumMeta, LibraryScanner} from '@/web/library/discoverLibrary';
@@ -29,6 +31,20 @@ interface Fixture {
 function scanner(fixture: Fixture): LibraryScanner {
   return {
     listDirs: async (path) => fixture.dirs[path] ?? [],
+    listFiles: async (path) => {
+      const files: string[] = [];
+      if (fixture.files) {
+        const prefix = `${path}/`;
+        for (const [p, exists] of Object.entries(fixture.files)) {
+          if (!exists) continue;
+          if (p.startsWith(prefix)) {
+            const rest = p.slice(prefix.length);
+            if (!rest.includes('/')) files.push(rest);
+          }
+        }
+      }
+      return files;
+    },
     listImages: async (path) => fixture.pages[path] ?? [],
     readMeta: async (path) => fixture.metas[path] ?? null,
     fileExists: async (path) => fixture.files?.[path] ?? false,
@@ -122,12 +138,58 @@ describe('dedupeLibraryItems', () => {
     expect(deduped[0]!.coverPath).toBe('JMFDownloads/标题/cover.jpg');
   });
 
+  it('merges same comic keeping real albumId', () => {
+    const items = [
+      item('标题', 'Documents/JMFDownloads/标题/pages', 1_000_000_001),
+      {
+        ...item('标题', 'JMFDownloads/标题/pages', 42),
+        coverPath: 'JMFDownloads/标题/cover.jpg',
+      },
+    ];
+    const deduped = dedupeLibraryItems(items, 'Documents/JMFDownloads');
+    expect(deduped).toHaveLength(1);
+    expect(deduped[0]!.albumId).toBe(42);
+    expect(deduped[0]!.coverPath).toBe('JMFDownloads/标题/cover.jpg');
+  });
+
+  it('mergeLibraryDuplicates prefers real albumId', () => {
+    const target = item('A', 'base/A/pages', 1_000_000_001);
+    const incoming = {...item('A', 'base/A/pages', 42), coverPath: 'base/A/cover.jpg'};
+    const merged = mergeLibraryDuplicates(target, incoming, 'base');
+    expect(merged.albumId).toBe(42);
+    expect(merged.coverPath).toBe('base/A/cover.jpg');
+  });
+
   it('keeps distinct albums', () => {
     const items = [
       item('A', 'Documents/JMFDownloads/A/pages', 1_000_000_001),
       item('B', 'Documents/JMFDownloads/B/pages', 1_000_000_002),
     ];
     expect(dedupeLibraryItems(items, 'Documents/JMFDownloads')).toHaveLength(2);
+  });
+});
+
+describe('backfillCoverPaths', () => {
+  it('sets cover.jpg for existing items without coverPath', async () => {
+    const fixture: Fixture = {
+      dirs: {},
+      pages: {},
+      metas: {},
+      files: {'Documents/JMFDownloads/漫画A/cover.jpg': true},
+    };
+    const items = [
+      {
+        ...item('漫画A', 'Documents/JMFDownloads/漫画A/pages', 1),
+        filePath: 'Documents/JMFDownloads/漫画A',
+      },
+    ];
+    const {items: patched, changed} = await backfillCoverPaths(
+      items,
+      'Documents/JMFDownloads',
+      scanner(fixture)
+    );
+    expect(changed).toBe(true);
+    expect(patched[0]!.coverPath).toBe('Documents/JMFDownloads/漫画A/cover.jpg');
   });
 });
 
@@ -258,5 +320,26 @@ describe('discoverLibraryFromDisk', () => {
       'content://tree/primary%3ADocuments%2FJMFDownloads'
     );
     expect(found[0]!.coverPath).toBe('Documents/JMFDownloads/漫画C/cover.png');
+  });
+
+  it('discovers cover.jpg via listFiles when fileExists fails', async () => {
+    const fixture7: Fixture = {
+      dirs: {'Documents/JMFDownloads': ['漫画D']},
+      pages: {'Documents/JMFDownloads/漫画D/pages': ['0001.webp']},
+      metas: {'Documents/JMFDownloads/漫画D': null},
+      files: {'Documents/JMFDownloads/漫画D/cover.jpg': true},
+    };
+    const base = scanner(fixture7);
+    const flaky: LibraryScanner = {
+      ...base,
+      fileExists: async () => false,
+    };
+    const found = await discoverLibraryFromDisk(
+      [],
+      'Documents/JMFDownloads',
+      flaky,
+      'content://tree/primary%3ADocuments%2FJMFDownloads'
+    );
+    expect(found[0]!.coverPath).toBe('Documents/JMFDownloads/漫画D/cover.jpg');
   });
 });
