@@ -31,6 +31,7 @@ bun install
 ## 常用脚本
 
 ```bash
+bash scripts/install-git-hooks.sh  # 首次 clone：启用 push 前版本 bump 交互
 bun run build            # 构建 Web 产物到 dist/
 bunx cap sync android    # 同步到 Android 原生工程
 bunx cap run android     # 构建 + 安装 + 启动（真机/模拟器）
@@ -43,3 +44,11 @@ bun run typecheck
 bun run lint
 bun run verify           # Node 端完整链路验证（生成真实 PDF）
 ```
+
+## 版本与更新
+
+- 版本号维护在仓库根目录 `version.json`（同步 `package.json` 的 `version` 字段）
+- `scripts/bump-version.ts minor|major` 手动 bump；推荐通过 `install-git-hooks.sh` 在 push `main` 前交互选择
+- `versionCode = major * 10000 + minor * 100 + patch`（Android 单调递增）
+- CI 发布 `JMFM.apk` + `version.json` 到 GitHub Latest Release
+- 应用内：设置 → 检查更新（仅 Android 支持下载安装）

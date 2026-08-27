@@ -28,13 +28,28 @@ Capacitor + React + TypeScript。输入专辑 ID，API 取数、条带重组、�
 | **pages 直读** | 下载只写 `pages/`（默认 webp），阅读器渲染本地图片 |
 | **串行队列** | 多本排队，暂停/失败自动切下一本 |
 | **资源修复** | 设置页三检元数据 / 页数格式 / 封面，不合格重下 |
+| **应用内更新** | 设置页检查 GitHub Latest Release，Android 端下载并安装 APK |
 | **APK 打包** | `bun run apk` 打出可安装包 |
 
 ## 下载
 
 [![Download APK](https://img.shields.io/badge/Download-JMFM.apk-success?style=for-the-badge&logo=android&logoColor=white)](https://github.com/aDarkMaker/JMFM/releases/latest/download/JMFM.apk)
 
-推送到 `main`（应用相关改动）会自动打包，更新 [Latest Release](https://github.com/aDarkMaker/JMFM/releases/latest) 中的 **JMFM.apk**。
+推送到 `main`（应用相关改动）会自动打包，更新 [Latest Release](https://github.com/aDarkMaker/JMFM/releases/latest) 中的 **JMFM.apk** 与 **version.json**（供客户端比对版本）。
+
+## 版本管理
+
+正式版本自 **1.0.0** 起，仓库根目录 [`version.json`](../version.json) 为单一版本源（`version` + `versionCode`）。
+
+首次 clone 后安装 Git 钩子（push 到 `origin/main` 前可选择 bump 版本）：
+
+```bash
+bash scripts/install-git-hooks.sh
+```
+
+交互选项：1 小版本（如 `1.0.0 → 1.1.0`）、2 大版本（如 `1.1.0 → 2.0.0`）、3 跳过。CI 从 `version.json` 读取版本打包发布。
+
+设置页「检查更新」会请求 GitHub Releases API，有新版本时在 Android 端应用内下载并调起安装。
 
 ## 快速开始
 
