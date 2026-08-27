@@ -6,7 +6,8 @@ import {SectionHeader} from '../components/SectionHeader';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useLibraryStore, LibraryItem} from '../stores/library';
 import {loadImageDocMeta} from '../reader/image-doc';
-import {createRuntime} from '../../core/download/runtime';
+import {createDownloadRuntime} from '../download/createDownloadRuntime';
+import {useSettingsStore} from '../stores/settings';
 
 type CategoryKey = 'all' | 'favorite' | 'downloaded' | 'recent';
 
@@ -60,7 +61,7 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
     setPendingDelete(null);
     if (!item) return;
     removeItem(item.albumId);
-    const runtime = createRuntime();
+    const runtime = createDownloadRuntime(useSettingsStore.getState().settings);
     void runtime.fs.unlink(item.filePath).catch(() => undefined);
   }, [pendingDelete, removeItem]);
 

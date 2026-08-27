@@ -34,10 +34,23 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = 'jmf.settings';
 
+/** Strip Documents/ prefix for native Capacitor fs (already rooted at Directory.Documents). */
+function normalizeDownloadPath(path: string, hasSafUri: boolean): string {
+  if (hasSafUri || !path.startsWith('Documents/')) {
+    return path;
+  }
+  return path.slice('Documents/'.length);
+}
+
 export function sanitizeSettings(raw: Partial<Settings>): Settings {
+  const downloadTreeUri = raw.downloadTreeUri?.trim() || undefined;
+  const downloadPath = normalizeDownloadPath(
+    raw.downloadPath?.trim() || DEFAULT_SETTINGS.downloadPath,
+    Boolean(downloadTreeUri)
+  );
   return {
-    downloadPath: raw.downloadPath?.trim() || DEFAULT_SETTINGS.downloadPath,
-    downloadTreeUri: raw.downloadTreeUri?.trim() || undefined,
+    downloadPath,
+    downloadTreeUri,
     retryTimes: normalizeInt(raw.retryTimes, 1, 10, DEFAULT_SETTINGS.retryTimes),
     imageThreads: normalizeInt(raw.imageThreads, 0, 64, DEFAULT_SETTINGS.imageThreads),
     imageFormat: raw.imageFormat || DEFAULT_SETTINGS.imageFormat,

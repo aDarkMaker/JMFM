@@ -2,7 +2,7 @@ import {HttpClient} from '../../core/net';
 import {DownloadRuntime} from '../../core/download';
 import {preloadCovers} from './coverCache';
 import {downloadCover} from './cover';
-import {clearImageDocCache, loadImageDocMeta} from '../reader/image-doc';
+import {clearImageDocCache} from '../reader/image-doc';
 import type {LocalAlbumMeta} from './discoverLibrary';
 
 const META_FILE = '.jmf-meta.json';
@@ -64,9 +64,7 @@ export async function saveToLibrary(
     coverPath,
   });
   void preloadCovers([coverPath]);
-  const pagesDir = `${albumDir}/pages`;
-  clearImageDocCache(pagesDir);
-  void loadImageDocMeta(pagesDir).catch(() => undefined);
+  clearImageDocCache(`${albumDir}/pages`);
 }
 
 export async function writeLocalAlbumMeta(

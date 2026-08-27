@@ -1,7 +1,8 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import {createRuntime} from '../../core/download/runtime';
+import {createDownloadRuntime} from '../download/createDownloadRuntime';
+import {useSettingsStore} from '../stores/settings';
 import {DocCacheEntry} from './types';
 
 export const DEFAULT_SCALE = 1.2;
@@ -40,7 +41,7 @@ async function readPdfBytes(filePath: string): Promise<Uint8Array> {
     }
     return new Uint8Array(await r.data.arrayBuffer());
   }
-  const runtime = createRuntime();
+  const runtime = createDownloadRuntime(useSettingsStore.getState().settings);
   return runtime.fs.readFile(filePath);
 }
 

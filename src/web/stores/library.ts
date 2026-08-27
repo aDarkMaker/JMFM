@@ -15,7 +15,7 @@ import {
 import {ApiClient} from '../../core/api';
 import {createHttpClient} from '../../core/net';
 import {writeLocalAlbumMeta} from '../library/saveToLibrary';
-import {createRuntime} from '../../core/download/runtime';
+import {createDownloadRuntime} from '../download/createDownloadRuntime';
 
 export interface LibraryItem {
   albumId: number;
@@ -93,7 +93,7 @@ async function persistResolvedIds(
 ): Promise<LibraryItem[]> {
   const next = dedupeLibraryItems(after, downloadPath);
   const hashItems = before.filter((i) => i.albumId >= LOCAL_ID_OFFSET && i.filePath);
-  const runtime = createRuntime();
+  const runtime = createDownloadRuntime(useSettingsStore.getState().settings);
   for (const item of next) {
     if (item.albumId >= LOCAL_ID_OFFSET || !item.filePath) {
       continue;
@@ -237,6 +237,15 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             // ignore
           }
         }
+      }
+      const {settings} = useSettingsStore.getState();
+      const inMemory = get().items;
+      if (inMemory.length > 0) {
+        const merged = new Map(items.map((i) => [i.albumId, i]));
+        for (const item of inMemory) {
+          merged.set(item.albumId, item);
+        }
+        items = dedupeLibraryItems([...merged.values()], settings.downloadPath);
       }
       set({items, loaded: true});
       if (Capacitor.isNativePlatform()) {
