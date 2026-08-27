@@ -20,6 +20,14 @@ describe('parsePickedDirectory', () => {
     );
   });
 
+  it('keeps Documents/JMFDownloads without duplicating app dir', () => {
+    expect(
+      parsePickedDirectory(
+        'content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FJMFDownloads',
+      ),
+    ).toBe('Documents/JMFDownloads');
+  });
+
   it('handles plain paths', () => {
     expect(parsePickedDirectory('/Download')).toBe('Download/JMFDownloads');
   });
