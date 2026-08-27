@@ -16,9 +16,11 @@ if [[ "$remote" != "origin" ]]; then
 fi
 
 pushing_main=false
+main_remote_ref=""
 while read -r local_ref local_oid remote_ref remote_oid; do
   if [[ "$remote_ref" == "refs/heads/main" ]]; then
     pushing_main=true
+    main_remote_ref="$remote_ref"
     break
   fi
 done
@@ -71,7 +73,14 @@ case "$choice" in
 esac
 
 if [[ "$bumped" == "true" ]]; then
-  echo "Version bump committed; continuing with your push ..."
+  echo "Version bump committed; pushing with bumped version ..."
+  if JMFM_SKIP_VERSION_BUMP=1 git push "$remote" "HEAD:${main_remote_ref}"; then
+    echo "Push finished (includes version bump)."
+    # Abort the in-flight push: it still targets the pre-bump SHA.
+    exit 1
+  fi
+  echo "Push failed after version bump." >&2
+  exit 1
 fi
 
 exit 0
