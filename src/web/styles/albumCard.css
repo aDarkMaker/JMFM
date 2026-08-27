@@ -138,11 +138,11 @@
 .album-tags::after {
   content: '';
   position: absolute;
-  left: 0;
+  top: 0;
   right: 0;
   bottom: 0;
-  height: var(--space-3);
-  background: linear-gradient(to bottom, transparent, var(--surface-card));
+  width: 28px;
+  background: linear-gradient(to left, var(--surface-card), transparent);
   pointer-events: none;
 }
 
@@ -158,9 +158,28 @@
 .album-stats {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
+  width: 100%;
   font-size: var(--text-xs);
   color: var(--ink-tertiary);
+}
+
+.album-stats > span {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-stats > span:nth-child(1) {
+  text-align: left;
+}
+
+.album-stats > span:nth-child(2) {
+  text-align: center;
+}
+
+.album-stats > span:nth-child(3) {
+  text-align: right;
 }
