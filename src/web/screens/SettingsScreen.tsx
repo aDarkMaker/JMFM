@@ -7,6 +7,8 @@ import {SectionHeader} from '../components/SectionHeader';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {isHardBlockedKeyword} from '../../core/model/blocklist';
 import {useLibraryRepair, RepairOutcome} from '../hooks/useLibraryRepair';
+import {useAppUpdate} from '../hooks/useAppUpdate';
+import {ProgressBar} from '../components/ProgressBar';
 
 const JMF_DIR = 'JMFDownloads';
 
@@ -19,7 +21,8 @@ type DialogState =
       confirmLabel?: string;
       danger?: boolean;
       payload: LibraryItem[];
-    };
+    }
+  | {mode: 'update'; title: string; message: string};
 
 export function SettingsScreen() {
   const loaded = useSettingsStore(s => s.loaded);
@@ -29,6 +32,14 @@ export function SettingsScreen() {
   const libraryItems = useLibraryStore(s => s.items);
   const {repairing, repairProgress, runRepair, handleRepair} =
     useLibraryRepair(settings.imageFormat);
+  const {
+    currentVersion,
+    status: updateStatus,
+    progress: updateProgress,
+    canInstallInApp,
+    checkUpdate,
+    downloadAndInstall,
+  } = useAppUpdate();
 
   const [newDomain, setNewDomain] = useState('');
   const [newTag, setNewTag] = useState('');
@@ -109,6 +120,51 @@ export function SettingsScreen() {
     const outcome = await handleRepair(libraryItems);
     applyRepairOutcome(outcome);
   };
+
+  const handleCheckUpdate = async () => {
+    const result = await checkUpdate();
+    if (result.kind === 'up-to-date') {
+      setDialog({
+        mode: 'alert',
+        title: '检查更新',
+        message: `当前已是最新版本（v${result.current}）`,
+      });
+      return;
+    }
+    if (result.kind === 'error') {
+      setDialog({
+        mode: 'alert',
+        title: '检查更新失败',
+        message: result.error ?? '未知错误',
+      });
+      return;
+    }
+    const notes = result.releaseNotes ? `\n\n${result.releaseNotes}` : '';
+    if (!canInstallInApp) {
+      setDialog({
+        mode: 'alert',
+        title: '发现新版本',
+        message: `最新 v${result.latest}（当前 v${result.current}）${notes}\n\n应用内安装仅支持 Android。`,
+      });
+      return;
+    }
+    setDialog({
+      mode: 'update',
+      title: '发现新版本',
+      message: `当前 v${result.current} → 最新 v${result.latest}${notes}`,
+    });
+  };
+
+  const updateSubtitle =
+    updateStatus === 'checking'
+      ? '正在检查…'
+      : updateStatus === 'downloading'
+        ? `下载中 ${updateProgress}%`
+        : updateStatus === 'installing'
+          ? '正在打开安装程序…'
+          : canInstallInApp
+            ? '从 GitHub 获取最新 APK'
+            : '仅 Android 支持应用内安装';
 
   return (
     <div className="app-screen">
@@ -271,10 +327,20 @@ export function SettingsScreen() {
             onClick={() => void handleRepairClick()}
           />
           <ListTile
+            icon="update"
+            title="检查更新"
+            subtitle={updateSubtitle}
+            onClick={() => void handleCheckUpdate()}
+          />
+          {(updateStatus === 'downloading' || updateStatus === 'installing') && (
+            <div className="settings-update-progress">
+              <ProgressBar progress={updateProgress} status="running" />
+            </div>
+          )}
+          <ListTile
             icon="info"
             title="关于"
-            subtitle="JMFM v0.1.0"
-            trailing="chevron-right"
+            subtitle={`JMFM v${currentVersion || '…'}`}
           />
         </div>
       </div>
@@ -282,14 +348,31 @@ export function SettingsScreen() {
         open={dialog != null}
         title={dialog?.title ?? ''}
         message={dialog?.message ?? ''}
-        confirmLabel={dialog?.mode === 'confirm' ? dialog.confirmLabel ?? '确定' : '确定'}
-        cancelLabel={dialog?.mode === 'confirm' ? '取消' : null}
+        confirmLabel={
+          dialog?.mode === 'confirm'
+            ? dialog.confirmLabel ?? '确定'
+            : dialog?.mode === 'update'
+              ? '下载并安装'
+              : '确定'
+        }
+        cancelLabel={dialog?.mode === 'confirm' || dialog?.mode === 'update' ? '取消' : null}
         danger={dialog?.mode === 'confirm' ? dialog.danger : false}
         onConfirm={() => {
           if (dialog?.mode === 'confirm') {
             const payload = dialog.payload;
             setDialog(null);
             void runRepair(payload).then(applyRepairOutcome);
+            return;
+          }
+          if (dialog?.mode === 'update') {
+            setDialog(null);
+            void downloadAndInstall().catch(err => {
+              setDialog({
+                mode: 'alert',
+                title: '更新失败',
+                message: err instanceof Error ? err.message : String(err),
+              });
+            });
             return;
           }
           setDialog(null);

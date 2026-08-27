@@ -27,6 +27,10 @@
   line-height: 1.5;
 }
 
+.settings-update-progress {
+  padding: 0 var(--space-3) var(--space-2);
+}
+
 /* toggle switch */
 .toggle {
   display: inline-flex;
