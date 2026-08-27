@@ -1,6 +1,7 @@
 import {PageSize} from '../pdf/layout';
-import type {DecodeFormat, DecodedImage} from '../model';
+import type {AlbumDetail, DecodeFormat, DecodedImage, PhotoDetail} from '../model';
 import type {FileSystem} from '../fs/types';
+import {ImageItem} from '../model';
 
 export type {DecodeFormat, DecodedImage} from '../model';
 export type {FileSystem} from '../fs/types';
@@ -19,4 +20,15 @@ export interface DownloadRuntime {
     imagePaths: string[],
     sizes?: PageSize[],
   ): Promise<string>;
+}
+
+export interface ContentSource {
+  getAlbum(albumId: number): Promise<AlbumDetail>;
+  getPhoto(photoId: number): Promise<PhotoDetail>;
+  buildImageItems(photo: PhotoDetail): ImageItem[];
+}
+
+export interface DownloadController {
+  cancel(): void;
+  paused: boolean;
 }

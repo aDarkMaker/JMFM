@@ -66,6 +66,8 @@ export function buildFallbackImageUrl(aid: number, index: number): string {
   return `https://${FALLBACK_CDN}/media/photos/${aid}/${padded}.jpg`;
 }
 
+const ALLOWED_SUFFIXES = new Set(['webp', 'jpg', 'jpeg', 'png', 'gif']);
+
 export function createImageItem(
   photo: PhotoDetail,
   fileName: string,
@@ -73,7 +75,9 @@ export function createImageItem(
 ): ImageItem {
   const dot = fileName.lastIndexOf('.');
   const base = dot > 0 ? fileName.slice(0, dot) : fileName;
-  const suffix = dot > 0 ? fileName.slice(dot + 1) : '';
+  const rawSuffix = dot > 0 ? fileName.slice(dot + 1) : '';
+  // Whitelist the suffix; anything else would end up in a write path.
+  const suffix = ALLOWED_SUFFIXES.has(rawSuffix.toLowerCase()) ? rawSuffix : '';
   return {
     aid: photo.photoId,
     scrambleId: photo.scrambleId,
