@@ -43,3 +43,17 @@ bun run typecheck
 bun run lint
 bun run verify           # Node-side full pipeline verification (real PDF)
 ```
+
+## Version & updates
+
+- Version source: `version.json` (synced with `package.json`)
+- Optional version bump via git hook before pushing to `main`
+- CI publishes `JMFM.apk` + `version.json` (with `apkSha256`) to GitHub Latest Release
+- In-app: Settings → Check for updates (Android)
+
+## APK signing
+
+| Context | Keystore |
+|---|---|
+| Local release | `~/.jmf/jmf.keystore` (auto-created on first `apk:release`) |
+| CI | Repository secrets: `JMF_KEYSTORE_B64`, `JMF_KEYSTORE_PASS` |

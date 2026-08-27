@@ -14,7 +14,7 @@ flowchart TD
     ev1 --> loop{"遍历章节"}
     loop -->|每章| ph["source.getPhoto(photoId)"]
     ph --> items["source.buildImageItems"]
-    items --> chap["downloadChapter 并发下载"]
+    items --> chap["downloadPages 并发下载"]
     chap --> loop
     loop -->|结束| done["事件 done(albumDir)"]
 ```
@@ -24,6 +24,18 @@ flowchart TD
 - `scrambleId` 取专辑级值（API 返回 `scramble_id`），章节缺失时回退到专辑值。
 - 每张图片写入 `albumDir/pages/`（全局序号，扩展名由 `imageFormat` 决定，默认 `webp`）。
 - `albumDir/.nomedia`（空换行文件）阻止系统相册收录封面与页面。
+
+## 共享页面下载（src/core/download/pages.ts）
+
+`DownloadService` 与「修复文件」共用同一套页面能力：
+
+- `collectAlbumPages(source, albumId)`：拉取专辑全部章节并展开为有序的 `ImageItem[]`。
+- `downloadPages(ctx, items, pagesDir, offset, controller?, onProgress?, opts?)`：
+  - 并发下载（`calcConcurrency` 限流），已存在的页自动跳过，**断点续传 / 补页天然支持**。
+  - `opts.preferredExt` 指定期望格式：格式不符的旧文件会被删除后重下（用于格式修复）。
+  - 每张图按 `decideImageStrategy` 选择 raw 直写或 `decodeAndSave` 重组。
+- `fetchImageBytes` / `findExisting`：单页下载（3 次重试）与多扩展名探测。
+- 取消：`controller.paused` 置位后抛 `CanceledError`，`isCanceledError` 识别。
 
 ## 解码格式与策略
 
@@ -35,7 +47,7 @@ flowchart TD
 
 ## 并发控制
 
-`downloadChapter` 使用 `mapWithConcurrency`：
+`downloadPages` 使用 `mapWithConcurrency`：
 
 - `calcConcurrency(total, cpuCount, override)`：默认 `min(64, cpuCount * 2, total)`，可配置覆盖。
 - 每张图下载后按策略解码 / 重组后写盘。
@@ -74,3 +86,15 @@ flowchart LR
 - 滚动模式：固定槽位高度，窗口当前页 ±1/+8，节点池复用；`image-loader.applyToImg` 直接绑 `src`。
 - 横向翻页为三页轨道手势逐页。
 - `saveToLibrary` 入库时预加载 `ImageDocMeta`，打开阅读器时命中缓存。
+
+## 修复文件
+
+设置 → 修复文件：扫描漫画库，补齐缺失页面、封面与元数据；仅整本缺失时重新下载。
+
+| 情况 | 处理 |
+|---|---|
+| 路径变更 | 自动重定位到当前下载目录 |
+| 缺页 / 格式不符 | 只下载缺失或错误格式的页 |
+| 缺封面 | 重新下载封面 |
+| 元数据缺失 | 刷新标题、作者、标签 |
+| 整本缺失 | 加入下载队列 |

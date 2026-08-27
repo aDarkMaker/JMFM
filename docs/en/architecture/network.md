@@ -6,7 +6,7 @@ Data fetching favors the mobile API channel over the HTML channel, because the l
 
 `src/core/net/http.ts` defines the uniform networking interface:
 
-- **Dual protocol**: every domain is tried over both `https://` and `http://`.
+- **Domain rotation**: each domain is tried over `https://` first, then `http://` as fallback.
 - **Domain rotation**: accepts a URL list and tries each in turn until one succeeds.
 - **Retry**: each URL can be retried N times (default 3) with a configurable interval.
 - **Binary / text**: `getBytes` returns `Uint8Array`; `getHtml` returns text.
@@ -96,3 +96,9 @@ https://{cdn[photoId % len]}/media/photos/{photoId}/{fileName}
 ## Configuration
 
 Relevant settings live in the `domains` and `app` sections of `src/config/app-config.json`: HTML/API/CDN domains, domain server URLs, all secrets, request headers, timeouts and retries.
+
+## In-app updates
+
+- Download `version.json` and `JMFM.apk` by GitHub Release tag
+- Verify `version.json.apkSha256` before install
+- Signing: see `docs/en/development/setup.md`

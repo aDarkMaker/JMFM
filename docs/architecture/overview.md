@@ -18,15 +18,15 @@ src/
     fs/                   # 文件系统接口抽象
     pdf/                  # PDF 页面布局（统一宽度、尺寸计算）
     transcode/            # 条带计算 + 图片重组
-    download/             # 下载编排（DownloadService + Runtime 抽象）
-    util/                 # UTF-8 / Base64 等工具
-  data/                   # 设置持久化（storage 接口）
+    download/             # 下载编排（DownloadService + pages.ts 共享页面下载 + Runtime 抽象）
+    util/                 # UTF-8 / Base64 / SHA-256 等工具
+  data/                   # 统一持久化（user-storage：Preferences / localStorage）
   web/                    # UI 层（React DOM + CSS，运行于 Capacitor 壳）
     assets/               # 图标（Iconify SVG）与字体
     components/           # 展示组件
     download/             # 下载串行队列
-    hooks/                # 下载 / 封面 / 键盘 / 手势 / 资源修复等 hooks
-    library/              # 入库 / 封面缓存 / 每日推荐 / uid 工具
+    hooks/                # 下载 / 封面 / 键盘 / 手势 / 修复等 hooks
+    library/              # 入库 / 封面 / 封面缓存 / 路径重定位 / 增量修复 / 每日推荐 / 缓存 / dismissed
     reader/               # 图片直读（image-doc / image-loader / image-reader / pdf-doc）
     screens/              # 5 个页面（Home / Library / Tasks / Settings / Reader）
     stores/               # zustand 状态库
@@ -97,8 +97,10 @@ flowchart LR
 - **配置驱动**：域名、密钥、请求头、PDF 参数来自 `app-config.json`。
 - **HttpClient 可插拔**：Web 用 `FetchHttpClient`；真机用 `NativeHttpClient`（绕过 CORS，含 fetch 回退），按 `Capacitor.isNativePlatform()` 选择；axios 仅 Node 脚本（`scripts/shared/axios-http.ts`）。
 - **重试收敛**：`core/net/retry.ts` 的 `requestWithRetry` 统一域名轮换 × 重试双循环，Fetch 与原生实现共用。
+- **域名协议**：每个域名先 `https://`，再回退 `http://`。
 - **pages 主路径**：下载只写 `pages/`（默认 webp）；阅读器渲染本地图片；PDF 可选，旧 PDF 走 pdf.js。
 - **串行队列**：`src/web/download/queue.ts`，`MAX_CONCURRENT = 1`；暂停/失败切下一本。
 - **封面预加载**：`coverCache` 在启动与库变更时预解码封面 URI，减少 Tab 切换布局跳动。
-- **资源修复**：设置页三检（元数据 / 格式+页数 / 封面），不合格删目录并重入队列。
-- **每日推荐**：`web/library/daily.ts` 按偏爱标签优先 + 随机补齐；`web/stores/daily.ts` 按日缓存，自动过期。
+- **统一持久化**：`data/user-storage.ts` 抽象 Preferences（原生）/ localStorage（Web）。
+- **修复文件**：设置页扫描并补齐缺失页面、封面与元数据。
+- **每日推荐**：白名单优先 → 偏爱标签 → 随机补齐；按日缓存，支持 dismiss。

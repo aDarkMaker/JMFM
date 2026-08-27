@@ -1,5 +1,16 @@
 # 开发日志
 
+## 2026-08-27（二）
+
+### 安全加固、修复文件与推荐优化
+
+- **签名与更新**：keystore 移出仓库；CI 从 Secret 注入；`version.json` 绑定 `apkSha256`；按 release tag 下载并校验后安装。
+- **修复文件**：设置页「修复文件」改为缺什么补什么（补页 / 补封面 / 刷新元数据 / 路径重定位），移除「元数据同步」入口。
+- **下载层**：`core/download/pages.ts` 共享页面下载，整本下载与修复复用。
+- **推荐与持久化**：白名单优先、语种 tag 过滤、dismiss/刷新；library/daily/dismissed 统一 `user-storage`。
+- **网络**：域名先 HTTPS、HTTP 回退。
+- 文档与注释同步（中英文 architecture / setup）。
+
 ## 2026-08-27
 
 ### 项目结构整理与优化

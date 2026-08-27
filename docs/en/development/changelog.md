@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-27 (2)
+
+### Security, repair files & recommendations
+
+- **Signing & updates**: keystore out of repo; CI injects secrets; `version.json` carries `apkSha256`; download by release tag with hash check before install.
+- **Repair files**: Settings action backfills missing pages, covers, and metadata; removed separate metadata-sync entry.
+- **Download layer**: shared page engine in `core/download/pages.ts` for full downloads and repair.
+- **Recommendations & persistence**: whitelist tier, language-tag filter, dismiss/refresh; unified `user-storage` for library/daily/dismissed.
+- **Network**: HTTPS first, HTTP fallback per domain.
+- Docs and comments synced (zh/en architecture / setup).
+
 ## 2026-08-27
 
 ### Project structure cleanup & optimization

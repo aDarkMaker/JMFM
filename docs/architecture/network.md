@@ -6,7 +6,7 @@
 
 `src/core/net/http.ts` 定义统一网络接口：
 
-- **协议双保险**：每个域名同时尝试 `https://` 与 `http://`。
+- **域名轮换**：每个域名先 `https://`，失败再试 `http://`。
 - **域名轮换**：传入 URL 列表，逐个尝试，直到成功。
 - **重试**：每个 URL 可重试 N 次（默认 3），间隔可配。
 - **二进制 / 文本**：`getBytes` 返回 `Uint8Array`，`getHtml` 返回文本。
@@ -96,3 +96,11 @@ https://{cdn[photoId % len]}/media/photos/{photoId}/{fileName}
 ## 配置项
 
 相关配置位于 `src/config/app-config.json` 的 `domains` 与 `app` 段：HTML/API/CDN 域名、域名服务器地址、全部密钥、请求头、超时与重试。
+
+## 应用内更新
+
+`src/core/update/` 负责版本检查与 APK 安装：
+
+- 按 GitHub Release tag 下载 `version.json` 与 `JMFM.apk`
+- 下载后校验 `version.json.apkSha256`
+- 签名密钥见 `docs/development/setup.md`

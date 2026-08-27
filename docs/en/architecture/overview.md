@@ -18,15 +18,15 @@ src/
     fs/                   # 文件系统接口抽象
     pdf/                  # PDF 布局（统一宽度、尺寸计算）
     transcode/            # 条带计算 + 图片重组
-    download/             # 下载编排（DownloadService + Runtime 抽象）
-    util/                 # UTF-8 / Base64 工具
-  data/                   # 设置持久化（storage 接口）与 mock 数据
+    download/             # 下载编排（DownloadService + pages.ts 共享页面下载 + Runtime 抽象）
+    util/                 # UTF-8 / Base64 / SHA-256 工具
+  data/                   # 统一持久化（user-storage：Preferences / localStorage）
   web/                    # UI layer (React DOM + CSS, runs in Capacitor shell)
     assets/               # Icons (Iconify SVG) and fonts
     components/           # Presentational components
     download/             # Download serial queue
     hooks/                # download / cover / keyboard / gesture / repair hooks
-    library/              # insert / cover cache / daily recommendations / uid
+    library/              # insert / cover / cover cache / path remap / incremental repair / daily / cache / dismissed
     reader/               # direct image reading (image-doc / image-loader / image-reader / pdf-doc)
     screens/              # 5 screens (Home / Library / Tasks / Settings / Reader)
     stores/               # zustand stores
@@ -97,8 +97,10 @@ flowchart LR
 - **Config-driven**: domains, secrets, headers, PDF params from `app-config.json`.
 - **Pluggable HttpClient**: Web uses `FetchHttpClient`; device uses `NativeHttpClient` (bypasses CORS, with fetch fallback), selected via `Capacitor.isNativePlatform()`; axios only for Node scripts (`scripts/shared/axios-http.ts`).
 - **Unified retry**: `requestWithRetry` in `core/net/retry.ts` centralizes the domain-rotation × retry loop shared by Fetch and native impls.
+- **Domain protocol**: each domain tries `https://` first, then `http://` as fallback.
 - **pages primary path**: downloads write `pages/` only (default webp); reader renders local images; PDF optional, legacy PDFs via pdf.js.
 - **Serial queue**: `src/web/download/queue.ts`, `MAX_CONCURRENT = 1`; pause/fail advances to next.
 - **Cover preload**: `coverCache` pre-decodes cover URIs on start / library change to reduce tab-switch layout jump.
-- **Library repair**: Settings runs three checks (metadata / format+count / cover); failing items deleted and re-queued.
-- **Daily recommendations**: `web/library/daily.ts` prioritizes favorite tags then fills randomly; `web/stores/daily.ts` caches per day and expires automatically.
+- **Unified persistence**: `data/user-storage.ts` abstracts Preferences (native) / localStorage (web).
+- **Repair files**: Settings scans the library and backfills missing pages, covers, and metadata.
+- **Daily recommendations**: whitelist first → favorite tags → shuffled fill; cached per day with dismiss support.
