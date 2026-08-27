@@ -55,7 +55,7 @@ export async function updateFetchText(
       if (resp.status < 200 || resp.status >= 300) {
         throw new Error(`HTTP ${resp.status}: ${url}`);
       }
-      return String(resp.data);
+      return typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
     }
 
     const resp = await fetch(url, {headers});
