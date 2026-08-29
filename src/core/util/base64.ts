@@ -15,11 +15,34 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return out;
 }
 
-export function base64ToBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) {
-    bytes[i] = bin.charCodeAt(i);
+/** True when the string is valid Base64 (whitespace tolerated). */
+export function isValidBase64(b64: string): boolean {
+  const clean = String(b64).replace(/\s+/g, '');
+  if (!clean) {
+    return false;
   }
-  return bytes;
+  try {
+    atob(clean);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function base64ToBytes(b64: string): Uint8Array {
+  const clean = String(b64).replace(/\s+/g, '');
+  if (!clean) {
+    return new Uint8Array();
+  }
+  try {
+    const bin = atob(clean);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      bytes[i] = bin.charCodeAt(i);
+    }
+    return bytes;
+  } catch {
+    // Non-base64 input (e.g. empty response "null", plain JSON) yields no bytes.
+    return new Uint8Array();
+  }
 }

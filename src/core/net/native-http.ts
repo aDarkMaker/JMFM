@@ -1,23 +1,15 @@
 import {CapacitorHttp} from '@capacitor/core';
-import {HTML_DOMAINS, REQUEST} from '../constants';
-import {base64ToBytes} from '../util/base64';
-import {buildBaseUrls, FetchResult, HttpClient, HttpOptions} from './http';
+import {REQUEST} from '../constants';
+import {FetchResult, HttpClient, HttpOptions} from './http';
 import {requestWithRetry} from './retry';
+import {fetchOnce, isRetryableStatus} from './fetch-once';
+import {isValidBase64, bytesToBase64} from '../util/base64';
 
 export class NativeHttpClient implements HttpClient {
   private opts: HttpOptions;
 
   constructor(opts: HttpOptions = {}) {
     this.opts = opts;
-  }
-
-  async getHtml(
-    path: string,
-    domains: readonly string[] = HTML_DOMAINS,
-    headers?: Record<string, string>
-  ): Promise<FetchResult> {
-    const urls = buildBaseUrls(domains, path);
-    return this.request(urls, headers, false);
   }
 
   async getBytes(url: string, headers?: Record<string, string>): Promise<FetchResult> {
@@ -54,38 +46,52 @@ export class NativeHttpClient implements HttpClient {
       });
       const ok = resp.status >= 200 && resp.status < 300;
       if (!ok) {
-        return {ok: false, status: resp.status, error: `HTTP ${resp.status}`};
+        return {
+          ok: false,
+          status: resp.status,
+          error: `HTTP ${resp.status}`,
+          retryable: isRetryableStatus(resp.status),
+        };
       }
       if (binary) {
+        if (resp.data == null || resp.data === '') {
+          return {ok: false, status: resp.status, retryable: true, error: 'empty body'};
+        }
+        if (typeof resp.data === 'object') {
+          // Content-Type: application/json makes the native plugin parse the body
+          // into a JS object even for responseType=arraybuffer; re-encode the JSON
+          // text so consumers (ApiClient.req) can parse it back.
+          const jsonText = JSON.stringify(resp.data);
+          return {
+            ok: true,
+            status: resp.status,
+            base64: bytesToBase64(new TextEncoder().encode(jsonText)),
+          };
+        }
+        const data = String(resp.data);
+        if (!isValidBase64(data)) {
+          // Source returns 200 with non-base64 garbage (HTML/JSON error pages);
+          // fall through to the next domain instead of treating it as success.
+          return {ok: false, status: resp.status, retryable: true, error: 'invalid body'};
+        }
         return {
           ok: true,
           status: resp.status,
-          bytes: base64ToBytes(String(resp.data)),
+          base64: data,
         };
       }
       return {ok: true, status: resp.status, text: String(resp.data)};
     } catch (e) {
       const nativeMsg = e instanceof Error ? e.message : String(e);
       // native stack failure falls back to the WebView fetch (same Chromium stack as desktop)
-      try {
-        const resp = await fetch(url, {headers: headers as HeadersInit});
-        const ok = resp.status >= 200 && resp.status < 300;
-        if (!ok) {
-          return {ok: false, status: resp.status, error: `HTTP ${resp.status}`};
-        }
-        if (binary) {
-          const buf = await resp.arrayBuffer();
-          return {ok: true, status: resp.status, bytes: new Uint8Array(buf)};
-        }
-        return {ok: true, status: resp.status, text: await resp.text()};
-      } catch (e2) {
-        const webMsg = e2 instanceof Error ? e2.message : String(e2);
-        return {
-          ok: false,
-          status: 0,
-          error: `${host}: native=${nativeMsg}; web=${webMsg}`,
-        };
+      const fallback = await fetchOnce(url, headers, binary);
+      if (fallback.ok || !fallback.error) {
+        return fallback;
       }
+      return {
+        ...fallback,
+        error: `${host}: native=${nativeMsg}; web=${fallback.error}`,
+      };
     }
   }
 
