@@ -1,4 +1,7 @@
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type {
+  PDFDocumentProxy,
+  PDFDocumentLoadingTask,
+} from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 export interface ReaderTarget {
   filePath: string;
@@ -8,8 +11,8 @@ export interface ReaderTarget {
 }
 
 export interface DocCacheEntry {
-  doc: pdfjs.PDFDocumentProxy;
-  task: pdfjs.PDFDocumentLoadingTask;
+  doc: PDFDocumentProxy;
+  task: PDFDocumentLoadingTask;
   numPages: number;
   page: number;
   scale: number;

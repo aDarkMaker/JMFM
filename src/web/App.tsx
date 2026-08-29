@@ -1,18 +1,24 @@
-import {useEffect, useRef, useState} from 'react';
+import {lazy, Suspense, useEffect, useRef, useState} from 'react';
 import {gsap} from 'gsap';
 import {Icon} from './components/Icon';
 import {HomeScreen} from './screens/HomeScreen';
 import {LibraryScreen} from './screens/LibraryScreen';
 import {TasksScreen} from './screens/TasksScreen';
 import {SettingsScreen} from './screens/SettingsScreen';
-import {ReaderScreen} from './screens/ReaderScreen';
 import {useSettingsStore} from './stores/settings';
 import {useLibraryStore} from './stores/library';
 import {preloadCovers} from './library/coverCache';
 import {useKeyboardVisibility} from './hooks/useKeyboardVisibility';
 import {useReaderLifecycle} from './hooks/reader-lifecycle';
 
+const ReaderScreen = lazy(() =>
+  import('./screens/ReaderScreen').then((m) => ({default: m.ReaderScreen}))
+);
+
 type TabId = 'home' | 'library' | 'tasks' | 'settings';
+
+/** Only eagerly preload the first N covers; the rest are lazy-loaded on scroll. */
+const COVER_PRELOAD_COUNT = 8;
 
 const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download' | 'settings'}[] =
   [
@@ -53,7 +59,11 @@ export function App() {
 
   useEffect(() => {
     const warm = () => {
-      void preloadCovers(useLibraryStore.getState().items.map((i) => i.coverPath));
+      const covers = useLibraryStore
+        .getState()
+        .items.slice(0, COVER_PRELOAD_COUNT)
+        .map((i) => i.coverPath);
+      void preloadCovers(covers);
     };
     warm();
     return useLibraryStore.subscribe((state, prev) => {
@@ -137,7 +147,9 @@ export function App() {
         ))}
       </nav>
       {reader ? (
-        <ReaderScreen target={reader} closing={readerClosing} onClose={closeReader} />
+        <Suspense fallback={null}>
+          <ReaderScreen target={reader} closing={readerClosing} onClose={closeReader} />
+        </Suspense>
       ) : null}
     </div>
   );

@@ -164,6 +164,10 @@
   background: var(--surface-sunken);
 }
 
+.reader-img.is-loading {
+  background: var(--surface-sunken);
+}
+
 .reader-img {
   display: block;
   box-shadow: var(--shadow-2);

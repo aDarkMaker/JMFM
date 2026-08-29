@@ -1,8 +1,10 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import {useSettingsStore} from '../stores/settings';
-import {toSafRelativePath} from '../library/safPaths';
-import {safGetEntryUri, safListDirectory} from '../library/safStorage';
+import {toSafRelativePath} from '../../core/fs/saf/safPaths';
+import {safGetEntryUri, safListDirectory} from '../../core/fs/saf/safStorage';
+import {IMAGE_EXT_SET, extOf} from '../../core/model';
+import {registerCacheClear} from '../util/cacheRegistry';
 
 export interface ImageDocMeta {
   pagesDir: string;
@@ -10,15 +12,19 @@ export interface ImageDocMeta {
   files: string[];
   srcs: (string | undefined)[];
   baseSrc?: string;
+  /** Present for SAF trees; enables lazily resolving srcs past the first window. */
+  saf?: {treeUri: string; rel: string};
 }
 
 const CACHE_LIMIT = 3;
 const imageCache = new Map<string, ImageDocMeta>();
-
-const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp']);
+/** Deduplicates concurrent loads of the same pagesDir. */
+const inflight = new Map<string, Promise<ImageDocMeta>>();
+/** How many SAF srcs to resolve up front; the rest resolve lazily as the reader scrolls. */
+const SAF_PRELOAD_SRCS = 8;
 
 function isImageFile(name: string): boolean {
-  return IMAGE_EXTS.has((name.split('.').pop() ?? '').toLowerCase());
+  return IMAGE_EXT_SET.has(extOf(name));
 }
 
 function sortByNumericName(a: string, b: string): number {
@@ -48,6 +54,8 @@ export function clearImageDocCache(pagesDir?: string): void {
   }
 }
 
+registerCacheClear(() => clearImageDocCache());
+
 function fillSrcsFromBase(meta: ImageDocMeta): void {
   if (!meta.baseSrc) return;
   const base = meta.baseSrc.endsWith('/') ? meta.baseSrc : `${meta.baseSrc}/`;
@@ -66,6 +74,18 @@ export async function loadImageDocMeta(pagesDir: string): Promise<ImageDocMeta> 
     if (cached.baseSrc) fillSrcsFromBase(cached);
     return cached;
   }
+  const pending = inflight.get(pagesDir);
+  if (pending) {
+    return pending;
+  }
+  const job = loadImageDocMetaUncached(pagesDir).finally(() => {
+    inflight.delete(pagesDir);
+  });
+  inflight.set(pagesDir, job);
+  return job;
+}
+
+async function loadImageDocMetaUncached(pagesDir: string): Promise<ImageDocMeta> {
   const {downloadPath, downloadTreeUri} = useSettingsStore.getState().settings;
   if (downloadTreeUri) {
     return loadSafImageDocMeta(pagesDir, downloadTreeUri, downloadPath);
@@ -108,10 +128,12 @@ async function loadSafImageDocMeta(
     .filter((e) => e.type === 'file' && isImageFile(e.name))
     .sort((a, b) => sortByNumericName(a.name, b.name))
     .map((e) => e.name);
-  const srcs = await Promise.all(
-    files.map(async (name) => {
-      const uri = await safGetEntryUri(treeUri, `${rel}/${name}`);
-      return Capacitor.convertFileSrc(uri);
+  const srcs = new Array<string | undefined>(files.length);
+  const first = Math.min(SAF_PRELOAD_SRCS, files.length);
+  await Promise.all(
+    Array.from({length: first}, async (_, i) => {
+      const uri = await safGetEntryUri(treeUri, `${rel}/${files[i]}`);
+      srcs[i] = Capacitor.convertFileSrc(uri);
     })
   );
   const entry: ImageDocMeta = {
@@ -119,7 +141,26 @@ async function loadSafImageDocMeta(
     pageCount: files.length,
     files,
     srcs,
+    saf: {treeUri, rel},
   };
   cacheEntry(pagesDir, entry);
   return entry;
+}
+
+/** Lazily resolves a single SAF page src on demand, caching it back into the meta entry. */
+export async function resolveImageSrcLazy(
+  meta: ImageDocMeta,
+  index: number
+): Promise<string | undefined> {
+  const existing = meta.srcs[index];
+  if (existing) {
+    return existing;
+  }
+  if (!meta.saf) {
+    return undefined;
+  }
+  const uri = await safGetEntryUri(meta.saf.treeUri, `${meta.saf.rel}/${meta.files[index]}`);
+  const src = Capacitor.convertFileSrc(uri);
+  meta.srcs[index] = src;
+  return src;
 }

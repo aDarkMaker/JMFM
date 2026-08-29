@@ -1,6 +1,11 @@
 import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef} from 'react';
 import {clamp, SCALE_MAX, SCALE_MIN} from './types';
-import {getImageDocMeta, loadImageDocMeta, ImageDocMeta} from './image-doc';
+import {
+  getImageDocMeta,
+  loadImageDocMeta,
+  resolveImageSrcLazy,
+  ImageDocMeta,
+} from './image-doc';
 import {applyToImg} from './image-loader';
 
 export interface ImageReaderHandle {
@@ -21,7 +26,7 @@ interface ImageReaderProps {
 const PAGE_GAP = 12;
 const SLOT_RATIO = 4 / 3;
 const SCROLL_BACK = 1;
-const SCROLL_FRONT = 8;
+const SCROLL_FRONT = 3;
 const SCROLL_EDGE = 2;
 const PAGED_FLIP_MS = 200;
 const SWIPE_MIN = 48;
@@ -80,17 +85,27 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
   const bindImg = useCallback(
     (img: HTMLImageElement, index: number) => {
       const src = pageSrc(index);
-      if (!src) return;
-      if (
-        img.dataset.pageIndex === String(index) &&
-        img.dataset.src === src &&
-        img.complete &&
-        img.naturalWidth > 0
-      ) {
+      if (src) {
+        if (
+          img.dataset.pageIndex === String(index) &&
+          img.dataset.src === src &&
+          img.complete &&
+          img.naturalWidth > 0
+        ) {
+          return;
+        }
+        img.dataset.pageIndex = String(index);
+        applyToImg(img, src);
         return;
       }
+      // SAF src not resolved yet: kick off a lazy resolve; dataset.pageIndex marks in-flight.
+      const meta = metaRef.current;
+      if (!meta?.saf || img.dataset.pageIndex === String(index)) return;
       img.dataset.pageIndex = String(index);
-      applyToImg(img, src);
+      void resolveImageSrcLazy(meta, index).then((resolved) => {
+        if (!resolved || img.dataset.pageIndex !== String(index)) return;
+        applyToImg(img, resolved);
+      });
     },
     [pageSrc]
   );
@@ -383,6 +398,12 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       } else {
         setTrackX(-33.3333, false);
         paintPagedSlides(1);
+        // Prefetch page 3 into the spare leading slot so the first flip lands fast.
+        const spare = slideRefs.current[0];
+        if (spare && m.pageCount >= 3) {
+          sizeImg(spare);
+          bindImg(spare, 2);
+        }
       }
     };
     const cached = getImageDocMeta(pagesDir);

@@ -2,7 +2,7 @@ import type {Task} from '../stores/download';
 import {useLibraryStore} from '../stores/library';
 import {useSettingsStore} from '../stores/settings';
 import {createDownloadRuntime} from './createDownloadRuntime';
-import {safeTitle} from '../library/resolveLibraryPaths';
+import {sanitizeTitle} from '../../core/util/filename';
 import {clearImageDocCache} from '../reader/image-doc';
 
 function isPlaceholderTitle(title: string): boolean {
@@ -17,13 +17,13 @@ export function albumDirForTask(task: Task, downloadPath: string): string | null
   if (isPlaceholderTitle(task.title)) {
     return null;
   }
-  return `${downloadPath}/${safeTitle(task.title)}`;
+  return `${downloadPath}/${sanitizeTitle(task.title)}`;
 }
 
 export async function cleanupTaskFiles(task: Task): Promise<void> {
   const {downloadPath} = useSettingsStore.getState().settings;
   const albumDir = albumDirForTask(task, downloadPath);
-  if (!albumDir) {
+  if (!albumDir || albumDir === downloadPath) {
     return;
   }
   const runtime = createDownloadRuntime(useSettingsStore.getState().settings);

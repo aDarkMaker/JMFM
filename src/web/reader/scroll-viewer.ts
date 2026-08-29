@@ -1,11 +1,11 @@
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type {PDFDocumentProxy} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {setPageContent} from './pdf-doc';
 
 export interface ScrollViewerCtx {
   scrollAreaRef: {current: HTMLDivElement | null};
   scrollContentRef: {current: HTMLDivElement | null};
   pageCanvasesRef: {current: (HTMLCanvasElement | null)[]};
-  docRef: {current: pdfjs.PDFDocumentProxy | null};
+  docRef: {current: PDFDocumentProxy | null};
   pagesRef: {current: number};
   pageNumRef: {current: number};
   scaleRef: {current: number};

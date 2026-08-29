@@ -1,4 +1,4 @@
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type {PDFDocumentProxy} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {setPageContent} from './pdf-doc';
 import {BackPageCache, FLIP_DURATION_MS} from './types';
 
@@ -6,7 +6,7 @@ export interface PagedViewerCtx {
   pagedAreaRef: {current: HTMLDivElement | null};
   frontRef: {current: HTMLCanvasElement | null};
   backRef: {current: HTMLCanvasElement | null};
-  docRef: {current: pdfjs.PDFDocumentProxy | null};
+  docRef: {current: PDFDocumentProxy | null};
   pageNumRef: {current: number};
   scaleRef: {current: number};
   renderedScaleRef: {current: number};

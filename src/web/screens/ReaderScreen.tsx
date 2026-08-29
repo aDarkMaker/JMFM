@@ -1,15 +1,13 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {Icon} from '../components/Icon';
 import {useSettingsStore} from '../stores/settings';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type {PDFDocumentProxy} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {clamp, ReaderTarget, SCALE_MAX, SCALE_MIN, TouchState} from '../reader/types';
 import {getDocCache, loadDoc, persistCacheEntry, setPageContent} from '../reader/pdf-doc';
 import {ImageReader, ImageReaderHandle} from '../reader/image-reader';
 import * as paged from '../reader/paged-viewer';
 import * as scroll from '../reader/scroll-viewer';
 import {useTouchGestures} from '../reader/useTouchGestures';
-
-pdfjs.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
 
 export type {ReaderTarget} from '../reader/types';
 
@@ -37,7 +35,7 @@ export function ReaderScreen({
   const [pages, setPages] = useState(initialPages);
   const pagesRef = useRef(initialPages);
   const [error, setError] = useState<string | null>(null);
-  const docRef = useRef<pdfjs.PDFDocumentProxy | null>(cachedEntry?.doc ?? null);
+  const docRef = useRef<PDFDocumentProxy | null>(cachedEntry?.doc ?? null);
   const pageNumRef = useRef(cachedEntry?.page ?? 1);
   const scaleRef = useRef(cachedEntry?.scale ?? 1.2);
   const renderedScaleRef = useRef(cachedEntry?.scale ?? 1.2);
