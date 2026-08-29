@@ -158,28 +158,23 @@
 .album-stats {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   width: 100%;
+  min-width: 0;
   font-size: var(--text-xs);
   color: var(--ink-tertiary);
 }
 
-.album-stats > span {
-  flex: 1;
+.album-stats-id {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.album-stats-meta {
+  flex: 1 1 auto;
   min-width: 0;
+  margin-left: auto;
+  text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.album-stats > span:nth-child(1) {
-  text-align: left;
-}
-
-.album-stats > span:nth-child(2) {
-  text-align: center;
-}
-
-.album-stats > span:nth-child(3) {
-  text-align: right;
 }

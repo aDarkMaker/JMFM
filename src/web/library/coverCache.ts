@@ -1,8 +1,9 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import {useSettingsStore} from '../stores/settings';
-import {toSafRelativePath} from './safPaths';
-import {safGetEntryUri, safListDirectory} from './safStorage';
+import {toSafRelativePath} from '../../core/fs/saf/safPaths';
+import {safGetEntryUri, safListDirectory} from '../../core/fs/saf/safStorage';
+import {registerCacheClear} from '../util/cacheRegistry';
 
 const uriCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string | null>>();
@@ -15,6 +16,8 @@ export function clearCoverCache(): void {
   uriCache.clear();
   inflight.clear();
 }
+
+registerCacheClear(clearCoverCache);
 
 export function peekCoverSrc(coverPath: string): string | null {
   if (isRemoteSrc(coverPath)) {

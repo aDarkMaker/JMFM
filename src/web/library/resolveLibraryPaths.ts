@@ -1,19 +1,8 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {LibraryItem} from '../stores/library';
-import {toSafRelativePath} from './safPaths';
-import {safEntryExists} from './safStorage';
-
-export const LEGACY_PREFIXES = [
-  'Documents/JMFDownloads',
-  'JMFMobile/downloads',
-  'JMFMobile/JMFDownloads',
-  'Download/JMFDownloads',
-  'JMFDownloads',
-] as const;
-
-export function safeTitle(title: string): string {
-  return title.replace(/[/\\:*?"<>|]/g, '_');
-}
+import {toSafRelativePath, LEGACY_PREFIXES} from '../../core/fs/saf/safPaths';
+import {safEntryExists} from '../../core/fs/saf/safStorage';
+import {sanitizeTitle} from '../../core/util/filename';
 
 async function defaultPathExists(
   path: string,
@@ -97,7 +86,7 @@ export async function resolveItemPaths(
     }
     return null;
   }
-  const safe = safeTitle(item.title);
+  const safe = sanitizeTitle(item.title);
   const bases = [downloadPath, ...LEGACY_PREFIXES];
   for (const base of bases) {
     const pagesDir = `${base}/${safe}/pages`;

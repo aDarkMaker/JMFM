@@ -1,10 +1,10 @@
 import {createUserStorage} from '../../data/user-storage';
+import {STORAGE_KEYS} from '../../data/storage-keys';
 
-const DISMISSED_PREFIX = 'jmf.daily.dismissed.';
 const storage = createUserStorage();
 
 function dismissedKey(date: string): string {
-  return `${DISMISSED_PREFIX}${date}`;
+  return `${STORAGE_KEYS.dismissedPrefix}${date}`;
 }
 
 export async function readDismissed(date: string): Promise<number[]> {
@@ -24,6 +24,19 @@ export async function addDismissed(date: string, albumIds: number[]): Promise<vo
   const merged = [...new Set([...current, ...albumIds])];
   try {
     await storage.set(dismissedKey(date), JSON.stringify(merged));
+  } catch {
+    // ignore quota errors
+  }
+}
+
+export async function removeDismissed(date: string, albumIds: number[]): Promise<void> {
+  if (albumIds.length === 0) return;
+  const current = await readDismissed(date);
+  const removed = new Set(albumIds);
+  const next = current.filter((id) => !removed.has(id));
+  if (next.length === current.length) return;
+  try {
+    await storage.set(dismissedKey(date), JSON.stringify(next));
   } catch {
     // ignore quota errors
   }

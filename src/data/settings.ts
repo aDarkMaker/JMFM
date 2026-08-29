@@ -1,6 +1,6 @@
-import {Capacitor} from '@capacitor/core';
-import {Preferences} from '@capacitor/preferences';
 import {isHardBlockedKeyword} from '../core/model/blocklist';
+import {createUserStorage} from './user-storage';
+import {STORAGE_KEYS} from './storage-keys';
 
 export interface Settings {
   downloadPath: string;
@@ -31,8 +31,6 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'light',
   readerMode: 'scroll',
 };
-
-const KEY = 'jmf.settings';
 
 /** Strip Documents/ prefix for native Capacitor fs (already rooted at Directory.Documents). */
 function normalizeDownloadPath(path: string, hasSafUri: boolean): string {
@@ -117,25 +115,16 @@ export interface SettingsStorage {
   save(settings: Settings): Promise<void>;
 }
 
-class NativeSettingsStorage implements SettingsStorage {
+class PersistentSettingsStorage implements SettingsStorage {
+  private storage = createUserStorage();
+
   async load(): Promise<Settings> {
-    const {value} = await Preferences.get({key: KEY});
+    const value = await this.storage.get(STORAGE_KEYS.settings);
     return value ? parseSettings(value) : DEFAULT_SETTINGS;
   }
 
   async save(settings: Settings): Promise<void> {
-    await Preferences.set({key: KEY, value: JSON.stringify(sanitizeSettings(settings))});
-  }
-}
-
-class WebSettingsStorage implements SettingsStorage {
-  async load(): Promise<Settings> {
-    const value = localStorage.getItem(KEY);
-    return value ? parseSettings(value) : DEFAULT_SETTINGS;
-  }
-
-  async save(settings: Settings): Promise<void> {
-    localStorage.setItem(KEY, JSON.stringify(sanitizeSettings(settings)));
+    await this.storage.set(STORAGE_KEYS.settings, JSON.stringify(sanitizeSettings(settings)));
   }
 }
 
@@ -148,18 +137,5 @@ function parseSettings(raw: string): Settings {
 }
 
 export function createSettingsStorage(): SettingsStorage {
-  return Capacitor.isNativePlatform() ? new NativeSettingsStorage() : new WebSettingsStorage();
-}
-
-export async function loadSettings(
-  storage: SettingsStorage = createSettingsStorage()
-): Promise<Settings> {
-  return storage.load();
-}
-
-export async function saveSettings(
-  settings: Settings,
-  storage: SettingsStorage = createSettingsStorage()
-): Promise<void> {
-  await storage.save(settings);
+  return new PersistentSettingsStorage();
 }

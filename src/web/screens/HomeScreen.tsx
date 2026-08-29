@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useShallow} from 'zustand/react/shallow';
 import {AlbumCard, AlbumCardData} from '../components/AlbumCard';
 import {SectionHeader} from '../components/SectionHeader';
 import {EmptyState} from '../components/EmptyState';
@@ -7,8 +8,8 @@ import {useLibraryStore} from '../stores/library';
 import {useDownloadStore} from '../stores/download';
 import {useSettingsStore} from '../stores/settings';
 import {useDownloadTask} from '../hooks/useDownloadTask';
-import {topTags} from '../library/tags';
-import {buildRecommendations} from '../library/daily';
+import {topTags, rankTagsByFavorites} from '../library/tags';
+import {buildRecommendationsWithBackfill} from '../library/daily';
 import {filterBlockedAlbums, isBlockedAlbum} from '../../core/model/blocklist';
 
 export function HomeScreen() {
@@ -19,11 +20,14 @@ export function HomeScreen() {
   const load = useDailyStore((s) => s.load);
   const refresh = useDailyStore((s) => s.refresh);
   const dismiss = useDailyStore((s) => s.dismiss);
+  const releaseDismissed = useDailyStore((s) => s.releaseDismissed);
   const resetDismissed = useDailyStore((s) => s.resetDismissed);
   const fetchAlbumTags = useDailyStore((s) => s.fetchAlbumTags);
 
   const libraryItems = useLibraryStore((s) => s.items);
-  const tasks = useDownloadStore((s) => s.tasks);
+  // Narrow subscription: only react to albumId membership, so throttled progress updates
+  // do not re-render the whole screen.
+  const queuedTaskAlbumIds = useDownloadStore(useShallow((s) => s.tasks.map((t) => t.albumId)));
   const blacklistTags = useSettingsStore((s) => s.settings.blacklistTags);
   const whitelistTags = useSettingsStore((s) => s.settings.whitelistTags);
   const {enqueueAlbum} = useDownloadTask();
@@ -38,18 +42,32 @@ export function HomeScreen() {
   }, [load]);
 
   const dismissedSet = useMemo(() => new Set(dismissed), [dismissed]);
+  const refreshExclude = useDailyStore((s) => s.refreshExclude);
+  const protectedSet = useMemo(() => new Set(refreshExclude), [refreshExclude]);
+
+  const {picks: rawPicks, releasedIds} = useMemo(
+    () =>
+      buildRecommendationsWithBackfill(albums, favTags, 6, {
+        whitelistTags,
+        excludeIds: dismissedSet,
+        protectedIds: protectedSet,
+      }),
+    [albums, favTags, whitelistTags, dismissedSet, protectedSet]
+  );
 
   const recommendations = useMemo(
-    () =>
-      filterBlockedAlbums(
-        buildRecommendations(albums, favTags, 6, undefined, {
-          whitelistTags,
-          excludeIds: dismissedSet,
-        }),
-        blacklistTags
-      ),
-    [albums, favTags, blacklistTags, whitelistTags, dismissedSet]
+    () => filterBlockedAlbums(rawPicks, blacklistTags),
+    [rawPicks, blacklistTags]
   );
+
+  // Persist any dismissed ids released to backfill the grid, so picks hold.
+  // Skip while loading: the pool expand path re-reads dismissed itself.
+  useEffect(() => {
+    if (loading) return;
+    if (releasedIds.length > 0) {
+      void releaseDismissed(releasedIds);
+    }
+  }, [releasedIds, releaseDismissed, loading]);
 
   const recommendationIds = useMemo(() => recommendations.map((a) => a.albumId), [recommendations]);
 
@@ -84,12 +102,30 @@ export function HomeScreen() {
   }, [recommendationIds, fetchAlbumTags]);
 
   const queuedIds = useMemo(() => {
-    const ids = new Set(tasks.map((t) => t.albumId));
+    const ids = new Set(queuedTaskAlbumIds);
     for (const item of libraryItems) {
       ids.add(item.albumId);
     }
     return ids;
-  }, [tasks, libraryItems]);
+  }, [queuedTaskAlbumIds, libraryItems]);
+
+  // Keep card data references stable so AlbumCard memo survives progress updates.
+  const cardAlbums = useMemo(() => {
+    const map = new Map<number, AlbumCardData>();
+    for (const album of recommendations) {
+      map.set(album.albumId, {
+        albumId: album.albumId,
+        title: album.name,
+        author: album.author,
+        tags: rankTagsByFavorites(
+          [...(album.tags ?? []), ...(extraTags[album.albumId] ?? [])],
+          favTags
+        ),
+        coverPath: album.coverUrl,
+      });
+    }
+    return map;
+  }, [recommendations, extraTags]);
 
   const handleDownload = useCallback(
     (album: AlbumCardData) => {
@@ -159,13 +195,7 @@ export function HomeScreen() {
           {recommendations.map((album) => (
             <AlbumCard
               key={album.albumId}
-              album={{
-                albumId: album.albumId,
-                title: album.name,
-                author: album.author,
-                tags: [...new Set([...(album.tags ?? []), ...(extraTags[album.albumId] ?? [])])],
-                coverPath: album.coverUrl,
-              }}
+              album={cardAlbums.get(album.albumId)!}
               onDownload={handleDownload}
               onDismiss={handleDismiss}
               downloading={queuedIds.has(album.albumId)}

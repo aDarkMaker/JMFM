@@ -33,3 +33,10 @@ export function topTags(items: Array<Pick<LibraryItem, 'tags'>>, n = 4): string[
     .slice(0, n)
     .map(([tag]) => tag);
 }
+
+/** Dedupe tags and sort favorite hits first while keeping the rest stable. */
+export function rankTagsByFavorites(tags: string[], favTags: string[]): string[] {
+  const favSet = new Set(favTags);
+  const unique = [...new Set(tags.map((t) => t.trim()).filter(Boolean))];
+  return unique.sort((a, b) => (favSet.has(a) ? 0 : 1) - (favSet.has(b) ? 0 : 1));
+}

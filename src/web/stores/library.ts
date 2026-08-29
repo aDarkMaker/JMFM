@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {Capacitor} from '@capacitor/core';
 import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
+import {STORAGE_KEYS} from '../../data/storage-keys';
 import {waitForSettingsLoaded, useSettingsStore} from './settings';
 import {resolveLibraryPaths} from '../library/resolveLibraryPaths';
 import {
@@ -32,7 +33,7 @@ export interface LibraryItem {
   downloadedAt: number;
 }
 
-const KEY = 'jmf.library';
+const KEY = STORAGE_KEYS.library;
 const SAVE_DEBOUNCE_MS = 400;
 
 const storage = createUserStorage();

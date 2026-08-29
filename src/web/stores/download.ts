@@ -23,7 +23,6 @@ interface DownloadState {
     tasks: Omit<Task, 'status' | 'done' | 'chaptersDone' | 'chaptersTotal' | 'total'>[]
   ): void;
   remove(id: string): void;
-  removeByAlbumIds(albumIds: number[]): void;
   setStatus(id: string, status: TaskStatus, error?: string): void;
   updateProgress(id: string, done: number, total: number): void;
   updateChapter(id: string, chaptersDone: number, chaptersTotal: number): void;
@@ -90,10 +89,6 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   },
   remove(id) {
     set((state) => ({tasks: state.tasks.filter((t) => t.id !== id)}));
-  },
-  removeByAlbumIds(albumIds: number[]) {
-    const drop = new Set(albumIds);
-    set((state) => ({tasks: state.tasks.filter((t) => !drop.has(t.albumId))}));
   },
   setStatus(id, status, error) {
     set((state) => ({

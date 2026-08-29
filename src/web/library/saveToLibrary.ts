@@ -3,6 +3,7 @@ import {DownloadRuntime} from '../../core/download';
 import {preloadCovers} from './coverCache';
 import {downloadCover} from './cover';
 import {clearImageDocCache} from '../reader/image-doc';
+import {atomicWrite} from '../../core/fs/write';
 import type {LocalAlbumMeta} from './discoverLibrary';
 
 const META_FILE = '.jmf-meta.json';
@@ -74,7 +75,7 @@ export async function writeLocalAlbumMeta(
 ): Promise<void> {
   const text = JSON.stringify(meta);
   const bytes = new TextEncoder().encode(text);
-  await runtime.fs.writeFile(`${albumDir}/${META_FILE}`, bytes).catch(() => undefined);
+  await atomicWrite(runtime.fs, `${albumDir}/${META_FILE}`, bytes).catch(() => undefined);
 }
 
 function persistLocalMeta(

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect} from 'react';
 import {App} from '@capacitor/app';
 import {Capacitor, type PluginListenerHandle} from '@capacitor/core';
 import {
@@ -8,16 +8,7 @@ import {
   isNewerVersion,
 } from '../../core/update';
 import {appVersionFallback} from '../version';
-
-export type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'installing' | 'error';
-
-export interface CheckUpdateResult {
-  kind: 'up-to-date' | 'available' | 'error';
-  current: string;
-  latest?: string;
-  releaseNotes?: string;
-  error?: string;
-}
+import {useUpdateStore, CheckUpdateResult} from '../stores/update';
 
 interface LocalAppInfo {
   version: string;
@@ -37,16 +28,14 @@ async function loadLocalInfo(): Promise<LocalAppInfo> {
 }
 
 export function useAppUpdate() {
-  const [currentVersion, setCurrentVersion] = useState('');
-  const [status, setStatus] = useState<UpdateStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const apkUrlRef = useRef<string | null>(null);
-  const apkSha256Ref = useRef<string | undefined>(undefined);
+  const currentVersion = useUpdateStore((s) => s.currentVersion);
+  const status = useUpdateStore((s) => s.status);
+  const progress = useUpdateStore((s) => s.progress);
+  const error = useUpdateStore((s) => s.error);
 
   const loadCurrentVersion = useCallback(async (): Promise<LocalAppInfo> => {
     const info = await loadLocalInfo();
-    setCurrentVersion(info.version);
+    useUpdateStore.getState().setCurrentVersion(info.version);
     return info;
   }, []);
 
@@ -68,10 +57,10 @@ export function useAppUpdate() {
   }, [loadCurrentVersion]);
 
   const checkUpdate = useCallback(async (): Promise<CheckUpdateResult> => {
-    setStatus('checking');
-    setError(null);
-    apkUrlRef.current = null;
-    apkSha256Ref.current = undefined;
+    const s = useUpdateStore.getState();
+    s.setStatus('checking');
+    s.setError(null);
+    s.setApk(null, undefined);
     try {
       const local = await loadCurrentVersion();
       const release = await fetchLatestRelease();
@@ -80,12 +69,11 @@ export function useAppUpdate() {
         (local.versionCode != null && remote.versionCode > local.versionCode) ||
         (local.versionCode == null && isNewerVersion(local.version, remote.version));
       if (!hasUpdate) {
-        setStatus('idle');
+        s.setStatus('idle');
         return {kind: 'up-to-date', current: local.version};
       }
-      apkUrlRef.current = release.apkDownloadUrl;
-      apkSha256Ref.current = release.version.apkSha256;
-      setStatus('idle');
+      s.setApk(release.apkDownloadUrl, release.version.apkSha256);
+      s.setStatus('idle');
       return {
         kind: 'available',
         current: local.version,
@@ -94,8 +82,8 @@ export function useAppUpdate() {
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      setStatus('error');
+      s.setError(msg);
+      s.setStatus('error');
       return {kind: 'error', current: currentVersion, error: msg};
     }
   }, [currentVersion, loadCurrentVersion]);
@@ -104,25 +92,26 @@ export function useAppUpdate() {
     if (Capacitor.getPlatform() !== 'android') {
       throw new Error('应用内安装仅支持 Android');
     }
-    const url = apkUrlRef.current;
+    const s = useUpdateStore.getState();
+    const url = s.apkUrl;
     if (!url) {
       throw new Error('no pending update');
     }
-    setStatus('downloading');
-    setProgress(0);
-    setError(null);
+    s.setStatus('downloading');
+    s.setProgress(0);
+    s.setError(null);
     try {
-      await downloadApkToCache(url, apkSha256Ref.current, (loaded, total) => {
-        setProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
+      await downloadApkToCache(url, s.apkSha256, (loaded, total) => {
+        s.setProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
       });
-      setStatus('installing');
+      s.setStatus('installing');
       await installCachedApk();
-      setStatus('idle');
-      setProgress(100);
+      s.setStatus('idle');
+      s.setProgress(100);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      setStatus('error');
+      s.setError(msg);
+      s.setStatus('error');
       throw e;
     }
   }, []);

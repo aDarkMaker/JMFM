@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import {scanLibraryRepair, needsRedownload} from '../library/repairLibrary';
 import {
   useLibraryStore,
@@ -7,6 +7,7 @@ import {
   isHashAlbumId,
 } from '../stores/library';
 import {useSettingsStore} from '../stores/settings';
+import {useRepairStore} from '../stores/repair';
 import {useDownloadTask} from './useDownloadTask';
 import type {LibraryItem} from '../stores/library';
 import type {Defect} from '../library/repairLibrary';
@@ -23,15 +24,13 @@ export type RepairOutcome =
     };
 
 export function useLibraryRepair(imageFormat: string) {
-  const [repairing, setRepairing] = useState(false);
   const {enqueueAlbumsForRepair} = useDownloadTask();
 
   const runRepair = useCallback(
     async (issues: {item: LibraryItem; defects: Defect[]}[]): Promise<RepairOutcome> => {
-      if (repairing) {
+      if (useRepairStore.getState().phase === 'scanning') {
         return {kind: 'none'};
       }
-      setRepairing(true);
       try {
         await ensureRealAlbumIds();
         const byPath = new Map(
@@ -52,23 +51,23 @@ export function useLibraryRepair(imageFormat: string) {
         if (skippedHash > 0) {
           message += `（${skippedHash} 本无法识别 ID，已跳过）`;
         }
+        useRepairStore.getState().setQueued(`已添加 ${queued} 本，进度见「下载」页`);
         return {kind: 'alert', title: '修复文件', message};
       } catch (err) {
+        useRepairStore.getState().reset();
         return {
           kind: 'alert',
           title: '修复失败',
           message: err instanceof Error ? err.message : String(err),
         };
-      } finally {
-        setRepairing(false);
       }
     },
-    [enqueueAlbumsForRepair, repairing]
+    [enqueueAlbumsForRepair]
   );
 
   const handleRepair = useCallback(
     async (libraryItems: LibraryItem[]): Promise<RepairOutcome> => {
-      if (repairing) {
+      if (useRepairStore.getState().phase === 'scanning') {
         return {kind: 'none'};
       }
       await waitForLibraryLoaded();
@@ -88,7 +87,7 @@ export function useLibraryRepair(imageFormat: string) {
         }
         return {kind: 'alert', title: '修复文件', message: '漫画库为空，无需修复'};
       }
-      setRepairing(true);
+      useRepairStore.getState().beginScan();
       try {
         items = await ensureRealAlbumIds();
         const {downloadPath, downloadTreeUri} = useSettingsStore.getState().settings;
@@ -96,7 +95,8 @@ export function useLibraryRepair(imageFormat: string) {
           items,
           imageFormat,
           downloadPath,
-          downloadTreeUri
+          downloadTreeUri,
+          (done, total) => useRepairStore.getState().setScanProgress(done, total)
         );
         for (const item of remapped) {
           useLibraryStore.getState().patchItem(item.albumId, {
@@ -112,8 +112,10 @@ export function useLibraryRepair(imageFormat: string) {
             remapped.length > 0
               ? `已恢复 ${remapped.length} 本的下载路径，其余资源完整（共 ${total} 本）`
               : `所有资源均完整（共 ${total} 本）`;
+          useRepairStore.getState().reset();
           return {kind: 'alert', title: '修复文件', message};
         }
+        useRepairStore.getState().reset();
         return {
           kind: 'confirm',
           issues: redownloadIssues,
@@ -122,17 +124,16 @@ export function useLibraryRepair(imageFormat: string) {
           compliant,
         };
       } catch (err) {
+        useRepairStore.getState().reset();
         return {
           kind: 'alert',
           title: '修复失败',
           message: err instanceof Error ? err.message : String(err),
         };
-      } finally {
-        setRepairing(false);
       }
     },
-    [repairing, imageFormat]
+    [imageFormat]
   );
 
-  return {repairing, runRepair, handleRepair};
+  return {runRepair, handleRepair};
 }

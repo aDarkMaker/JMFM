@@ -1,13 +1,13 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import {LibraryItem} from '../stores/library';
 import {PagesContext, collectAlbumPages, downloadPages} from '../../core/download/pages';
+import type {DownloadRuntime} from '../../core/download';
+import {IMAGE_EXT_SET, extOf} from '../../core/model';
 import {clearImageDocCache} from '../reader/image-doc';
 import {resolveItemPaths} from './resolveLibraryPaths';
-import {toSafRelativePath} from './safPaths';
-import {safEntryExists, safListDirectory} from './safStorage';
+import {toSafRelativePath} from '../../core/fs/saf/safPaths';
+import {safEntryExists, safListDirectory} from '../../core/fs/saf/safStorage';
 import {downloadCover} from './cover';
-
-const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 
 export type Defect =
   {kind: 'path'} | {kind: 'metadata'} | {kind: 'cover'} | {kind: 'pages'} | {kind: 'missing'};
@@ -19,6 +19,7 @@ export function needsRedownload(defects: Defect[]): boolean {
 
 export interface RepairDeps extends PagesContext {
   downloadPath: string;
+  downloadTreeUri?: string;
 }
 
 export interface ScanResult {
@@ -37,10 +38,6 @@ function normalizeFormat(format: string): string {
   const f = format.toLowerCase();
   if (f === 'jpeg') return 'jpg';
   return f || 'webp';
-}
-
-function extOf(name: string): string {
-  return (name.split('.').pop() ?? '').toLowerCase();
 }
 
 async function listDir(
@@ -83,31 +80,14 @@ async function pathExists(path: string, treeUri?: string, downloadPath?: string)
   }
 }
 
-async function safListDir(
-  path: string,
-  treeUri: string,
-  downloadPath: string
-): Promise<{name: string; type: string}[]> {
-  try {
-    const rel = toSafRelativePath(path, downloadPath);
-    const entries = await safListDirectory(treeUri, rel);
-    return entries.map((e) => ({
-      name: e.name,
-      type: e.type === 'directory' ? 'directory' : 'file',
-    }));
-  } catch {
-    return [];
-  }
-}
-
 async function pagesDirHasImages(
   pagesDir: string,
   treeUri?: string,
   downloadPath?: string
 ): Promise<boolean> {
   if (treeUri && downloadPath) {
-    const files = await safListDir(pagesDir, treeUri, downloadPath);
-    return files.some((e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)));
+    const files = await listDir(pagesDir, treeUri, downloadPath);
+    return files.some((e) => e.type === 'file' && IMAGE_EXT_SET.has(extOf(e.name)));
   }
   return pathExists(pagesDir, treeUri, downloadPath);
 }
@@ -122,7 +102,7 @@ async function albumHasCover(
     return false;
   }
   if (treeUri && downloadPath) {
-    const files = await safListDir(albumDir, treeUri, downloadPath);
+    const files = await listDir(albumDir, treeUri, downloadPath);
     return files.some((e) => e.type === 'file' && e.name === 'cover.jpg');
   }
   if (item.coverPath && (await pathExists(item.coverPath, treeUri, downloadPath))) {
@@ -147,11 +127,11 @@ async function inspectItem(
   const defects: Defect[] = [];
   const want = normalizeFormat(format);
   const pageFiles = (await listDir(item.pagesDir, treeUri, downloadPath)).filter(
-    (e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name))
+    (e) => e.type === 'file' && IMAGE_EXT_SET.has(extOf(e.name))
   );
   const formatOk = (name: string) => {
     const ext = extOf(name);
-    if (!IMAGE_EXTS.has(ext)) return true;
+    if (!IMAGE_EXT_SET.has(ext)) return true;
     return (ext === 'jpeg' ? 'jpg' : ext) === want;
   };
   if (
@@ -174,17 +154,20 @@ export async function scanLibraryRepair(
   items: LibraryItem[],
   format: string,
   downloadPath?: string,
-  downloadTreeUri?: string
+  downloadTreeUri?: string,
+  onProgress?: (done: number, total: number) => void
 ): Promise<ScanResult> {
   const issues: {item: LibraryItem; defects: Defect[]}[] = [];
   const remapped: LibraryItem[] = [];
   let compliant = 0;
-  for (const item of items) {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
     if (downloadPath) {
       const resolved = await resolveItemPaths(item, downloadPath, undefined, downloadTreeUri);
       if (resolved) {
         remapped.push(resolved);
         compliant += 1;
+        onProgress?.(i + 1, items.length);
         continue;
       }
     }
@@ -194,6 +177,7 @@ export async function scanLibraryRepair(
     } else {
       issues.push({item, defects});
     }
+    onProgress?.(i + 1, items.length);
   }
   return {compliant, remapped, issues};
 }
@@ -209,7 +193,9 @@ export async function repairItem(
   onProgress?: (done: number, total: number) => void
 ): Promise<RepairResult> {
   const {runtime, source, http} = deps;
-  if (!item.pagesDir || !(await pathExists(item.pagesDir))) {
+  const treeUri = deps.downloadTreeUri;
+  const downloadPath = deps.downloadPath;
+  if (!item.pagesDir || !(await pathExists(item.pagesDir, treeUri, downloadPath))) {
     return {title: item.title, kind: 'missing', pagesAdded: 0};
   }
 
@@ -218,8 +204,8 @@ export async function repairItem(
   const done: Defect['kind'][] = [];
   let pagesAdded = 0;
 
-  const pageFiles = (await listDir(item.pagesDir)).filter(
-    (e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name))
+  const pageFiles = (await listDir(item.pagesDir, treeUri, downloadPath)).filter(
+    (e) => e.type === 'file' && IMAGE_EXT_SET.has(extOf(e.name))
   );
   if (pageFiles.length !== items.length) {
     await downloadPages(deps, items, item.pagesDir, 0, undefined, undefined, {preferredExt: want});
@@ -227,7 +213,7 @@ export async function repairItem(
     done.push('pages');
   }
 
-  if (!item.coverPath || !(await pathExists(item.coverPath))) {
+  if (!item.coverPath || !(await pathExists(item.coverPath, treeUri, downloadPath))) {
     const cover = await downloadCover(http, runtime.fs, item.albumId, item.filePath);
     done.push('cover');
     if (cover) {
@@ -255,12 +241,19 @@ export async function repairItem(
   };
 }
 
-export async function deleteAlbumDir(item: LibraryItem): Promise<void> {
-  await Filesystem.rmdir({
-    path: item.filePath,
-    directory: Directory.Documents,
-    recursive: true,
-  }).catch(() => undefined);
+export async function deleteAlbumDir(
+  item: LibraryItem,
+  runtime?: DownloadRuntime
+): Promise<void> {
+  if (runtime) {
+    await runtime.fs.unlink(item.filePath).catch(() => undefined);
+  } else {
+    await Filesystem.rmdir({
+      path: item.filePath,
+      directory: Directory.Documents,
+      recursive: true,
+    }).catch(() => undefined);
+  }
   if (item.pagesDir) {
     clearImageDocCache(item.pagesDir);
   }

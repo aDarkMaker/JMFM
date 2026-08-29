@@ -1,11 +1,12 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {LibraryItem} from '../stores/library';
-import {LEGACY_PREFIXES} from './resolveLibraryPaths';
-import {albumRelativeKey, toSafRelativePath} from './safPaths';
-import {safFileExists, safListDirectory, safReadTextFile} from './safStorage';
+import {LEGACY_PREFIXES} from '../../core/fs/saf/safPaths';
+import {albumRelativeKey, toSafRelativePath} from '../../core/fs/saf/safPaths';
+import {safFileExists, safListDirectory, safReadTextFile} from '../../core/fs/saf/safStorage';
+import {IMAGE_EXT_SET, extOf} from '../../core/model';
+import {sleep} from '../../core/net';
 
 const META_FILE = '.jmf-meta.json';
-const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 /** Offset so locally-hashed ids never collide with real API album ids. */
 export const LOCAL_ID_OFFSET = 1_000_000_000;
 
@@ -46,10 +47,6 @@ export function parseLocalMeta(raw: string): LocalAlbumMeta | null {
   } catch {
     return null;
   }
-}
-
-function extOf(name: string): string {
-  return (name.split('.').pop() ?? '').toLowerCase();
 }
 
 /** Merge discovered items with existing ones, deduped by pagesDir, real albumId, or normalized path/title. */
@@ -252,7 +249,7 @@ function safScanner(treeUri: string, downloadPath: string): LibraryScanner {
         const rel = toSafRelativePath(path, downloadPath);
         const entries = await safListDirectory(treeUri, rel);
         return entries
-          .filter((e) => e.type === 'file' && IMAGE_EXTS.has(extOf(e.name)))
+          .filter((e) => e.type === 'file' && IMAGE_EXT_SET.has(extOf(e.name)))
           .map((e) => e.name);
       } catch {
         return [];
@@ -300,7 +297,7 @@ function nativeScanner(): LibraryScanner {
       try {
         const r = await Filesystem.readdir({path, directory: Directory.Documents});
         return r.files
-          .filter((f) => f.type !== 'directory' && IMAGE_EXTS.has(extOf(f.name)))
+          .filter((f) => f.type !== 'directory' && IMAGE_EXT_SET.has(extOf(f.name)))
           .map((f) => f.name);
       } catch {
         return [];
@@ -491,7 +488,7 @@ export async function repairAlbumIdsFromTitle(
     } catch {
       result.push(item);
     }
-    await new Promise((r) => setTimeout(r, TITLE_SEARCH_DELAY_MS));
+    await sleep(TITLE_SEARCH_DELAY_MS);
   }
   return {items: result, changed};
 }

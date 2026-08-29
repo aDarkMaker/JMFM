@@ -66,6 +66,11 @@ export function TagFilterPanel({
     setFeedback(null);
   };
 
+  const desc =
+    mode === 'blacklist'
+      ? '命中黑名单标签的漫画不会出现在首页推荐'
+      : '命中白名单标签的漫画会优先出现在首页推荐';
+
   return (
     <div className="tag-filter-panel">
       <div className="theme-segmented tag-filter-segmented">
@@ -73,29 +78,35 @@ export function TagFilterPanel({
           className={`theme-segmented-item${mode === 'blacklist' ? ' is-active' : ''}`}
           onClick={() => onModeChange('blacklist')}
         >
-          黑名单 ({blacklistCount})
+          黑名单
+          <span className="tag-filter-count">{blacklistCount}</span>
         </button>
         <button
           className={`theme-segmented-item${mode === 'whitelist' ? ' is-active' : ''}`}
           onClick={() => onModeChange('whitelist')}
         >
-          白名单 ({whitelistCount})
+          白名单
+          <span className="tag-filter-count">{whitelistCount}</span>
         </button>
       </div>
+
+      <span className="tag-filter-desc">{desc}</span>
 
       {tags.length === 0 ? (
         <span className="tag-filter-empty">{hint}</span>
       ) : (
         <div className="tag-filter-list">
           {tags.map((tag) => (
-            <button
-              key={tag}
-              className={`tag-filter-chip tag-filter-chip-${mode}`}
-              onClick={() => onRemove(tag)}
-              aria-label={`移除 ${tag}`}
-            >
-              {tag} <span className="tag-filter-chip-x">×</span>
-            </button>
+            <span key={tag} className={`tag-filter-chip tag-filter-chip-${mode}`}>
+              {tag}
+              <button
+                className="tag-filter-chip-x"
+                onClick={() => onRemove(tag)}
+                aria-label={`移除 ${tag}`}
+              >
+                ×
+              </button>
+            </span>
           ))}
         </div>
       )}
@@ -131,11 +142,9 @@ export function TagFilterPanel({
         </button>
       </div>
 
-      {feedback ? (
-        <span className="tag-filter-feedback" role="status">
-          {feedback}
-        </span>
-      ) : null}
+      <div className="tag-filter-feedback-slot" role="status">
+        {feedback ? <span className="tag-filter-feedback">{feedback}</span> : null}
+      </div>
     </div>
   );
 }

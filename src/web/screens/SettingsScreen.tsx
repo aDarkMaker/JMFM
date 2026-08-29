@@ -3,7 +3,7 @@ import {FilePicker} from '@capawesome/capacitor-file-picker';
 import {useSettingsStore} from '../stores/settings';
 import {useLibraryStore, LibraryItem} from '../stores/library';
 import {parsePickedDirectory} from '../library/resolveLibraryPaths';
-import {persistDownloadTreeUri} from '../library/safStorage';
+import {persistDownloadTreeUri} from '../../core/fs/saf/safStorage';
 import {suggestFilterTags} from '../library/filterTags';
 import {ListTile} from '../components/ListTile';
 import {SectionHeader} from '../components/SectionHeader';
@@ -11,6 +11,7 @@ import {ConfirmDialog} from '../components/ConfirmDialog';
 import {TagFilterPanel, FilterMode} from '../components/TagFilterPanel';
 import {useLibraryRepair, RepairOutcome} from '../hooks/useLibraryRepair';
 import {useAppUpdate} from '../hooks/useAppUpdate';
+import {useRepairStore} from '../stores/repair';
 import {ProgressBar} from '../components/ProgressBar';
 import type {Defect} from '../library/repairLibrary';
 
@@ -32,9 +33,11 @@ export function SettingsScreen() {
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
   const libraryItems = useLibraryStore((s) => s.items);
-  const {repairing, runRepair, handleRepair} = useLibraryRepair(
-    settings.imageFormat
-  );
+  const {runRepair, handleRepair} = useLibraryRepair(settings.imageFormat);
+  const repairPhase = useRepairStore((s) => s.phase);
+  const repairDone = useRepairStore((s) => s.done);
+  const repairTotal = useRepairStore((s) => s.total);
+  const repairMessage = useRepairStore((s) => s.message);
   const {
     currentVersion,
     status: updateStatus,
@@ -334,9 +337,27 @@ export function SettingsScreen() {
           <ListTile
             icon="healing"
             title="修复文件"
-            subtitle={repairing ? '扫描中…' : '检查并补齐缺失的页面与封面'}
+            subtitle={
+              repairPhase === 'scanning' ? '扫描中…' : '检查并补齐缺失的页面与封面'
+            }
             onClick={() => void handleRepairClick()}
           />
+          {repairPhase === 'scanning' ? (
+            <div className="settings-update-progress">
+              <ProgressBar
+                progress={repairTotal > 0 ? Math.round((repairDone / repairTotal) * 100) : 0}
+                status="running"
+                indeterminate={repairTotal === 0}
+              />
+              <span className="settings-hint">
+                扫描中 {repairDone}/{repairTotal}
+              </span>
+            </div>
+          ) : repairPhase === 'queued' ? (
+            <div className="settings-update-progress">
+              <span className="settings-hint">{repairMessage}</span>
+            </div>
+          ) : null}
           <ListTile
             icon="update"
             title="检查更新"
@@ -347,7 +368,7 @@ export function SettingsScreen() {
             <div className="settings-update-progress">
               <ProgressBar
                 progress={updateProgress}
-                status={updateStatus === 'installing' ? 'running' : 'running'}
+                status="running"
                 showLabel={updateStatus === 'downloading'}
                 indeterminate={updateStatus === 'installing'}
               />

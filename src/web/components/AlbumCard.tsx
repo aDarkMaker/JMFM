@@ -50,6 +50,10 @@ export const AlbumCard = memo(function AlbumCard({
 
   const tags = album.tags ?? [];
   const showCover = coverSrc !== null && !imgFailed;
+  const metaParts = [
+    album.chapterCount != null ? `${album.chapterCount}话` : null,
+    album.pageCount != null ? `${album.pageCount}页` : null,
+  ].filter(Boolean);
 
   return (
     <div
@@ -68,7 +72,7 @@ export const AlbumCard = memo(function AlbumCard({
             className="album-cover-img"
             src={coverSrc ?? undefined}
             alt={album.title}
-            loading="eager"
+            loading="lazy"
             decoding="async"
             onError={() => setImgFailed(true)}
           />
@@ -144,9 +148,10 @@ export const AlbumCard = memo(function AlbumCard({
           </div>
         ) : null}
         <span className="album-stats">
-          <span>ID {album.albumId}</span>
-          {album.chapterCount ? <span>{album.chapterCount}话</span> : null}
-          {album.pageCount ? <span>{album.pageCount}页</span> : null}
+          <span className="album-stats-id">ID {album.albumId}</span>
+          {metaParts.length > 0 ? (
+            <span className="album-stats-meta">{metaParts.join('')}</span>
+          ) : null}
         </span>
       </div>
     </div>

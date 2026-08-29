@@ -1,6 +1,7 @@
 import {CDN_DOMAINS, REQUEST} from '../../core/constants';
-import {HttpClient} from '../../core/net';
+import {HttpClient, bytesOf} from '../../core/net';
 import {FileSystem} from '../../core/fs/types';
+import {atomicWrite} from '../../core/fs/write';
 
 export async function downloadCover(
   http: HttpClient,
@@ -13,11 +14,12 @@ export async function downloadCover(
       Referer: REQUEST.REFERER,
       Accept: REQUEST.ACCEPT_IMAGE,
     });
-    if (!resp.ok || !resp.bytes) {
+    const bytes = bytesOf(resp);
+    if (!resp.ok || !bytes) {
       continue;
     }
     const cover = `${albumDir}/cover.jpg`;
-    await fs.writeFile(cover, resp.bytes);
+    await atomicWrite(fs, cover, bytes);
     return cover;
   }
   return undefined;

@@ -78,17 +78,6 @@
   font-weight: 600;
 }
 
-.list-tile--input .list-tile-icon {
-  width: 36px;
-  height: 36px;
-  font-size: 20px;
-}
-
-.list-tile--input .list-tile-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-}
-
 .list-tile-input {
   font-size: var(--text-base);
   color: var(--ink-primary);

@@ -1,4 +1,5 @@
-import {parsePickedDirectory, resolveItemPaths, safeTitle} from '@/web/library/resolveLibraryPaths';
+import {parsePickedDirectory, resolveItemPaths} from '@/web/library/resolveLibraryPaths';
+import {sanitizeTitle} from '@/core/util/filename';
 import type {LibraryItem} from '@/web/stores/library';
 
 function item(title: string, pagesDir?: string, coverPath?: string): LibraryItem {
@@ -89,8 +90,17 @@ describe('resolveItemPaths', () => {
   });
 });
 
-describe('safeTitle', () => {
+describe('sanitizeTitle', () => {
   it('replaces illegal path characters', () => {
-    expect(safeTitle('a/b\\c:d*e?f"g<h>i|j')).toBe('a_b_c_d_e_f_g_h_i_j');
+    expect(sanitizeTitle('a/b\\c:d*e?f"g<h>i|j')).toBe('a_b_c_d_e_f_g_h_i_j');
+  });
+
+  it('trims and defaults empty', () => {
+    expect(sanitizeTitle('   ')).toBe('untitled');
+    expect(sanitizeTitle('')).toBe('untitled');
+  });
+
+  it('caps length at 200', () => {
+    expect(sanitizeTitle('x'.repeat(300)).length).toBe(200);
   });
 });
