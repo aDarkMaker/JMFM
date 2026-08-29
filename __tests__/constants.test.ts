@@ -33,13 +33,12 @@ describe('constants', () => {
     expect(DOWNLOAD.CONCURRENCY_MIN).toBe(2);
   });
 
-  it('exposes pdf page size', () => {
-    expect(PDF.PAGE_WIDTH_PT).toBe(595);
-    expect(PDF.PAGE_HEIGHT_PT).toBe(842);
+  it('exposes pdf max width', () => {
+    expect(PDF.MAX_WIDTH).toBe(1190);
   });
 
   it('loads app secrets from config', () => {
-    expect(config.app.version).toBe('2.0.6');
+    expect(config.app.apiTokenVersion).toBe('2.0.6');
     expect(config.app.tokenSecret).toBe('18comicAPP');
     expect(config.app.tokenSecret2).toBe('18comicAPPContent');
     expect(config.app.dataSecret).toBe('185Hcomic3PAPP7R');

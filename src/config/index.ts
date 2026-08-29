@@ -9,7 +9,7 @@ export interface AppConfig {
     apiDomainServers: string[];
   };
   app: {
-    version: string;
+    apiTokenVersion: string;
     tokenSecret: string;
     tokenSecret2: string;
     dataSecret: string;
@@ -33,12 +33,7 @@ export interface AppConfig {
     cpuMultiplier: number;
   };
   pdf: {
-    pageWidthPt: number;
-    pageHeightPt: number;
     maxWidth: number;
-    maxHeight: number;
-    titleMaxLen: number;
-    backgroundColor: string;
   };
 }
 

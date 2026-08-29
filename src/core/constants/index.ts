@@ -27,9 +27,5 @@ export const DOWNLOAD = {
 };
 
 export const PDF = {
-  PAGE_WIDTH_PT: config.pdf.pageWidthPt,
-  PAGE_HEIGHT_PT: config.pdf.pageHeightPt,
   MAX_WIDTH: config.pdf.maxWidth,
-  TITLE_MAX_LEN: config.pdf.titleMaxLen,
-  BACKGROUND: config.pdf.backgroundColor,
 };

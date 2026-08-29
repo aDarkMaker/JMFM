@@ -28,7 +28,7 @@
     ]
   },
   "app": {
-    "version": "2.0.6",
+    "apiTokenVersion": "2.0.6",
     "tokenSecret": "18comicAPP",
     "tokenSecret2": "18comicAPPContent",
     "dataSecret": "185Hcomic3PAPP7R",
@@ -52,11 +52,6 @@
     "cpuMultiplier": 2
   },
   "pdf": {
-    "pageWidthPt": 595,
-    "pageHeightPt": 842,
-    "maxWidth": 1190,
-    "maxHeight": 1684,
-    "titleMaxLen": 200,
-    "backgroundColor": "#ffffff"
+    "maxWidth": 1190
   }
 }
