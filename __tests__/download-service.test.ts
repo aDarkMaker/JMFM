@@ -2,6 +2,7 @@ import {HttpClient} from '@/core/net';
 import {DownloadService, DownloadEvent, ContentSource, isCanceledError} from '@/core/download';
 import {DownloadRuntime, FileSystem} from '@/core/download/types';
 import {AlbumDetail, PhotoDetail, createImageItem} from '@/core/model';
+import {base64ToBytes} from '@/core/util/base64';
 
 const album: AlbumDetail = {
   albumId: 123,
@@ -47,21 +48,30 @@ function makeRuntime(): DownloadRuntime & {
   const fs: FileSystem = {
     mkdir: async () => undefined,
     writeFile: async (path, data) => {
-      writes.set(path, data);
+      writes.set(path, typeof data === 'string' ? base64ToBytes(data) : data);
     },
     appendFile: async (path, data) => {
+      const chunk = typeof data === 'string' ? base64ToBytes(data) : data;
       const prev = writes.get(path);
       if (!prev) {
-        writes.set(path, data);
+        writes.set(path, chunk);
         return;
       }
-      const merged = new Uint8Array(prev.length + data.length);
+      const merged = new Uint8Array(prev.length + chunk.length);
       merged.set(prev, 0);
-      merged.set(data, prev.length);
+      merged.set(chunk, prev.length);
       writes.set(path, merged);
     },
     readFile: async (path) => writes.get(path) ?? new Uint8Array(),
     unlink: async () => undefined,
+    rename: async (oldPath, newPath) => {
+      const data = writes.get(oldPath);
+      if (data) {
+        writes.set(newPath, data);
+        writes.delete(oldPath);
+      }
+    },
+    size: async (path) => writes.get(path)?.length ?? -1,
     exists: async (path) => writes.has(path),
   };
   return {
@@ -72,16 +82,13 @@ function makeRuntime(): DownloadRuntime & {
       calls.decode += 1;
       return {width: 100, height: 100, bytes: encoded, ext};
     },
-    createAlbumPdf: async (dir, title, _imagePaths) => {
-      return `${dir}/${title}.pdf`;
-    },
   };
 }
 
 function makeHttp(): HttpClient {
   return {
     getBytes: jest.fn(async () => {
-      return {ok: true, status: 200, bytes: new Uint8Array([1, 2, 3])};
+      return {ok: true, status: 200, bytes: new Uint8Array(100).fill(1)};
     }),
   } as unknown as HttpClient;
 }
@@ -158,8 +165,8 @@ describe('DownloadService end-to-end', () => {
       cpuCount: 4,
     });
 
-    runtime.writes.set('/downloads/测试本子/pages/0001.webp', new Uint8Array([9, 9, 9]));
-    runtime.writes.set('/downloads/测试本子/pages/0002.webp', new Uint8Array([9, 9, 9]));
+    runtime.writes.set('/downloads/测试本子/pages/0001.webp', new Uint8Array(100).fill(9));
+    runtime.writes.set('/downloads/测试本子/pages/0002.webp', new Uint8Array(100).fill(9));
 
     const events: DownloadEvent[] = [];
     await service.downloadAlbum(123, (e) => events.push(e));

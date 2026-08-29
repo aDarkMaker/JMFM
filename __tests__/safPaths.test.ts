@@ -1,4 +1,4 @@
-import {toSafRelativePath, joinLogicalPath} from '@/web/library/safPaths';
+import {toSafRelativePath} from '@/core/fs/saf/safPaths';
 
 describe('toSafRelativePath', () => {
   it('strips downloadPath prefix', () => {
@@ -14,14 +14,6 @@ describe('toSafRelativePath', () => {
   it('falls back to legacy prefixes', () => {
     expect(toSafRelativePath('JMFMobile/downloads/旧本/pages', 'Documents/JMFDownloads')).toBe(
       '旧本/pages'
-    );
-  });
-});
-
-describe('joinLogicalPath', () => {
-  it('joins relative segments', () => {
-    expect(joinLogicalPath('Documents/JMFDownloads', '测试/pages')).toBe(
-      'Documents/JMFDownloads/测试/pages'
     );
   });
 });

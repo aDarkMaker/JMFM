@@ -1,4 +1,3 @@
-import {PageSize} from '../pdf/layout';
 import type {AlbumDetail, DecodeFormat, DecodedImage, PhotoDetail} from '../model';
 import type {FileSystem} from '../fs/types';
 import {ImageItem} from '../model';
@@ -14,12 +13,6 @@ export interface DownloadRuntime {
     ext: string,
     format?: DecodeFormat
   ): Promise<DecodedImage>;
-  createAlbumPdf(
-    outputDir: string,
-    title: string,
-    imagePaths: string[],
-    sizes?: PageSize[]
-  ): Promise<string>;
 }
 
 export interface ContentSource {

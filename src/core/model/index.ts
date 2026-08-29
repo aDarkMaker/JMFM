@@ -66,7 +66,13 @@ export function buildFallbackImageUrl(aid: number, index: number): string {
   return `https://${FALLBACK_CDN}/media/photos/${aid}/${padded}.jpg`;
 }
 
-const ALLOWED_SUFFIXES = new Set(['webp', 'jpg', 'jpeg', 'png', 'gif']);
+export const IMAGE_EXTS = ['webp', 'jpg', 'jpeg', 'png', 'gif'] as const;
+export const IMAGE_EXT_SET: ReadonlySet<string> = new Set<string>(IMAGE_EXTS);
+export const ALLOWED_SUFFIXES = IMAGE_EXT_SET;
+
+export function extOf(name: string): string {
+  return (name.split('.').pop() ?? '').toLowerCase();
+}
 
 export function createImageItem(photo: PhotoDetail, fileName: string, index: number): ImageItem {
   const dot = fileName.lastIndexOf('.');

@@ -1,11 +1,17 @@
 import {spawnSync} from 'node:child_process';
-import {existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync} from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  renameSync,
+  statSync,
+} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {computeStrips} from '../src/core/transcode';
-import {buildFileName} from '../src/core/pdf/names';
-import {computeUniformWidth} from '../src/core/pdf/layout';
-import {PDF} from '../src/core/constants';
 import {DecodedImage, DownloadRuntime, FileSystem, DecodeFormat} from '../src/core/download/types';
 
 function runMagick(args: string[]): void {
@@ -84,32 +90,18 @@ export function decodeWithMagick(
   }
 }
 
-export async function createPdfWithMagick(
-  outputDir: string,
-  title: string,
-  imagePaths: string[]
-): Promise<string> {
-  mkdirSync(outputDir, {recursive: true});
-  const outputPath = join(outputDir, buildFileName(title));
-  if (imagePaths.length === 0) {
-    throw new Error('no images for pdf');
-  }
-  const widths = imagePaths.map((path) => identifySize(path).width);
-  const targetW = computeUniformWidth(widths, PDF.MAX_WIDTH);
-  runMagick([...imagePaths, '+repage', '-resize', `${targetW}x`, outputPath]);
-  return outputPath;
-}
-
 export function createNodeRuntime(): DownloadRuntime {
   const fs: FileSystem = {
     mkdir: async (path) => {
       mkdirSync(path, {recursive: true});
     },
     writeFile: async (path, data) => {
-      writeFileSync(path, data);
+      writeFileSync(path, typeof data === 'string' ? Buffer.from(data, 'base64') : data);
     },
     appendFile: async (path, data) => {
-      writeFileSync(path, data, {flag: 'a'});
+      writeFileSync(path, typeof data === 'string' ? Buffer.from(data, 'base64') : data, {
+        flag: 'a',
+      });
     },
     readFile: async (path) => {
       return new Uint8Array(readFileSync(path));
@@ -117,11 +109,20 @@ export function createNodeRuntime(): DownloadRuntime {
     unlink: async (path) => {
       rmSync(path, {recursive: true, force: true});
     },
+    rename: async (oldPath, newPath) => {
+      renameSync(oldPath, newPath);
+    },
+    size: async (path) => {
+      try {
+        return statSync(path).size;
+      } catch {
+        return -1;
+      }
+    },
     exists: async (path) => existsSync(path),
   };
   return {
     fs,
     decodeAndSave: async (num, encoded, ext, format) => decodeWithMagick(num, encoded, ext, format),
-    createAlbumPdf: createPdfWithMagick,
   };
 }

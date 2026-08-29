@@ -6,6 +6,7 @@ import {
   isCanceledError,
 } from './pages';
 import {DownloadController} from './types';
+import {sanitizeTitle} from '../util/filename';
 
 export type {DownloadRuntime, FileSystem, DecodedImage} from './types';
 export type {ContentSource, DownloadController} from './types';
@@ -38,6 +39,10 @@ export class DownloadService {
   ): Promise<string> {
     const {runtime, source} = this.deps;
     const controller = opts?.controller;
+    let albumDir = '';
+    let pagesDir = '';
+    let albumExisted = false;
+    let pagesStarted = false;
 
     try {
       const {album} = await collectAlbumPages(source, albumId);
@@ -50,15 +55,14 @@ export class DownloadService {
         tags: album.tags,
       });
 
-      const safeName = album.name.replace(/[/\\:*?"<>|]/g, '_');
-      const albumDir = `${this.deps.downloadPath}/${safeName}`;
-      const pagesDir = `${albumDir}/pages`;
+      const safeName = sanitizeTitle(album.name);
+      albumDir = `${this.deps.downloadPath}/${safeName}`;
+      pagesDir = `${albumDir}/pages`;
+      albumExisted = await runtime.fs.exists(albumDir);
 
-      await runtime.fs.mkdir(albumDir).catch(() => undefined);
-      await runtime.fs.mkdir(pagesDir).catch(() => undefined);
-      await runtime.fs
-        .writeFile(`${albumDir}/.nomedia`, new Uint8Array([0x0a]))
-        .catch(() => undefined);
+      await runtime.fs.mkdir(albumDir);
+      await runtime.fs.mkdir(pagesDir);
+      await runtime.fs.writeFile(`${albumDir}/.nomedia`, new Uint8Array([0x0a]));
 
       const totalChapters = album.episodes.length;
       let albumDone = 0;
@@ -75,6 +79,7 @@ export class DownloadService {
         const imageItems = source.buildImageItems(photo);
         albumTotal += imageItems.length;
         onEvent({type: 'chapter', index: i + 1, total: totalChapters, images: imageItems.length});
+        pagesStarted = true;
         const done = await downloadPages(
           this.deps,
           imageItems,
@@ -97,6 +102,10 @@ export class DownloadService {
       onEvent({type: 'done', albumDir});
       return albumDir;
     } catch (e) {
+      if (!isCanceledError(e) && !albumExisted && !pagesStarted) {
+        await runtime.fs.unlink(pagesDir).catch(() => undefined);
+        await runtime.fs.unlink(albumDir).catch(() => undefined);
+      }
       if (isCanceledError(e)) {
         onEvent({type: 'canceled'});
       } else {
