@@ -14,20 +14,18 @@
 
 ## Local storage and reading
 
-- **pages as primary output**: downloads write `albumDir/pages/` only (default webp).
-- **Image reader**: renders local pages/ directly.
-- **Optional PDF**: runtime exposes `createAlbumPdf` (uniform width, zero padding) without blocking the download path.
-- **Library repair**: Settings checks metadata, format+count, and covers; failing items are deleted and re-queued.
+- **pages as primary output**: downloads write `albumDir/pages/` only (default webp), with atomic writes against half-written files.
+- **Image reader**: renders local pages/ directly; legacy PDFs via pdf.js.
+- **Library repair**: Settings checks metadata, format+count, and covers; missing items are backfilled on demand, full re-download only when an album is entirely gone.
 
 ## Configuration
 
 Key parameters in `src/config/app-config.json`:
 
 - Domain lists (HTML / API / CDN / domain servers)
-- App secrets and version
+- App secrets and API protocol version
 - Request headers, timeouts, retries
 - Download concurrency limits
-- PDF page sizes and max width
 
 ## Engineering
 

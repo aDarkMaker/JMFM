@@ -57,11 +57,12 @@ flowchart LR
 - **Capacitor / Web (Canvas)**: `src/core/transcode/decode.ts` decodes with `createImageBitmap`, draws each strip into its target position with `canvas.drawImage`, and outputs PNG via `toBlob`.
 - **Node (ImageMagick)**: `scripts/node-runtime.ts` crops strips with `-crop` and appends with `-append +repage`.
 
-> Key detail: after ImageMagick cropping, `+repage` is required to reset the virtual page; otherwise the PDF MediaBox is wrong and you get tiny pages with white placeholders.
+> Key detail: after ImageMagick cropping, `+repage` is required to reset the virtual page metadata; otherwise stale canvas dimensions survive the append and you get tiny images with blank areas.
 
 ## Format Strategy
 
 `decideImageStrategy(num, ext)`:
 
 - `gif` or `num <= 0`: `raw`, saved as-is.
+- `num <= 1` and not webp: `raw`, saved as-is.
 - otherwise: `reassemble`, goes through the strip pipeline.

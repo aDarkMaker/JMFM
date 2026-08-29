@@ -4,8 +4,8 @@
 
 - Node.js >= 22.11
 - [Bun](https://bun.sh)
-- ImageMagick（Node 端解码与 PDF）
-- JDK 17+ 与 Android SDK（真机调试）
+- ImageMagick（Node 端解码）
+- JDK 21+ 与 Android SDK（真机调试）
 
 macOS：
 
@@ -25,7 +25,7 @@ bun install
 bun run verify 1327951
 ```
 
-产物在 `temp/1327951/`（含 `pages/` 图片序列）。
+产物在 `temp/<标题>/pages/`（图片序列）与 `temp/<专辑ID>_cover.jpg`。
 
 网络受限时挂代理：
 

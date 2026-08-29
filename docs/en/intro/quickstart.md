@@ -4,8 +4,8 @@
 
 - Node.js >= 22.11
 - [Bun](https://bun.sh)
-- ImageMagick (Node-side decode and PDF)
-- JDK 17+ and Android SDK (device debugging)
+- ImageMagick (Node-side decode)
+- JDK 21+ and Android SDK (device debugging)
 
 macOS:
 
@@ -25,7 +25,7 @@ bun install
 bun run verify 1327951
 ```
 
-Output under `temp/1327951/` (including the `pages/` image sequence).
+Output under `temp/<title>/pages/` (image sequence) and `temp/<albumId>_cover.jpg`.
 
 On a restricted network, use a proxy:
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-28 (Fri)
+
+### Full-pipeline optimization & renovation
+
+- **Data safety**: atomic writes for pages/covers/metadata (`.tmp` + rename); `MIN_FILE_BYTES` guards half-written files; SAF unlink delete protection (download root cannot be deleted); failed downloads roll back empty dirs; SAF repair path remap fixed.
+- **Download perf**: `FileSystem` writes base64 directly (native/SAF, no double encode); `scheduler.ts` adds `MemoryGate` byte watermark and `Semaphore` decode throttling; `downloadPages` writes pages atomically.
+- **APK updates**: streaming chunked download (native slices CapacitorHttp base64 / web streams via reader) with incremental `Sha256` computed on the fly; mismatches clean up and re-download.
+- **UI rendering**: Home narrow subscription (`useShallow` on albumIds), `AlbumCard` memo with stable props, lazy covers (first 8 preloaded); `ReaderScreen` is `React.lazy`.
+- **Reader**: `loadImageDocMeta` inflight dedupe; SAF resolves only the first 8 URIs and lazily fills on scroll; scroll window narrowed to ±1/+3; paged prefetches page 3 after first paint.
+- **Network**: `fetchOnce` times out via `AbortSignal.timeout`; `FetchResult.retryable` distinguishes 4xx/5xx/429; `refreshDomains` is shared globally and probed once.
+- **Bundle**: `bun build --minify --splitting`; nagino 4.3MB otf → 1.7MB woff2, redundant ttf removed; pdf.js and ReaderScreen split into separate chunks (entry 0.52MB).
+- **Declutter**: all PDF-generation dead code and `pdf-lib` removed; retry/sleep/extensions/filename/base64 duplication merged; `config.app.version` renamed `apiTokenVersion`; CSS dedup.
+- **Decoupling**: SAF infra moved to `core/fs/saf`; `cacheRegistry` centralizes cache invalidation; HTTP unified (no `getHtml`); axios/node-html-parser moved to devDependencies; `STORAGE_KEYS` centralizes storage keys.
+- Regression: `bun test` 138 cases / 19 files, typecheck / lint / build / verify all green.
+
 ## 2026-08-27 (2)
 
 ### Security, repair files & recommendations

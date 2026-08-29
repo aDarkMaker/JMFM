@@ -7,13 +7,12 @@
 `src/core/net/http.ts` 定义统一网络接口：
 
 - **域名轮换**：每个域名先 `https://`，失败再试 `http://`。
-- **域名轮换**：传入 URL 列表，逐个尝试，直到成功。
-- **重试**：每个 URL 可重试 N 次（默认 3），间隔可配。
-- **二进制 / 文本**：`getBytes` 返回 `Uint8Array`，`getHtml` 返回文本。
+- **URL 列表**：传入 URL 列表，逐个尝试，直到成功。
+- **重试**：每个 URL 可重试 N 次（默认 3），间隔可配；`retryable` 标记区分 4xx（不重试）与 5xx/429（重试）。
+- **二进制 / 文本**：`getBytes` / `getBytesWithUrls` 返回 `FetchResult`（`bytes` 或原生直传的 `base64`），`bytesOf` 惰性解码。
 
 ```typescript
 export interface HttpClient {
-  getHtml(path, domains?, headers?): Promise<FetchResult>;
   getBytes(url, headers?): Promise<FetchResult>;
   getBytesWithUrls(urls, headers?): Promise<FetchResult>;
 }
@@ -21,7 +20,7 @@ export interface HttpClient {
 
 ### FetchHttpClient（Web）
 
-`src/core/net/fetch-http.ts` 基于浏览器 `fetch` 实现，运行时 Web 端默认使用：
+`src/core/net/fetch-http.ts` 基于浏览器 `fetch` 实现，运行时 Web 端默认使用；单次请求用 `AbortSignal.timeout` 超时：
 
 ```typescript
 const http = new FetchHttpClient({timeoutMs: 15000, maxRetries: 2});
@@ -40,11 +39,11 @@ import {createHttpClient} from '../src/core/net';
 const http = createHttpClient({timeoutMs: 15000, maxRetries: 2});
 ```
 
-二进制响应（`responseType: 'arraybuffer'`）由原生层返回 Base64 字符串，`NativeHttpClient` 内部用 `base64ToBytes` 还原为 `Uint8Array`。
+二进制响应（`responseType: 'arraybuffer'`）由原生层返回 Base64 字符串，直接存入 `FetchResult.base64` 供落盘直写（不先行解码再二次编码）。
 
 ### 统一重试
 
-`src/core/net/retry.ts` 的 `requestWithRetry` 收敛「域名轮换 × 单 URL 重试」双循环，Fetch 与原生实现共用；axios 客户端（`scripts/shared/axios-http.ts`）仅 Node 脚本使用。
+`src/core/net/retry.ts` 的 `requestWithRetry` 收敛「URL 列表 × 单 URL 重试」双循环，Fetch 与原生实现共用；axios 客户端（`scripts/shared/axios-http.ts`）仅 Node 脚本使用。
 
 ## ApiClient
 
@@ -58,6 +57,8 @@ const http = createHttpClient({timeoutMs: 15000, maxRetries: 2});
 2. 去掉非 ASCII 前缀后，用 `domainServerSecret` 做 AES-256-ECB 解密。
 3. 解析 JSON 中的 `Server` 数组，作为后续请求域名。
 
+探测结果在模块级全局共享（`sharedDomains`），多个 `ApiClient` 实例只探测一次，并以内联 Promise 去重并发触发。
+
 ```typescript
 const domains = await api.refreshDomains();
 // e.g. ['www.cdnhjk.net', 'www.cdngwc.cc', ...]
@@ -69,10 +70,10 @@ const domains = await api.refreshDomains();
 
 ```text
 token = md5(ts + APP_TOKEN_SECRET)
-tokenparam = ts, appVersion
+tokenparam = ts, apiTokenVersion
 ```
 
-其中 `ts` 为当前秒级时间戳，密钥读自配置。
+其中 `ts` 为当前秒级时间戳，密钥读自配置；`apiTokenVersion` 为 API 协议版本（区别于应用版本号）。
 
 ### 请求与解密
 
@@ -102,5 +103,5 @@ https://{cdn[photoId % len]}/media/photos/{photoId}/{fileName}
 `src/core/update/` 负责版本检查与 APK 安装：
 
 - 按 GitHub Release tag 下载 `version.json` 与 `JMFM.apk`
-- 下载后校验 `version.json.apkSha256`
+- APK 流式分块下载（原生路径切片解码 CapacitorHttp 的整包 base64，web 路径走 response reader），边收边算增量 SHA-256，落盘后校验 `version.json.apkSha256`，不匹配自动清理重下
 - 签名密钥见 `docs/development/setup.md`

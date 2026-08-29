@@ -64,11 +64,11 @@ flowchart LR
 
 ## Screen responsibilities
 
-- **Home**: shows daily recommendation cards (cover, title, author, tags, chapter count). Currently mock-driven; a recommendation API will be wired later.
+- **Home**: shows daily recommendation cards (cover, title, author, tags, chapter count) with download. Data comes from `useDailyStore` + `buildRecommendations`: whitelist first → favorite tags → time-tiered fill (today first, then earlier days by `mr_t` order) to 6 albums, cached per day with dismiss / refresh.
 - **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open. Delete uses `ConfirmDialog`.
 - **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a GSAP height collapse; card is left-aligned title + status badge (no check icon).
-- **Reader**: when `ReaderTarget.pagesDir` exists on native, uses direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+8, horizontal three-slide track; otherwise pdf.js fallback.
-- **Settings**: download path, retry, concurrency, image format, proxy; **General → Repair library** scans and re-queues failing items.
+- **Reader**: when `ReaderTarget.pagesDir` exists, uses direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+3, horizontal three-slide track; otherwise pdf.js fallback. `ReaderScreen` is lazy-loaded via `React.lazy`; pdf.js is imported dynamically only in PDF mode.
+- **Settings**: theme, reading mode, download path (with SAF directory grant), proxy toggle; **General → Repair files** scans and backfills missing pages and covers with an always-visible progress bar and queue hint (survives tab switches); **Check for updates** download progress lives in `useUpdateStore`, so it stays visible after leaving and returning.
 
 ## Cover preload
 
@@ -83,7 +83,7 @@ flowchart LR
 ```
 
 - `src/web/library/coverCache.ts`: URI cache + inflight dedupe + `preloadCovers`.
-- Warmed on app start / library change and after insert, so tab switches do not jump from cover loads.
+- Warmed for the first 8 covers on app start / library change (the rest are lazy), and immediately after insert, so tab switches do not jump from cover loads.
 
 ## Library repair
 
@@ -128,30 +128,32 @@ Built on the Cirrus design tokens in `src/web/theme/index.css` (CSS variables: s
 
 | File | fontFamily | Usage |
 | --- | --- | --- |
-| `AlimamaShuHeiTi-Bold.woff2/.ttf` | `Alimama ShuHeiTi` | Chinese titles, branding |
+| `AlimamaShuHeiTi-Bold.woff2` | `Alimama ShuHeiTi` | Chinese titles, branding |
+| `Nagino.woff2` | `Nagino` | Japanese titles |
 | `BebasNeue.woff2` | `Bebas Neue` | Latin and numerals, display type |
 
-- Source fonts are stored in `src/web/assets/fonts/`.
-- `src/web/styles/fonts.css` registers them via `@font-face`; Bun build bundles them automatically (small fonts are inlined as data URIs).
+- Source fonts live in `src/web/assets/fonts/` (all woff2, converted/slimmed from otf/ttf).
+- `src/web/styles/fonts.css` registers them via `@font-face`; Bun build bundles them automatically.
 
 ## Directory layout
 
 ```
 src/web/
   assets/
-    fonts/                # Alimama / BebasNeue / Nagino
+    fonts/                # Alimama / BebasNeue / Nagino (woff2)
     icons/                # Iconify SVG
   components/             # Icon / AlbumCard / ConfirmDialog / SearchBar / ...
-  download/               # download serial queue (queue.ts)
+  download/               # createDownloadRuntime / safRuntime / taskCleanup
   generated/              # icons.ts (generated)
   hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
-  library/                # saveToLibrary / coverCache / repairLibrary
-  reader/                 # image-doc / image-loader / image-reader / pdf-doc
+  library/                # saveToLibrary / coverCache / repairLibrary / discoverLibrary / daily / tags / uid
+  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer
   screens/                # Home / Library / Tasks / Settings / Reader
   stores/                 # zustand stores
   styles/                 # CSS style modules
   theme/                  # Cirrus tokens (CSS variables)
-  App.tsx                 # tab switching + cover warm + full-screen Reader
+  util/                   # cacheRegistry (cache invalidation registry)
+  App.tsx                 # tab switching + cover warm + lazy Reader mount
   main.tsx                # ReactDOM.createRoot entry
   index.html              # WebView host page
 ```

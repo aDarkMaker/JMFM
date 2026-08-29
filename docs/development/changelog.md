@@ -1,5 +1,20 @@
 # 开发日志
 
+## 2026-08-28（五）
+
+### 全链路优化与翻新
+
+- **数据安全**：页面/封面/元数据统一原子写入（`.tmp` + rename）；`MIN_FILE_BYTES` 防半文件；SAF unlink 删除保护（禁止删除下载根目录）；下载失败回滚空目录；SAF 修复路径重定位修正。
+- **下载性能**：`FileSystem` 直写 base64（原生/SAF 免二次编解码）；`scheduler.ts` 新增 `MemoryGate` 内存水位与 `Semaphore` 解码限流；`downloadPages` 原子写页。
+- **APK 更新**：流式分块下载（原生切片解码 base64 / web 走 reader），增量 `Sha256` 边收边算，校验失败自动清理重下。
+- **UI 渲染**：Home 窄订阅（`useShallow` 只订阅 albumId）、`AlbumCard` memo 配稳定引用、封面懒加载（预载前 8 张）；`ReaderScreen` 改 `React.lazy`。
+- **阅读器**：`loadImageDocMeta` inflight 去重；SAF 仅预解析前 8 个 URI、滚动按需惰性解析；滚动窗口收敛 ±1/+3；paged 首帧预取第 3 页。
+- **网络层**：`fetchOnce` 用 `AbortSignal.timeout` 超时；`FetchResult.retryable` 区分 4xx/5xx/429；`refreshDomains` 结果全局共享只探测一次。
+- **构建产物**：`bun build --minify --splitting`；nagino 4.3MB otf 转 1.7MB woff2、删冗余 ttf；pdf.js 与 ReaderScreen 拆独立 chunk，入口 0.52MB。
+- **代码去臃肿**：删除 PDF 生成全部死代码与 `pdf-lib` 依赖；重试/sleep/扩展名/文件名清洗/base64 重复合并；`config.app.version` 改名 `apiTokenVersion`；CSS 去重。
+- **模块解耦**：SAF 基础下沉 `core/fs/saf`；`cacheRegistry` 统一缓存失效；HTTP 统一（去 `getHtml`）；axios/node-html-parser 归 devDependencies；`STORAGE_KEYS` 集中存储键。
+- 回归：`bun test` 138 用例 / 19 文件、typecheck / lint / build / verify 全绿。
+
 ## 2026-08-27（二）
 
 ### 安全加固、修复文件与推荐优化

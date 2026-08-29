@@ -57,11 +57,12 @@ flowchart LR
 - **Capacitor / Web（Canvas）**：`src/core/transcode/decode.ts` 用 `createImageBitmap` 解码，`canvas.drawImage` 按条带目标位置绘制，`toBlob('image/png')` 输出。
 - **Node（ImageMagick）**：`scripts/node-runtime.ts` 用 `-crop` 裁剪条带、`-append +repage` 拼接。
 
-> 关键细节：ImageMagick 裁剪后需 `+repage` 重置虚拟页面，否则转 PDF 时页面尺寸错误，出现小图 + 白色占位。
+> 关键细节：ImageMagick 裁剪后需 `+repage` 重置虚拟页面元数据，否则拼接后残留错误画布尺寸，出现小图 + 空白区。
 
 ## 格式策略
 
 `decideImageStrategy(num, ext)`：
 
 - `gif` 或 `num <= 0`：`raw`，原样保存。
+- `num <= 1` 且非 webp：`raw`，原样保存。
 - 其余：`reassemble`，走重组流程。

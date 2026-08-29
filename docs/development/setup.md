@@ -6,8 +6,8 @@
 |---|---|---|
 | Node.js | >= 22.11 | Bun 运行时依赖 |
 | Bun | 任意近期版本 | 包管理器 + 构建器，替换 npm/yarn |
-| ImageMagick | 任意 | Node 端图片解码与 PDF 生成（`magick` 命令） |
-| JDK | 17+（建议 21） | Android 构建 |
+| ImageMagick | 任意 | Node 端图片解码（verify 脚本） |
+| JDK | 21+ | Capacitor 8 要求（`brew install openjdk@21`） |
 | Android SDK | API 36 | Android 构建 |
 
 ## 安装 ImageMagick
@@ -42,7 +42,7 @@ bun run apk:release      # 一键打 release APK → dist-apk/jmfmobile-release.
 bun run test             # bun test 单测
 bun run typecheck
 bun run lint
-bun run verify           # Node 端完整链路验证（生成真实 PDF）
+bun run verify           # Node 端完整下载链路验证（pages + 封面）
 ```
 
 ## 版本与更新

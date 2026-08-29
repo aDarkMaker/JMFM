@@ -64,11 +64,11 @@ flowchart LR
 
 ## 页面职责
 
-- **Home**：展示每日推荐卡片（封面、标题、作者、标签、章节数），点击进入详情。当前以 mock 数据驱动，后续接入推荐 API。
+- **Home**：展示每日推荐卡片（封面、标题、作者、标签、章节数），点击下载。数据来自 `useDailyStore` + `buildRecommendations`：白名单优先 → 偏爱标签 → 按时间梯度（今天更新优先、不足按 `mr_t` 顺序往前推进）补齐至 6 本，按日缓存，支持 dismiss / 刷新。
 - **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读；删除使用 `ConfirmDialog`。
 - **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本经 `queue.ts` 串行；完成 3s 后 GSAP 高度折叠离场；卡片为标题左对齐 + 状态徽章（无对号图标）。
-- **Reader**：`ReaderTarget.pagesDir` 存在且为原生平台时走图片直读（`image-reader.tsx` + `image-loader.ts`）：纵向窗口 ±1/+8，横向三页轨道；否则回退 pdf.js。
-- **Settings**：下载路径、重试、并发、图片格式、代理；「通用 → 资源修复」扫描并重下不合格条目。
+- **Reader**：`ReaderTarget.pagesDir` 存在时走图片直读（`image-reader.tsx` + `image-loader.ts`）：纵向窗口 ±1/+3，横向三页轨道；否则回退 pdf.js。`ReaderScreen` 由 `App` 用 `React.lazy` 懒加载，pdf.js 仅 PDF 模式动态 import。
+- **Settings**：主题、阅读方式、下载路径（支持 SAF 目录授权）、启用代理；「通用 → 修复文件」扫描并补齐缺失页面与封面，扫描进度条与入队提示常驻（跨 Tab 不中断）；「检查更新」下载进度由 `useUpdateStore` 承载，切页后回设置页仍可见。
 
 ## 封面预加载
 
@@ -83,7 +83,7 @@ flowchart LR
 ```
 
 - `src/web/library/coverCache.ts`：URI 缓存 + inflight 去重 + `preloadCovers`。
-- App 启动与库变更时预热；入库后立即预热单本封面，切 Tab 不再因封面加载跳变。
+- App 启动与库变更时预热前 8 张封面（其余懒加载）；入库后立即预热单本封面，切 Tab 不再因封面加载跳变。
 
 ## 资源修复
 
@@ -128,30 +128,32 @@ flowchart TD
 
 | 文件 | fontFamily | 用途 |
 | --- | --- | --- |
-| `AlimamaShuHeiTi-Bold.woff2/.ttf` | `Alimama ShuHeiTi` | 中文标题、品牌字 |
+| `AlimamaShuHeiTi-Bold.woff2` | `Alimama ShuHeiTi` | 中文标题、品牌字 |
+| `Nagino.woff2` | `Nagino` | 日文标题 |
 | `BebasNeue.woff2` | `Bebas Neue` | 英文与数字、装饰字 |
 
-- 字体源文件存放 `src/web/assets/fonts/`。
-- `src/web/styles/fonts.css` 通过 `@font-face` 注册，Bun build 自动打包（小体积字体内联为 data URI）。
+- 字体源文件存放 `src/web/assets/fonts/`（均为 woff2，由 otf/ttf 转换瘦身）。
+- `src/web/styles/fonts.css` 通过 `@font-face` 注册，Bun build 自动打包。
 
 ## 目录结构
 
 ```
 src/web/
   assets/
-    fonts/                # Alimama / BebasNeue / Nagino
+    fonts/                # Alimama / BebasNeue / Nagino（woff2）
     icons/                # Iconify SVG
   components/             # Icon / AlbumCard / ConfirmDialog / SearchBar / ...
-  download/               # 下载串行队列（queue.ts）
+  download/               # createDownloadRuntime / safRuntime / taskCleanup
   generated/              # icons.ts（脚本生成）
   hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
-  library/                # saveToLibrary / coverCache / repairLibrary
-  reader/                 # image-doc / image-loader / image-reader / pdf-doc
+  library/                # saveToLibrary / coverCache / repairLibrary / discoverLibrary / daily / tags / uid
+  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer
   screens/                # Home / Library / Tasks / Settings / Reader
   stores/                 # zustand stores
   styles/                 # CSS 样式模块
   theme/                  # Cirrus tokens（CSS 变量）
-  App.tsx                 # tab 切换 + 封面预热 + Reader 全屏挂载
+  util/                   # cacheRegistry（缓存失效注册）
+  App.tsx                 # tab 切换 + 封面预热 + Reader 懒加载挂载
   main.tsx                # ReactDOM.createRoot 入口
   index.html              # WebView 宿主页
 ```

@@ -6,8 +6,8 @@
 |---|---|---|
 | Node.js | >= 22.11 | Bun runtime dependency |
 | Bun | any recent | package manager + bundler, replaces npm/yarn |
-| ImageMagick | any | Node-side image decode and PDF generation (`magick`) |
-| JDK | 17+ (21 recommended) | Android builds |
+| ImageMagick | any | Node-side image decode (verify script) |
+| JDK | 21+ | required by Capacitor 8 (`brew install openjdk@21`) |
 | Android SDK | API 36 | Android builds |
 
 ## Install ImageMagick
@@ -41,7 +41,7 @@ bun run apk:release      # one-shot release APK → dist-apk/jmfmobile-release.a
 bun run test             # bun test unit tests
 bun run typecheck
 bun run lint
-bun run verify           # Node-side full pipeline verification (real PDF)
+bun run verify           # Node-side full download pipeline (pages + cover)
 ```
 
 ## Version & updates

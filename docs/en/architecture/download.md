@@ -34,7 +34,8 @@ flowchart TD
   - Concurrent download (`calcConcurrency`), skipping files that already exist — resume / backfill for free.
   - `opts.preferredExt` forces a target format: mismatched files are deleted and re-fetched (format repair).
   - Each page goes through `decideImageStrategy`: `raw` write or `decodeAndSave` reassembly.
-- `fetchImageBytes` / `findExisting`: per-page fetch (3 retries) and multi-extension probing.
+  - Native responses carry base64 directly for write-through (`ImageBytes`), avoiding decode-then-re-encode.
+- `fetchImageBytes` / `findExisting`: per-page fetch (3 retries) and multi-extension probing (`MIN_FILE_BYTES` guards half-written files).
 - Cancellation: setting `controller.paused` throws `CanceledError`; detected via `isCanceledError`.
 
 ## Decode format & strategy
@@ -45,30 +46,32 @@ flowchart TD
   - `num <= 1` and not webp → `raw`
   - otherwise → `reassemble`
 
-## Concurrency Control
+## Concurrency & memory control (src/core/download/scheduler.ts)
 
 `downloadPages` uses `mapWithConcurrency`:
 
 - `calcConcurrency(total, cpuCount, override)`: defaults to `min(64, cpuCount * 2, total)`, with an override option.
-- After each download, decode / reassemble by strategy, then write to disk.
+- `calcDecodeConcurrency(cpuCount)`: decode concurrency stays well below the network one (decode amplifies memory), throttled by a `Semaphore`.
+- `MemoryGate(MEMORY_WATERMARK_BYTES = 256MB)`: blocks fetching once fetched-but-unwritten bytes exceed the watermark, bounding memory.
 
 ## Runtime Abstraction
 
 The `DownloadRuntime` interface (`src/core/download/types.ts`) defines:
 
-- `fs.mkdir / writeFile / readFile / unlink / exists?`
+- `fs.mkdir / writeFile / appendFile / readFile / unlink / exists / rename / size`
+- `writeFile / appendFile` accept `Uint8Array` or base64 strings (native/SAF direct-write)
 - `decodeAndSave(num, encoded, ext, format?)` → `DecodedImage`
-- `createAlbumPdf(...)` (**optional archive**; not called on the download hot path)
 
-Three implementations:
+Four implementations:
 
 | Implementation | Location | Capability |
 |---|---|---|
-| Capacitor native | `src/core/download/runtime.ts` | Filesystem + Canvas decode (+ optional pdf-lib) |
+| Capacitor native | `src/core/download/runtime.ts` | Filesystem + Canvas decode |
+| SAF (user-picked directory) | `src/web/download/safRuntime.ts` | read/write a user-selected directory via the SAF plugin |
 | Web in-memory | `src/core/download/runtime.ts` | Map-backed filesystem, for browser debugging |
 | Node runtime | `scripts/node-runtime.ts` | Node fs + ImageMagick |
 
-`createRuntime()` picks native or web via `Capacitor.isNativePlatform()`.
+`createDownloadRuntime(settings)` picks by settings: SAF when `downloadTreeUri` is set, otherwise native vs web via `Capacitor.isNativePlatform()`. All implementations share `atomicWrite` (`.tmp` + rename) and `MIN_FILE_BYTES` against half-written files.
 
 ## Direct image reading flow
 
@@ -82,9 +85,10 @@ flowchart LR
     dom --> img[applyToImg]
 ```
 
-- Metadata cache (LRU): one parallel `readdir` + directory `getUri`; every page URI is available synchronously.
-- Scroll mode: fixed slot heights, window current ±1/+8, node pool reuse; `image-loader.applyToImg` binds `src` directly.
-- Paged mode: three-slide track with one-page gesture flips.
+- Metadata cache (LRU, 3 entries) with inflight dedupe: one parallel `readdir` + directory `getUri`; local-path pages resolve synchronously.
+- SAF path: only the first 8 URIs resolve up front; the rest resolve lazily on scroll (`resolveImageSrcLazy`), avoiding a burst of bridge calls.
+- Scroll mode: fixed slot heights, window current ±1/+3, node pool reuse; `image-loader.applyToImg` binds `src` directly.
+- Paged mode: three-slide track with one-page gesture flips; page 3 is prefetched after first paint.
 - `saveToLibrary` preloads `ImageDocMeta` on insert so opening from the library hits the cache.
 
 ## Repair files

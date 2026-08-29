@@ -28,7 +28,7 @@ features:
     details: getNum 算切分数，按源图位置裁剪、逆序拼接，还原完整页面。
   - icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
     title: pages 直读
-    details: 下载只写 pages/（默认 webp），阅读器渲染本地图片；PDF 可选，旧 PDF 可回退。
+    details: 下载只写 pages/（默认 webp），阅读器渲染本地图片；旧 PDF 走 pdf.js 回退。
   - icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     title: 串行下载队列
     details: 多本排队，一次只跑一本；暂停或失败自动切下一本。

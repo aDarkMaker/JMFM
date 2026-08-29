@@ -7,13 +7,12 @@ Data fetching favors the mobile API channel over the HTML channel, because the l
 `src/core/net/http.ts` defines the uniform networking interface:
 
 - **Domain rotation**: each domain is tried over `https://` first, then `http://` as fallback.
-- **Domain rotation**: accepts a URL list and tries each in turn until one succeeds.
-- **Retry**: each URL can be retried N times (default 3) with a configurable interval.
-- **Binary / text**: `getBytes` returns `Uint8Array`; `getHtml` returns text.
+- **URL list**: accepts a URL list and tries each in turn until one succeeds.
+- **Retry**: each URL can be retried N times (default 3) with a configurable interval; `retryable` distinguishes 4xx (no retry) from 5xx/429 (retry).
+- **Binary / text**: `getBytes` / `getBytesWithUrls` return `FetchResult` (`bytes` or native-passed `base64`); `bytesOf` decodes lazily.
 
 ```typescript
 export interface HttpClient {
-  getHtml(path, domains?, headers?): Promise<FetchResult>;
   getBytes(url, headers?): Promise<FetchResult>;
   getBytesWithUrls(urls, headers?): Promise<FetchResult>;
 }
@@ -21,7 +20,7 @@ export interface HttpClient {
 
 ### FetchHttpClient (Web)
 
-`src/core/net/fetch-http.ts` is built on the browser `fetch` API and is the default at runtime on Web:
+`src/core/net/fetch-http.ts` is built on the browser `fetch` API and is the default at runtime on Web; each request times out via `AbortSignal.timeout`:
 
 ```typescript
 const http = new FetchHttpClient({timeoutMs: 15000, maxRetries: 2});
@@ -40,11 +39,11 @@ import {createHttpClient} from '../src/core/net';
 const http = createHttpClient({timeoutMs: 15000, maxRetries: 2});
 ```
 
-Binary responses (`responseType: 'arraybuffer'`) are returned as Base64 strings by the native layer; `NativeHttpClient` converts them back to `Uint8Array` with `base64ToBytes`.
+Binary responses (`responseType: 'arraybuffer'`) come back as Base64 strings and are stored in `FetchResult.base64` for direct write-through (no decode-then-re-encode).
 
 ### Unified Retry
 
-`requestWithRetry` in `src/core/net/retry.ts` centralizes the "domain rotation × per-URL retry" loop shared by the Fetch and native implementations; the axios client (`scripts/shared/axios-http.ts`) is used by Node scripts only.
+`requestWithRetry` in `src/core/net/retry.ts` centralizes the "URL list × per-URL retry" loop shared by the Fetch and native implementations; the axios client (`scripts/shared/axios-http.ts`) is used by Node scripts only.
 
 ## ApiClient
 
@@ -58,6 +57,8 @@ The domain server returns an AES-encrypted list of domains:
 2. Strip the non-ASCII prefix, then decrypt with `domainServerSecret` using AES-256-ECB.
 3. Parse the `Server` array from the JSON and use it for subsequent requests.
 
+The probe result is shared at module scope (`sharedDomains`), so multiple `ApiClient` instances probe at most once, with an inlined Promise deduplicating concurrent triggers.
+
 ```typescript
 const domains = await api.refreshDomains();
 // e.g. ['www.cdnhjk.net', 'www.cdngwc.cc', ...]
@@ -69,10 +70,10 @@ Every request generates:
 
 ```text
 token = md5(ts + APP_TOKEN_SECRET)
-tokenparam = ts, appVersion
+tokenparam = ts, apiTokenVersion
 ```
 
-`ts` is the current second-level timestamp; secrets come from config.
+`ts` is the current second-level timestamp; secrets come from config; `apiTokenVersion` is the API protocol version (distinct from the app version).
 
 ### Request & Decryption
 
@@ -100,5 +101,5 @@ Relevant settings live in the `domains` and `app` sections of `src/config/app-co
 ## In-app updates
 
 - Download `version.json` and `JMFM.apk` by GitHub Release tag
-- Verify `version.json.apkSha256` before install
+- APK is streamed in chunks (native slices the whole CapacitorHttp base64; web streams via the response reader) with incremental SHA-256 computed on the fly; the cached file is verified against `version.json.apkSha256` and cleaned up on mismatch
 - Signing: see `docs/en/development/setup.md`

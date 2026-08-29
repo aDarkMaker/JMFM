@@ -27,7 +27,7 @@ Capacitor + React + TypeScript。输入专辑 ID，API 取数、条带重组、�
 | **条带重组** | getNum 算切分，裁剪逆序拼接 |
 | **pages 直读** | 下载只写 `pages/`（默认 webp），阅读器渲染本地图片 |
 | **串行队列** | 多本排队，暂停/失败自动切下一本 |
-| **资源修复** | 设置页三检元数据 / 页数格式 / 封面，不合格重下 |
+| **资源修复** | 设置页检查元数据 / 页数格式 / 封面，缺什么补什么，路径变更自动重定位 |
 | **应用内更新** | 设置页检查 GitHub Latest Release，Android 端下载并安装 APK |
 | **APK 打包** | `bun run apk` 打出可安装包 |
 
@@ -84,10 +84,10 @@ JMF_PROXY=http://127.0.0.1:7890 bun run verify 1327951
 | 层 | 选型 |
 | --- | --- |
 | 应用壳 / UI | Capacitor 8 · React 19 · TypeScript |
-| 构建 | Bun |
+| 构建 | Bun（`--minify --splitting`） |
 | 网络 | Fetch / CapacitorHttp（域名轮换 / 重试 / 代理）；axios 仅 Node 脚本用 |
 | 加解密 | crypto-js（MD5 · AES-256-ECB） |
-| 图片 | Web Canvas（真机）· ImageMagick（Node 验证） |
+| 图片 | Web Canvas（真机）· ImageMagick（Node 验证）· pdf.js（旧 PDF 回退） |
 | 文档 | VitePress · Mermaid |
 
 ## 文档站
