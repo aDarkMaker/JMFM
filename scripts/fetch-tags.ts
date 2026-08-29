@@ -1,5 +1,6 @@
 import {AxiosHttpClient} from './shared/axios-http';
 import {ApiClient} from '../src/core/api';
+import {sleep} from '../src/core/net';
 
 const COUNT = Number(process.argv[2] ?? 8);
 
@@ -33,7 +34,7 @@ async function main(): Promise<void> {
       console.log(`  获取失败: ${e instanceof Error ? e.message : String(e)}`);
     }
     if (i + 1 < Math.min(COUNT, albums.length)) {
-      await new Promise((r) => setTimeout(r, 1200));
+      await sleep(1200);
     }
   }
 }

@@ -1,6 +1,6 @@
 import axios, {AxiosInstance} from 'axios';
-import {FetchResult, HttpClient, HttpOptions, buildBaseUrls, sleep} from '../../src/core/net/http';
-import {HTML_DOMAINS, REQUEST} from '../../src/core/constants';
+import {FetchResult, HttpClient, HttpOptions, sleep} from '../../src/core/net/http';
+import {REQUEST} from '../../src/core/constants';
 
 function parseProxy(proxy: string): {host: string; port: number} | undefined {
   const [host, port] = proxy.split(':');
@@ -24,15 +24,6 @@ export class AxiosHttpClient implements HttpClient {
 
   constructor(opts: HttpOptions = {}) {
     this.opts = opts;
-  }
-
-  async getHtml(
-    path: string,
-    domains: readonly string[] = HTML_DOMAINS,
-    headers?: Record<string, string>
-  ): Promise<FetchResult> {
-    const urls = buildBaseUrls(domains, path);
-    return this.request(urls, headers, false);
   }
 
   async getBytes(url: string, headers?: Record<string, string>): Promise<FetchResult> {
