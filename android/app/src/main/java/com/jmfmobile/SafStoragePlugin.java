@@ -227,6 +227,67 @@ public class SafStoragePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void renameEntry(PluginCall call) {
+        String treeUriStr = call.getString("treeUri");
+        String oldPath = call.getString("oldPath");
+        String newPath = call.getString("newPath");
+        if (treeUriStr == null || oldPath == null || newPath == null) {
+            call.reject("treeUri, oldPath and newPath required");
+            return;
+        }
+        Uri treeUri = Uri.parse(treeUriStr);
+        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docIdFor(treeUri, oldPath));
+        int slash = newPath.lastIndexOf('/');
+        String displayName = slash >= 0 ? newPath.substring(slash + 1) : newPath;
+        try {
+            Uri renamed =
+                DocumentsContract.renameDocument(getContext().getContentResolver(), docUri, displayName);
+            if (renamed == null) {
+                call.reject("renameDocument failed");
+                return;
+            }
+            call.resolve();
+        } catch (Exception ex) {
+            call.reject(ex.getMessage() == null ? "renameEntry failed" : ex.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getEntrySize(PluginCall call) {
+        String treeUriStr = call.getString("treeUri");
+        String relativePath = call.getString("relativePath");
+        if (treeUriStr == null || relativePath == null) {
+            call.reject("treeUri and relativePath required");
+            return;
+        }
+        Uri treeUri = Uri.parse(treeUriStr);
+        String docId = docIdFor(treeUri, relativePath);
+        JSObject result = new JSObject();
+        if (!documentExists(treeUri, docId)) {
+            result.put("size", -1);
+            call.resolve(result);
+            return;
+        }
+        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId);
+        try (Cursor cursor = getContext()
+            .getContentResolver()
+            .query(
+                docUri,
+                new String[] {DocumentsContract.Document.COLUMN_SIZE},
+                null,
+                null,
+                null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int sizeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE);
+                result.put("size", cursor.isNull(sizeIdx) ? -1 : cursor.getLong(sizeIdx));
+            } else {
+                result.put("size", -1);
+            }
+        }
+        call.resolve(result);
+    }
+
+    @PluginMethod
     public void deleteDirectory(PluginCall call) {
         String treeUriStr = call.getString("treeUri");
         String relativePath = call.getString("relativePath");
