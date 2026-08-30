@@ -52,7 +52,7 @@
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
   position: relative;
-  transition: background var(--dur-fast) ease;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 
 .toggle-thumb {
@@ -164,7 +164,7 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
   transition:
-    color var(--dur-fast) ease,
+    color var(--dur-fast) var(--ease-out),
     background var(--dur-fast) ease;
 }
 

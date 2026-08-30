@@ -24,6 +24,7 @@ export interface AlbumCardProps {
   onDownload?: (album: AlbumCardData) => void;
   onDismiss?: (album: AlbumCardData) => void;
   downloading?: boolean;
+  leaving?: boolean;
 }
 
 const COVER_PALETTE = ['#e8d5c0', '#d0dbe8', '#e8d0c8', '#c8d8e0', '#e8d8d0', '#d8e0c8'];
@@ -40,12 +41,15 @@ export const AlbumCard = memo(function AlbumCard({
   onDownload,
   onDismiss,
   downloading,
+  leaving,
 }: AlbumCardProps) {
   const coverSrc = useCoverSrc(album.coverPath, album.filePath);
   const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     setImgFailed(false);
+    setImgLoaded(false);
   }, [album.albumId]);
 
   const tags = album.tags ?? [];
@@ -57,7 +61,7 @@ export const AlbumCard = memo(function AlbumCard({
 
   return (
     <div
-      className="album-card"
+      className={`album-card${leaving ? ' is-leaving' : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onPress?.(album)}
@@ -69,11 +73,12 @@ export const AlbumCard = memo(function AlbumCard({
       >
         {showCover ? (
           <img
-            className="album-cover-img"
+            className={`album-cover-img${imgLoaded ? ' is-loaded' : ''}`}
             src={coverSrc ?? undefined}
             alt={album.title}
             loading="lazy"
             decoding="async"
+            onLoad={() => setImgLoaded(true)}
             onError={() => setImgFailed(true)}
           />
         ) : (

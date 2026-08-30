@@ -7,10 +7,13 @@ import {useDailyStore} from '../stores/daily';
 import {useLibraryStore} from '../stores/library';
 import {useDownloadStore} from '../stores/download';
 import {useSettingsStore} from '../stores/settings';
+import {useToastStore} from '../stores/toast';
 import {useDownloadTask} from '../hooks/useDownloadTask';
 import {topTags, rankTagsByFavorites} from '../library/tags';
 import {buildRecommendationsWithBackfill} from '../library/daily';
 import {filterBlockedAlbums, isBlockedAlbum} from '../../core/model/blocklist';
+
+const DISMISS_EXIT_MS = 220;
 
 export function HomeScreen() {
   const albums = useDailyStore((s) => s.albums);
@@ -31,8 +34,10 @@ export function HomeScreen() {
   const blacklistTags = useSettingsStore((s) => s.settings.blacklistTags);
   const whitelistTags = useSettingsStore((s) => s.settings.whitelistTags);
   const {enqueueAlbum} = useDownloadTask();
+  const showToast = useToastStore((s) => s.show);
 
   const [extraTags, setExtraTags] = useState<Record<number, string[]>>({});
+  const [leavingIds, setLeavingIds] = useState<number[]>([]);
   const enrichedRef = useRef<Set<number>>(new Set());
 
   const favTags = useMemo(() => topTags(libraryItems, 4), [libraryItems]);
@@ -132,22 +137,36 @@ export function HomeScreen() {
       if (queuedIds.has(album.albumId)) return;
       if (isBlockedAlbum(album, blacklistTags)) return;
       enqueueAlbum(album.albumId, album.title);
+      showToast(`已加入下载队列：${album.title}`);
     },
-    [queuedIds, blacklistTags, enqueueAlbum]
+    [queuedIds, blacklistTags, enqueueAlbum, showToast]
   );
 
   const handleDismiss = useCallback(
     (album: AlbumCardData) => {
-      void dismiss(album.albumId);
+      setLeavingIds((prev) => (prev.includes(album.albumId) ? prev : [...prev, album.albumId]));
+      const undo = () => {
+        void releaseDismissed([album.albumId]);
+      };
+      showToast(`已移除：${album.title}`, 'info', {label: '撤销', onPress: undo});
+      setTimeout(() => {
+        setLeavingIds((prev) => prev.filter((id) => id !== album.albumId));
+        void dismiss(album.albumId);
+      }, DISMISS_EXIT_MS);
     },
-    [dismiss]
+    [releaseDismissed, dismiss, showToast]
   );
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     enrichedRef.current.clear();
     setExtraTags({});
-    void refresh(recommendationIds);
-  }, [refresh, recommendationIds]);
+    await refresh(recommendationIds);
+    if (useDailyStore.getState().error && useDailyStore.getState().albums.length > 0) {
+      showToast('刷新失败，已保留当前推荐', 'error');
+    } else {
+      showToast('已刷新');
+    }
+  }, [refresh, recommendationIds, showToast]);
 
   const handleEmptyRefresh = useCallback(() => {
     if (albums.length > 0 && dismissed.length > 0) {
@@ -175,7 +194,7 @@ export function HomeScreen() {
       {error && albums.length === 0 ? (
         <div className="app-empty">
           <EmptyState icon="cloud-off" title="推荐加载失败" hint={error} />
-          <button className="home-retry" type="button" onClick={() => void refresh()}>
+          <button className="home-retry btn-primary" type="button" onClick={() => void refresh()}>
             重试
           </button>
         </div>
@@ -186,12 +205,12 @@ export function HomeScreen() {
       ) : recommendations.length === 0 ? (
         <div className="app-empty">
           <EmptyState icon="photo-library" title="暂无今日推荐" hint="稍后再试或刷新换一批" />
-          <button className="home-retry" type="button" onClick={handleEmptyRefresh}>
+          <button className="home-retry btn-primary" type="button" onClick={handleEmptyRefresh}>
             刷新
           </button>
         </div>
       ) : (
-        <div className={`home-grid${loading ? ' is-refreshing' : ''}`}>
+        <div className={`home-grid grid-cards${loading ? ' is-refreshing' : ''}`}>
           {recommendations.map((album) => (
             <AlbumCard
               key={album.albumId}
@@ -199,6 +218,7 @@ export function HomeScreen() {
               onDownload={handleDownload}
               onDismiss={handleDismiss}
               downloading={queuedIds.has(album.albumId)}
+              leaving={leavingIds.includes(album.albumId)}
             />
           ))}
         </div>

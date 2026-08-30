@@ -17,6 +17,12 @@
   --accent-success-soft: #e4f7ef;
   --accent-danger: #ff3b30;
   --accent-danger-soft: #ffebea;
+  --accent-warning: #ffb020;
+
+  /* favorite star + scrim + focus ring */
+  --color-favorite: #ffd54f;
+  --scrim: rgba(14, 17, 22, 0.45);
+  --focus-ring: 0 0 0 3px rgba(46, 125, 239, 0.32);
 
   /* borders */
   --color-edge: #e3e8ee;
@@ -50,9 +56,14 @@
   --text-xl: 26px;
 
   /* motion (Cirrus ease-out-expo) */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 140ms;
   --dur-base: 220ms;
+  --dur-slow: 320ms;
+
+  /* toast + dialog z-index */
+  --z-toast: calc(var(--z-tabbar) + 300);
 
   /* z-index */
   --z-tabbar: 1000;
@@ -77,6 +88,12 @@
   --accent-success-soft: #0f2f24;
   --accent-danger: #ff453a;
   --accent-danger-soft: #4a1f1c;
+  --accent-warning: #ffc34d;
+
+  /* favorite star + scrim + focus ring */
+  --color-favorite: #ffd54f;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 3px rgba(77, 157, 255, 0.32);
 
   /* borders */
   --color-edge: #2a3038;
@@ -150,4 +167,72 @@ input {
   outline: none;
   background: none;
   color: inherit;
+}
+
+/* Shared primitives */
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--ink-inverse);
+  border-radius: var(--radius-pill);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+  opacity: 0.92;
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* Shared keyframes; referenced across files via tokens where possible. */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+/* Theme switch cross-fade on surfaces (color still jumps; this softens it) */
+.app,
+.app-screen,
+.app-tabbar,
+.settings-group,
+.list-tile,
+.task-tile,
+.album-card,
+.search-bar,
+.category-tab,
+.theme-segmented-item,
+.domain-input,
+.list-tile-input,
+.reader-toolbar {
+  transition:
+    background-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
 }

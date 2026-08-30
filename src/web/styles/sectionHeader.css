@@ -17,7 +17,14 @@
   font-size: var(--text-sm);
   color: var(--accent-primary);
   font-weight: 500;
-  transition: opacity var(--dur-fast) ease;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.section-header-action:active:not(:disabled) {
+  opacity: 0.7;
+  transform: scale(0.96);
 }
 
 .section-header-action:disabled {

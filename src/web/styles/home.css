@@ -18,11 +18,7 @@
 }
 
 .home-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
-  gap: var(--space-4);
-  min-width: 0;
-  transition: opacity var(--dur-base) ease;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 
 .home-grid.is-refreshing {
@@ -33,8 +29,5 @@
   margin: var(--space-4) auto 0;
   display: block;
   padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-pill);
-  background: var(--accent-primary);
-  color: var(--ink-inverse);
   font-size: var(--text-sm);
 }

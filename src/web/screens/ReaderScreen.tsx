@@ -35,6 +35,8 @@ export function ReaderScreen({
   const [pages, setPages] = useState(initialPages);
   const pagesRef = useRef(initialPages);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [pageInput, setPageInput] = useState(String(cachedEntry?.page ?? 1));
   const docRef = useRef<PDFDocumentProxy | null>(cachedEntry?.doc ?? null);
   const pageNumRef = useRef(cachedEntry?.page ?? 1);
   const scaleRef = useRef(cachedEntry?.scale ?? 1.2);
@@ -65,10 +67,7 @@ export function ReaderScreen({
 
   const syncImageToolbarPage = useCallback((p: number) => {
     pageNumRef.current = p;
-    const input = pageInputRef.current;
-    if (input && document.activeElement !== input) {
-      input.value = String(p);
-    }
+    setPageInput(String(p));
     if (prevBtnRef.current) {
       prevBtnRef.current.disabled = p <= 1;
     }
@@ -163,7 +162,14 @@ export function ReaderScreen({
         rafRef.current = 0;
       }
     };
-  }, [target]);
+  }, [target, reloadKey]);
+
+  useEffect(() => {
+    if (isImageMode) return;
+    if (document.activeElement !== pageInputRef.current) {
+      setPageInput(String(page));
+    }
+  }, [page, isImageMode]);
 
   useEffect(() => {
     const doc = docRef.current;
@@ -290,6 +296,23 @@ export function ReaderScreen({
     await paged.reRenderPaged(pagedCtx);
   }, [isImageMode, isScroll, scrollCtx, pagedCtx]);
 
+  const handlePageInputChange = useCallback(
+    (raw: string) => {
+      const digits = raw.replace(/\D/g, '');
+      setPageInput(digits);
+      const v = Number(digits);
+      if (v >= 1) {
+        goTo(v);
+      }
+    },
+    [goTo]
+  );
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setReloadKey((k) => k + 1);
+  }, []);
+
   const handleImageReady = useCallback(
     (total: number) => {
       setPages(total);
@@ -346,26 +369,16 @@ export function ReaderScreen({
               className="reader-page-input"
               type="text"
               inputMode="numeric"
-              defaultValue={page}
-              onChange={(e) => {
-                const v = Number(e.target.value.replace(/\D/g, ''));
-                if (v >= 1) {
-                  goTo(v);
-                }
-              }}
+              value={isImageMode ? pageInput : String(page)}
+              onChange={(e) => handlePageInputChange(e.target.value)}
             />
           ) : (
             <input
               className="reader-page-input"
               type="text"
               inputMode="numeric"
-              value={page}
-              onChange={(e) => {
-                const v = Number(e.target.value.replace(/\D/g, ''));
-                if (v >= 1) {
-                  goTo(v);
-                }
-              }}
+              value={pageInput}
+              onChange={(e) => handlePageInputChange(e.target.value)}
             />
           )}
           <span className="reader-total">/ {pages || '-'}</span>
@@ -417,7 +430,21 @@ export function ReaderScreen({
               ))}
             </div>
           ) : null}
-          {error ? <div className="reader-error">无法打开 PDF：{error}</div> : null}
+          {error ? (
+            <div className="reader-error">
+              <div className="reader-error-actions">
+                <span>无法打开 PDF：{error}</span>
+                <button className="reader-btn" onClick={handleRetry}>
+                  重试
+                </button>
+              </div>
+            </div>
+          ) : pages === 0 ? (
+            <div className="reader-loading">
+              <span className="reader-loading-spinner" />
+              <span>正在加载 PDF…</span>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="reader-paged-area" ref={pagedAreaRef}>
@@ -431,7 +458,21 @@ export function ReaderScreen({
               />
             </>
           ) : null}
-          {error ? <div className="reader-error">无法打开 PDF：{error}</div> : null}
+          {error ? (
+            <div className="reader-error">
+              <div className="reader-error-actions">
+                <span>无法打开 PDF：{error}</span>
+                <button className="reader-btn" onClick={handleRetry}>
+                  重试
+                </button>
+              </div>
+            </div>
+          ) : pages === 0 ? (
+            <div className="reader-loading">
+              <span className="reader-loading-spinner" />
+              <span>正在加载 PDF…</span>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

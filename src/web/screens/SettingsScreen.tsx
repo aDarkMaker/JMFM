@@ -12,6 +12,7 @@ import {TagFilterPanel, FilterMode} from '../components/TagFilterPanel';
 import {useLibraryRepair, RepairOutcome} from '../hooks/useLibraryRepair';
 import {useAppUpdate} from '../hooks/useAppUpdate';
 import {useRepairStore} from '../stores/repair';
+import {useToastStore} from '../stores/toast';
 import {ProgressBar} from '../components/ProgressBar';
 import type {Defect} from '../library/repairLibrary';
 
@@ -50,6 +51,8 @@ export function SettingsScreen() {
   const [newDomain, setNewDomain] = useState('');
   const [filterMode, setFilterMode] = useState<FilterMode>('blacklist');
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [pickingDir, setPickingDir] = useState(false);
+  const showToast = useToastStore((s) => s.show);
 
   useEffect(() => {
     if (!loaded) {
@@ -58,6 +61,8 @@ export function SettingsScreen() {
   }, [loaded, load]);
 
   const handlePickDirectory = async () => {
+    if (pickingDir) return;
+    setPickingDir(true);
     try {
       const result = await FilePicker.pickDirectory();
       if (!result?.path) {
@@ -69,8 +74,12 @@ export function SettingsScreen() {
         downloadTreeUri: result.path,
       });
       await useLibraryStore.getState().load({force: true});
+      showToast('下载目录已更新', 'success');
     } catch (err) {
       console.error('Failed to pick directory:', err);
+      showToast('选择下载目录失败', 'error');
+    } finally {
+      setPickingDir(false);
     }
   };
 
@@ -131,6 +140,7 @@ export function SettingsScreen() {
   const applyRepairOutcome = (outcome: RepairOutcome) => {
     switch (outcome.kind) {
       case 'none':
+        showToast('未发现需要修复的项', 'info');
         return;
       case 'alert':
         setDialog({mode: 'alert', title: outcome.title, message: outcome.message});
@@ -252,6 +262,7 @@ export function SettingsScreen() {
             inputValue={settings.downloadPath}
             inputPlaceholder="JMFMobile/downloads"
             inputReadOnly
+            loading={pickingDir}
             onClick={() => void handlePickDirectory()}
             onInputChange={(v) => void update({downloadPath: v})}
           />
@@ -340,6 +351,7 @@ export function SettingsScreen() {
             subtitle={
               repairPhase === 'scanning' ? '扫描中…' : '检查并补齐缺失的页面与封面'
             }
+            loading={repairPhase === 'scanning'}
             onClick={() => void handleRepairClick()}
           />
           {repairPhase === 'scanning' ? (
@@ -362,6 +374,7 @@ export function SettingsScreen() {
             icon="update"
             title="检查更新"
             subtitle={updateSubtitle}
+            loading={updateStatus === 'checking'}
             onClick={() => void handleCheckUpdate()}
           />
           {(updateStatus === 'downloading' || updateStatus === 'installing') && (
@@ -399,13 +412,16 @@ export function SettingsScreen() {
           }
           if (dialog?.mode === 'update') {
             setDialog(null);
-            void downloadAndInstall().catch((err) => {
-              setDialog({
-                mode: 'alert',
-                title: '更新失败',
-                message: err instanceof Error ? err.message : String(err),
+            void downloadAndInstall()
+              .then(() => showToast('更新已安装', 'success'))
+              .catch((err) => {
+                showToast('更新失败', 'error');
+                setDialog({
+                  mode: 'alert',
+                  title: '更新失败',
+                  message: err instanceof Error ? err.message : String(err),
+                });
               });
-            });
             return;
           }
           setDialog(null);

@@ -10,10 +10,7 @@ export interface SearchBarProps {
 export function SearchBar({value, onChange, placeholder}: SearchBarProps) {
   const [focused, setFocused] = useState(false);
   return (
-    <div
-      className={`search-bar${focused ? ' is-focused' : ''}`}
-      style={focused ? {boxShadow: 'var(--shadow-2)'} : undefined}
-    >
+    <div className={`search-bar${focused ? ' is-focused' : ''}`}>
       <span className="search-bar-icon">
         <Icon name="search" size={20} />
       </span>

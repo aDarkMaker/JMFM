@@ -8,6 +8,22 @@
   box-shadow: var(--shadow-1);
   min-width: 0;
   width: 100%;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.list-tile:active {
+  transform: scale(0.98);
+}
+
+.list-tile.is-loading {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.list-tile.is-loading:active {
+  transform: none;
 }
 
 .list-tile-icon {
@@ -87,12 +103,12 @@
   padding: var(--space-3) var(--space-4);
   width: 100%;
   min-width: 0;
-  transition: box-shadow var(--dur-fast) ease;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .list-tile-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--accent-primary);
+  box-shadow: var(--focus-ring);
 }
 
 .list-tile-input::placeholder {

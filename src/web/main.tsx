@@ -16,6 +16,7 @@ import './styles/settings.css';
 import './styles/tagFilter.css';
 import './styles/reader.css';
 import './styles/confirmDialog.css';
+import './styles/toast.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {

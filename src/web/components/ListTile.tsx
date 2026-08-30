@@ -7,6 +7,7 @@ export interface ListTileProps {
   subtitle?: string;
   trailing?: keyof typeof icons | React.ReactNode;
   onClick?: () => void;
+  loading?: boolean;
   inputValue?: string;
   onInputChange?: (value: string) => void;
   inputPlaceholder?: string;
@@ -21,6 +22,7 @@ export function ListTile({
   subtitle,
   trailing,
   onClick,
+  loading = false,
   inputValue,
   onInputChange,
   inputPlaceholder,
@@ -33,8 +35,9 @@ export function ListTile({
 
   return (
     <button
-      className={`list-tile${isInput ? ' list-tile--input' : ''}${isToggle ? ' list-tile--toggle' : ''}`}
-      onClick={isInput || isToggle ? undefined : onClick}
+      className={`list-tile${isInput ? ' list-tile--input' : ''}${isToggle ? ' list-tile--toggle' : ''}${loading ? ' is-loading' : ''}`}
+      onClick={isInput || isToggle || loading ? undefined : onClick}
+      disabled={loading}
     >
       {isInput ? (
         <div className="list-tile-header" onClick={(e) => e.stopPropagation()}>
@@ -88,6 +91,10 @@ export function ListTile({
           ) : (
             trailing
           )}
+        </span>
+      ) : !isInput && onClick ? (
+        <span className="list-tile-trailing">
+          <Icon name="chevron-right" size={20} />
         </span>
       ) : null}
     </button>

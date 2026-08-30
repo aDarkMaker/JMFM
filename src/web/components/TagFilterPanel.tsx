@@ -16,6 +16,8 @@ export interface TagFilterPanelProps {
   placeholder: string;
 }
 
+type FeedbackKind = 'success' | 'error';
+
 function messageFor(reason: 'empty' | 'duplicate' | 'blocked', tag: string): string {
   switch (reason) {
     case 'empty':
@@ -40,7 +42,7 @@ export function TagFilterPanel({
   placeholder,
 }: TagFilterPanelProps) {
   const [value, setValue] = useState('');
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{kind: FeedbackKind; message: string} | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -49,8 +51,8 @@ export function TagFilterPanel({
     };
   }, []);
 
-  const flashFeedback = (msg: string) => {
-    setFeedback(msg);
+  const flashFeedback = (message: string, kind: FeedbackKind) => {
+    setFeedback({kind, message});
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setFeedback(null), 1500);
   };
@@ -58,12 +60,12 @@ export function TagFilterPanel({
   const submit = () => {
     const result = validateTagInput(value, tags);
     if (!result.ok) {
-      flashFeedback(messageFor(result.reason, value.trim()));
+      flashFeedback(messageFor(result.reason, value.trim()), 'error');
       return;
     }
     onAdd(result.tag);
     setValue('');
-    setFeedback(null);
+    flashFeedback(`已添加「${result.tag}」`, 'success');
   };
 
   const desc =
@@ -143,7 +145,9 @@ export function TagFilterPanel({
       </div>
 
       <div className="tag-filter-feedback-slot" role="status">
-        {feedback ? <span className="tag-filter-feedback">{feedback}</span> : null}
+        {feedback ? (
+          <span className={`tag-filter-feedback is-${feedback.kind}`}>{feedback.message}</span>
+        ) : null}
       </div>
     </div>
   );

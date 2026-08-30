@@ -5,6 +5,7 @@ import {ProgressBar} from '../components/ProgressBar';
 import {EmptyState} from '../components/EmptyState';
 import {SectionHeader} from '../components/SectionHeader';
 import {Icon} from '../components/Icon';
+import {useToastStore} from '../stores/toast';
 import {useDownloadTask} from '../hooks/useDownloadTask';
 import {hasJapanese} from '../hooks/useJapaneseFont';
 
@@ -33,10 +34,15 @@ export function TasksScreen() {
   const resumeAll = useDownloadStore((s) => s.resumeAll);
   const {startDownload, cancel, removeTask, enqueueAlbum} = useDownloadTask();
   const [input, setInput] = useState('');
+  const [shaking, setShaking] = useState(false);
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
   const leavingRef = useRef(new Set<string>());
   const autoRemoveTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const scheduledRemoveRef = useRef(new Set<string>());
+  const showToast = useToastStore((s) => s.show);
+  const notifiedDoneRef = useRef(new Set<string>());
   const ids = parseIds(input);
   const isValid = ids.length > 0;
   const hasRunning = tasks.some((t) => t.status === 'running');
@@ -89,12 +95,14 @@ export function TasksScreen() {
     const autoMap = autoRemoveTimersRef.current;
     const tiles = tileRefs.current;
     return () => {
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
       autoMap.forEach((timer) => clearTimeout(timer));
       autoMap.clear();
       scheduledRemoveRef.current.clear();
       tiles.forEach((el) => gsap.killTweensOf(el));
       tiles.clear();
       leavingRef.current.clear();
+      notifiedDoneRef.current.clear();
     };
   }, []);
 
@@ -102,6 +110,10 @@ export function TasksScreen() {
     for (const t of tasks) {
       if (t.status !== 'done') continue;
       if (scheduledRemoveRef.current.has(t.id) || leavingRef.current.has(t.id)) continue;
+      if (!notifiedDoneRef.current.has(t.id)) {
+        notifiedDoneRef.current.add(t.id);
+        showToast(`「${t.title}」下载完成`, 'success');
+      }
       if (t.done <= 0) {
         scheduledRemoveRef.current.add(t.id);
         startRemove(t.id);
@@ -114,28 +126,46 @@ export function TasksScreen() {
       }, AUTO_REMOVE_MS);
       autoRemoveTimersRef.current.set(t.id, timer);
     }
-  }, [tasks, startRemove]);
+  }, [tasks, startRemove, showToast]);
 
   function handleRemoveTask(taskId: string) {
+    const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
     removeTask(taskId);
     startRemove(taskId);
+    if (task && task.status === 'done') {
+      showToast(`已删除：${task.title}`, 'info');
+    }
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid) {
+      setShaking(true);
+      inputRef.current?.focus();
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+      shakeTimerRef.current = setTimeout(() => setShaking(false), 280);
+      showToast('请输入有效的漫画 ID', 'error');
+      return;
+    }
     const existing = new Set(useDownloadStore.getState().tasks.map((t) => t.albumId));
     const fresh = ids.filter((id) => !existing.has(id));
     if (fresh.length === 0) {
       setInput('');
+      showToast('该漫画已在下载队列', 'info');
       return;
     }
     fresh.forEach((id) => enqueueAlbum(id, `漫画 ${id}`));
     setInput('');
+    showToast(`已加入下载队列：${fresh.length} 本`, 'success');
   }
 
   function handleResume(taskId: string) {
     void startDownload(taskId);
+    const task = useDownloadStore.getState().tasks.find((t) => t.id === taskId);
+    showToast(
+      task?.status === 'error' ? '已重新开始下载' : '已继续下载',
+      'info'
+    );
   }
 
   return (
@@ -144,11 +174,24 @@ export function TasksScreen() {
         title="下载"
         actionLabel={hasRunning ? '全部暂停' : hasPaused ? '全部继续' : undefined}
         actionIcon={hasRunning ? 'pause' : hasPaused ? 'play-arrow' : undefined}
-        onAction={hasRunning ? pauseAll : hasPaused ? resumeAll : undefined}
+        onAction={
+          hasRunning
+            ? () => {
+                pauseAll();
+                showToast('已暂停全部下载', 'info');
+              }
+            : hasPaused
+              ? () => {
+                  resumeAll();
+                  showToast('已继续全部下载', 'info');
+                }
+              : undefined
+        }
       />
       <form className="download-input-section" onSubmit={handleSubmit}>
         <input
-          className="download-input"
+          ref={inputRef}
+          className={`download-input${shaking ? ' is-shaking' : ''}`}
           placeholder="输入漫画ID"
           value={input}
           onChange={(e) => setInput(e.target.value)}

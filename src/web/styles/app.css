@@ -61,7 +61,7 @@
   box-sizing: border-box;
   min-width: 0;
   flex-shrink: 0;
-  transition: transform var(--dur-base) ease;
+  transition: transform var(--dur-base) var(--ease-out);
 }
 
 body.keyboard-open .app-tabbar {
@@ -76,7 +76,7 @@ body.keyboard-open .app-tabbar {
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   color: var(--ink-tertiary);
-  transition: color var(--dur-fast) ease;
+  transition: color var(--dur-fast) var(--ease-out);
   position: relative;
   overflow: hidden;
 }
@@ -90,7 +90,7 @@ body.keyboard-open .app-tabbar {
   opacity: 0;
   transform: scale(0.6);
   transition:
-    opacity var(--dur-base) ease,
+    opacity var(--dur-base) var(--ease-out),
     transform var(--dur-base) var(--ease-spring);
   z-index: -1;
 }

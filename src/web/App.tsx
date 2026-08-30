@@ -5,6 +5,7 @@ import {HomeScreen} from './screens/HomeScreen';
 import {LibraryScreen} from './screens/LibraryScreen';
 import {TasksScreen} from './screens/TasksScreen';
 import {SettingsScreen} from './screens/SettingsScreen';
+import {ToastHost} from './components/Toast';
 import {useSettingsStore} from './stores/settings';
 import {useLibraryStore} from './stores/library';
 import {preloadCovers} from './library/coverCache';
@@ -151,6 +152,7 @@ export function App() {
           <ReaderScreen target={reader} closing={readerClosing} onClose={closeReader} />
         </Suspense>
       ) : null}
+      <ToastHost />
     </div>
   );
 }
