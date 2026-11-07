@@ -63,24 +63,29 @@ log "Syncing Capacitor android ..."
 bunx cap sync android
 
 log "Assembling $VARIANT APK ..."
-cd "$ROOT/android"
-chmod +x ./gradlew
 GRADLE_EXTRA=()
 if [[ "$VARIANT" == "release" ]]; then
   ensure_keystore
 fi
+# Resolve version from repo root before entering android/ (bun import is cwd-relative).
 if [[ -n "${CI_VERSION_CODE:-}" ]]; then
   GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
 elif command -v bun >/dev/null; then
-  CI_VERSION_CODE="$(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().versionCode)")"
+  CI_VERSION_CODE="$(
+    cd "$ROOT" && bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().versionCode)"
+  )"
   GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
 fi
 if [[ -n "${CI_VERSION_NAME:-}" ]]; then
   GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
 elif command -v bun >/dev/null; then
-  CI_VERSION_NAME="$(bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)")"
+  CI_VERSION_NAME="$(
+    cd "$ROOT" && bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)"
+  )"
   GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
 fi
+cd "$ROOT/android"
+chmod +x ./gradlew
 ./gradlew "$GRADLE_TASK" --quiet "${GRADLE_EXTRA[@]}"
 
 APK="$(find "$ROOT/android/app/build/outputs/apk/$VARIANT" -name '*.apk' -type f | head -n 1)"
