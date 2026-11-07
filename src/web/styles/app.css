@@ -5,9 +5,10 @@
   width: 100%;
   min-width: 0;
   overflow-x: hidden;
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  /* Capacitor often reports 0 inset; floor covers notch / Dynamic Island. */
+  padding-top: max(env(safe-area-inset-top, 0px), 59px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   box-sizing: border-box;
 }
 
@@ -44,34 +45,14 @@
   width: 100%;
 }
 
-/* Pull-to-refresh: the gesture translates the scroller itself. */
-.app-screen.is-pulling,
-.app-screen.is-refreshing {
+/* Pull-to-refresh: rubber-band only — no spinner (sticky chrome would hide it). */
+.app-screen.is-pulling {
   will-change: transform;
 }
 
-.app-screen.is-pulling::before,
-.app-screen.is-refreshing::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  width: 22px;
-  height: 22px;
-  margin-left: -11px;
-  border-radius: 50%;
-  border: 2px solid var(--color-edge);
-  border-top-color: var(--accent-primary);
-  opacity: calc(var(--pull-progress, 0) + 0.15);
-  transform: rotate(calc(var(--pull-progress, 0) * 180deg));
-  z-index: 30;
-  pointer-events: none;
-}
-
-.app-screen.is-refreshing::before {
-  animation: spin 700ms linear infinite;
-  opacity: 1;
-  transform: none;
+/* Keep sticky search pinned in screen space while the scroller rubber-bands. */
+.app-screen.is-pulling .home-search-shell {
+  transform: translate3d(0, calc(-1 * var(--pull-y, 0px)), 0);
 }
 
 .app-screen {

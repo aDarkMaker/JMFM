@@ -11,13 +11,21 @@ function scrollerOf(target: EventTarget | null): HTMLElement | null {
 
 function reset(el: HTMLElement) {
   el.classList.remove('is-pulling', 'is-refreshing');
+  el.style.removeProperty('--pull-y');
   el.style.removeProperty('--pull-progress');
   el.style.transform = '';
 }
 
+function touchBlocked(target: EventTarget | null, scroller: HTMLElement): boolean {
+  if (scroller.classList.contains('is-search-locked')) return true;
+  const node = target as HTMLElement | null;
+  return Boolean(node?.closest?.('.home-search-shell'));
+}
+
 /**
  * Touch-only pull-to-refresh for the active tab screen. Gesture is ignored
- * unless the scroller is already at the top.
+ * unless the scroller is already at the top. Sticky search chrome is excluded
+ * so pull rubber-band never fights search focus / morph.
  */
 export function usePullToRefresh(onRefresh: () => Promise<unknown> | unknown) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -39,7 +47,7 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown> | unknown) {
     const onStart = (e: TouchEvent) => {
       if (busy || e.touches.length !== 1) return;
       scroller = scrollerOf(e.target);
-      if (!scroller || scroller.scrollTop > 0) {
+      if (!scroller || scroller.scrollTop > 0 || touchBlocked(e.target, scroller)) {
         scroller = null;
         return;
       }
@@ -58,6 +66,7 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown> | unknown) {
       }
       distance = Math.min(dy * RESISTANCE, PULL_MAX);
       scroller.classList.add('is-pulling');
+      scroller.style.setProperty('--pull-y', `${distance}px`);
       scroller.style.setProperty('--pull-progress', String(Math.min(1, distance / PULL_TRIGGER)));
       scroller.style.transform = `translateY(${distance}px)`;
     };
@@ -74,14 +83,12 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown> | unknown) {
       }
       busy = true;
       distance = 0;
-      el.classList.remove('is-pulling');
-      el.classList.add('is-refreshing');
-      el.style.transform = `translateY(${PULL_TRIGGER / 2}px)`;
+      // Snap back immediately; refresh runs without a spinner overlay.
+      reset(el);
       void Promise.resolve(handler.current())
         .catch(() => undefined)
         .finally(() => {
           busy = false;
-          reset(el);
         });
     };
 
