@@ -9,12 +9,16 @@ const album: AlbumDetail = {
   name: '测试本子',
   description: '',
   author: '',
+  authors: [],
   tags: [],
+  works: [],
+  actors: [],
   scrambleId: 400,
   episodes: [
     {photoId: 100200, sort: 1, name: '第一章'},
     {photoId: 100300, sort: 2, name: '第二章'},
   ],
+  related: [],
 };
 
 function makePhoto(photoId: number): PhotoDetail {

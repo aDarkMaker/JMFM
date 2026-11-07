@@ -16,9 +16,13 @@ export function parseAlbumDetail(html: string): AlbumDetail {
     name,
     description: '',
     author: '',
+    authors: [],
     tags: [],
+    works: [],
+    actors: [],
     scrambleId,
     episodes,
+    related: [],
   };
 }
 
