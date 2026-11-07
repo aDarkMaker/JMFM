@@ -1,6 +1,7 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import {bytesToBase64} from '../util/base64';
-import {Sha256, bytesToHex} from '../util/sha256';
+import {Capacitor, type PluginListenerHandle} from '@capacitor/core';
+import {bytesToBase64, base64ToBytes} from '../util/base64';
+import {Sha256, bytesToHex, sha256HexOf} from '../util/sha256';
 import {streamFetchBytes} from './http';
 import {UPDATE_TIMEOUT} from './constants';
 import {retry} from '../net/retry';
@@ -9,6 +10,7 @@ const APK_CACHE_NAME = 'JMFM-update.apk';
 
 /** Write batch: accumulate before each native write to balance bridge calls and memory. */
 const WRITE_CHUNK_BYTES = 1024 * 1024;
+const HASH_CHUNK_BYTES = 1024 * 1024;
 
 export type DownloadProgress = (loaded: number, total: number) => void;
 
@@ -43,9 +45,106 @@ async function appendChunk(data: Uint8Array, first: boolean): Promise<void> {
   }
 }
 
+/** Hash the cached APK without relying on CapacitorHttp base64 round-trips. */
+async function hashCachedApk(): Promise<string> {
+  if (typeof Filesystem.readFileInChunks === 'function') {
+    const hasher = new Sha256();
+    let bytes = 0;
+    await new Promise<void>((resolve, reject) => {
+      void Filesystem.readFileInChunks(
+        {
+          path: APK_CACHE_NAME,
+          directory: Directory.Cache,
+          chunkSize: HASH_CHUNK_BYTES,
+        },
+        (chunk, err) => {
+          if (err) {
+            reject(err instanceof Error ? err : new Error(String(err)));
+            return;
+          }
+          if (!chunk || chunk.data == null || chunk.data === '') {
+            resolve();
+            return;
+          }
+          if (typeof chunk.data === 'string') {
+            const part = base64ToBytes(chunk.data);
+            hasher.update(part);
+            bytes += part.length;
+          }
+        }
+      ).catch(reject);
+    });
+    if (bytes === 0) throw new Error('APK 下载为空');
+    return bytesToHex(hasher.digest());
+  }
+
+  const res = await Filesystem.readFile({
+    path: APK_CACHE_NAME,
+    directory: Directory.Cache,
+  });
+  const data = res.data;
+  const bytes =
+    typeof data === 'string'
+      ? base64ToBytes(data)
+      : data instanceof Blob
+        ? new Uint8Array(await data.arrayBuffer())
+        : new Uint8Array();
+  if (bytes.length === 0) throw new Error('APK 下载为空');
+  return sha256HexOf(bytes);
+}
+
+async function downloadNative(
+  url: string,
+  onProgress?: DownloadProgress
+): Promise<void> {
+  await deleteCachedApk();
+  let handle: PluginListenerHandle | undefined;
+  try {
+    if (onProgress) {
+      handle = await Filesystem.addListener('progress', (ev) => {
+        if (ev.url && ev.url !== url) return;
+        onProgress(ev.bytes, ev.contentLength || ev.bytes);
+      });
+    }
+    await Filesystem.downloadFile({
+      url,
+      path: APK_CACHE_NAME,
+      directory: Directory.Cache,
+      recursive: true,
+      progress: Boolean(onProgress),
+    });
+  } finally {
+    await handle?.remove();
+  }
+}
+
+async function downloadWeb(
+  url: string,
+  onProgress?: DownloadProgress
+): Promise<string> {
+  await deleteCachedApk();
+  const hasher = new Sha256();
+  let pending: Uint8Array = new Uint8Array();
+  let wroteAny = false;
+  await streamFetchBytes(url, async (chunk, loaded, total) => {
+    hasher.update(chunk);
+    pending = concatBytes(pending, chunk);
+    if (pending.length >= WRITE_CHUNK_BYTES) {
+      await appendChunk(pending, !wroteAny);
+      wroteAny = true;
+      pending = new Uint8Array();
+    }
+    onProgress?.(loaded, total || loaded);
+  });
+  if (pending.length > 0) {
+    await appendChunk(pending, !wroteAny);
+  }
+  return bytesToHex(hasher.digest());
+}
+
 /**
- * Streams the APK to cache while incrementally verifying SHA-256: chunks are received and
- * written incrementally so base64/bytes/hash copies never all stay in memory at once.
+ * Downloads the APK into cache and verifies SHA-256 against version.json.
+ * Native uses Filesystem.downloadFile (follows redirects, no giant base64 bridge).
  */
 export async function downloadApkToCache(
   url: string,
@@ -55,24 +154,12 @@ export async function downloadApkToCache(
   let actualHash = '';
   await retry(
     async () => {
-      await deleteCachedApk();
-      const hasher = new Sha256();
-      let pending: Uint8Array = new Uint8Array();
-      let wroteAny = false;
-      await streamFetchBytes(url, async (chunk, loaded, total) => {
-        hasher.update(chunk);
-        pending = concatBytes(pending, chunk);
-        if (pending.length >= WRITE_CHUNK_BYTES) {
-          await appendChunk(pending, !wroteAny);
-          wroteAny = true;
-          pending = new Uint8Array();
-        }
-        onProgress?.(loaded, total || loaded);
-      });
-      if (pending.length > 0) {
-        await appendChunk(pending, !wroteAny);
+      if (Capacitor.isNativePlatform()) {
+        await downloadNative(url, onProgress);
+        actualHash = await hashCachedApk();
+      } else {
+        actualHash = await downloadWeb(url, onProgress);
       }
-      actualHash = bytesToHex(hasher.digest());
     },
     UPDATE_TIMEOUT.RETRY_ATTEMPTS,
     UPDATE_TIMEOUT.RETRY_INTERVAL_MS
