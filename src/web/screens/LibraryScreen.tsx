@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AlbumCard, AlbumCardData} from '../components/AlbumCard';
 import {SearchBar} from '../components/SearchBar';
 import {EmptyState} from '../components/EmptyState';
+import {AlbumCardSkeleton} from '../components/Skeletons';
 import {SectionHeader} from '../components/SectionHeader';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useLibraryStore, LibraryItem} from '../stores/library';
@@ -9,6 +10,7 @@ import {loadImageDocMeta} from '../reader/image-doc';
 import {createDownloadRuntime} from '../download/createDownloadRuntime';
 import {useSettingsStore} from '../stores/settings';
 import {useToastStore} from '../stores/toast';
+import {useHistoryStore} from '../stores/history';
 
 type CategoryKey = 'all' | 'favorite' | 'downloaded' | 'recent';
 
@@ -19,7 +21,19 @@ const CATEGORIES: {key: CategoryKey; label: string}[] = [
   {key: 'recent', label: '常看'},
 ];
 
-export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem) => void}) {
+type SortKey = 'recent' | 'downloaded' | 'title';
+
+const SORTS: {key: SortKey; label: string}[] = [
+  {key: 'recent', label: '最近阅读'},
+  {key: 'downloaded', label: '最近下载'},
+  {key: 'title', label: '标题'},
+];
+
+export function LibraryScreen({
+  onOpenReader,
+}: {
+  onOpenReader: (item: LibraryItem, startPage?: number) => void;
+}) {
   const items = useLibraryStore((s) => s.items);
   const loaded = useLibraryStore((s) => s.loaded);
   const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
@@ -27,6 +41,7 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
   const markOpened = useLibraryStore((s) => s.markOpened);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryKey>('all');
+  const [sort, setSort] = useState<SortKey>('recent');
   const [pendingDelete, setPendingDelete] = useState<LibraryItem | null>(null);
   const [sliderStyle, setSliderStyle] = useState({left: 0, width: 0});
   const showToast = useToastStore((s) => s.show);
@@ -53,8 +68,6 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
     let list = items;
     if (category === 'favorite') {
       list = list.filter((it) => it.favorite);
-    } else if (category === 'recent') {
-      list = [...list].sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0));
     }
     const q = query.trim().toLowerCase();
     if (q) {
@@ -62,13 +75,21 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
         (it) => it.title.toLowerCase().includes(q) || String(it.albumId).includes(q)
       );
     }
-    return list;
-  }, [items, category, query]);
+    const sorted = [...list];
+    if (sort === 'recent') {
+      sorted.sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0));
+    } else if (sort === 'downloaded') {
+      sorted.sort((a, b) => (b.downloadedAt ?? 0) - (a.downloadedAt ?? 0));
+    } else {
+      sorted.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'));
+    }
+    return sorted;
+  }, [items, category, query, sort]);
 
   const showEmpty = filtered.length === 0;
+  const historyByAlbum = useHistoryStore((s) => s.entries);
   const emptyTitle = query || category !== 'all' ? '未找到匹配的漫画' : '漫画库还是空的';
   const emptyHint = query || category !== 'all' ? '换个关键词或分类试试' : '下载一本漫画开始阅读';
-
   const handleDelete = useCallback(
     (album: AlbumCardData) => {
       const item = items.find((it) => it.albumId === album.albumId);
@@ -92,11 +113,12 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
     (album: AlbumCardData) => {
       const item = items.find((it) => it.albumId === album.albumId);
       if (!item) return;
+      const entry = useHistoryStore.getState().entries[String(item.albumId)];
       markOpened(item.albumId);
       if (item.pagesDir) {
         void loadImageDocMeta(item.pagesDir).catch(() => undefined);
       }
-      onOpenReader(item);
+      onOpenReader(item, entry?.page);
     },
     [items, markOpened, onOpenReader]
   );
@@ -139,26 +161,46 @@ export function LibraryScreen({onOpenReader}: {onOpenReader: (item: LibraryItem)
             ))}
           </div>
         ) : null}
+        {items.length > 0 ? (
+          <div className="sort-row" role="tablist" aria-label="排序">
+            {SORTS.map((s) => (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={sort === s.key}
+                className={`chip chip-sm${sort === s.key ? ' is-active' : ''}`}
+                onClick={() => setSort(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       {!loaded && items.length === 0 ? (
-        <div className="app-empty">
-          <EmptyState icon="auto-stories" title="正在扫描漫画库" hint="正在读取本地资源…" />
-        </div>
+        <AlbumCardSkeleton count={6} />
       ) : showEmpty ? (
-        <div className="app-empty">
+        <div className="app-empty app-empty--fixed">
           <EmptyState icon="photo-library" title={emptyTitle} hint={emptyHint} />
         </div>
       ) : (
         <div className="library-grid grid-cards">
-          {filtered.map((item) => (
-            <AlbumCard
-              key={item.albumId}
-              album={item}
-              onPress={handlePress}
-              onFavorite={handleFavorite}
-              onDelete={handleDelete}
-            />
-          ))}
+          {filtered.map((item) => {
+            const entry = historyByAlbum[String(item.albumId)];
+            return (
+              <AlbumCard
+                key={item.albumId}
+                album={
+                  entry
+                    ? {...item, progress: {page: entry.page, total: entry.total}}
+                    : item
+                }
+                onPress={handlePress}
+                onFavorite={handleFavorite}
+                onDelete={handleDelete}
+              />
+            );
+          })}
         </div>
       )}
       <ConfirmDialog

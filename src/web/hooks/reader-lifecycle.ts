@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {Capacitor} from '@capacitor/core';
 import {App as CapacitorApp} from '@capacitor/app';
 import {ReaderTarget} from '../reader/types';
+import {useNavStore} from '../stores/nav';
 
 const CLOSE_MS = 220;
 
@@ -52,7 +53,12 @@ export function useReaderLifecycle() {
     const h = CapacitorApp.addListener('backButton', () => {
       if (readerRef.current && !closingRef.current) {
         closeReader();
-      } else if (!readerRef.current) {
+        return;
+      }
+      // Reader is gone; nav overlays (discover/search/detail) pop next.
+      if (useNavStore.getState().stack.length > 0) {
+        useNavStore.getState().back();
+      } else {
         void CapacitorApp.minimizeApp();
       }
     });

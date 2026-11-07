@@ -22,7 +22,7 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
     return () => clearTimeout(t);
   }, [leaving, item.id, onDone]);
 
-  const icon = item.type === 'success' ? 'check-circle' : item.type === 'error' ? 'error' : 'info';
+  const icon = item.type === 'success' ? 'check-circle' : item.type === 'error' ? 'warning' : 'info';
 
   return (
     <div className={`toast toast-${item.type}${leaving ? ' is-leaving' : ''}`} role="status">

@@ -3,10 +3,13 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
-  background: var(--surface-card);
+  background: var(--surface-raised);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-1);
-  transition: box-shadow var(--dur-fast) var(--ease-out);
+  min-width: 0;
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
 }
 
 .search-bar.is-focused {
@@ -15,7 +18,6 @@
 
 .search-bar-icon {
   color: var(--ink-tertiary);
-  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,8 +26,17 @@
 
 .search-bar-input {
   flex: 1;
+  min-width: 0;
   font-size: var(--text-base);
   color: var(--ink-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+  appearance: none;
+}
+
+.search-bar-input::-webkit-search-cancel-button {
+  appearance: none;
 }
 
 .search-bar-input::placeholder {
@@ -33,8 +44,20 @@
 }
 
 .search-bar-clear {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
   color: var(--ink-tertiary);
-  font-size: 18px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.search-bar-clear:active {
+  background: var(--surface-sunken);
+  color: var(--ink-primary);
 }

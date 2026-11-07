@@ -8,6 +8,7 @@ import {ImageReader, ImageReaderHandle} from '../reader/image-reader';
 import * as paged from '../reader/paged-viewer';
 import * as scroll from '../reader/scroll-viewer';
 import {useTouchGestures} from '../reader/useTouchGestures';
+import {useHistoryStore} from '../stores/history';
 
 export type {ReaderTarget} from '../reader/types';
 
@@ -22,7 +23,7 @@ export function ReaderScreen({
 }) {
   const readerMode = useSettingsStore((s) => s.settings.readerMode);
   const isScroll = readerMode === 'scroll';
-  const isImageMode = target.pagesDir != null;
+  const isImageMode = target.pagesDir != null || target.online != null;
   const cachedEntry = useRef(getDocCache(target.filePath)).current;
   const initialPages = target.pageCount ?? cachedEntry?.numPages ?? 0;
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -75,6 +76,23 @@ export function ReaderScreen({
       nextBtnRef.current.disabled = pagesRef.current > 0 && p >= pagesRef.current;
     }
   }, []);
+
+  const recordProgress = useCallback(
+    (p: number) => {
+      if (!target.albumId) return;
+      const total = pagesRef.current;
+      if (total <= 0) return;
+      useHistoryStore.getState().record({
+        albumId: target.albumId,
+        title: target.title,
+        ...(target.photoId != null ? {photoId: target.photoId} : {}),
+        ...(target.chapterSort != null ? {chapterSort: target.chapterSort} : {}),
+        page: p,
+        total,
+      });
+    },
+    [target.albumId, target.title, target.photoId, target.chapterSort]
+  );
 
   const pagedCtx: paged.PagedViewerCtx = {
     pagedAreaRef,
@@ -252,6 +270,7 @@ export function ReaderScreen({
     }
     const n = clamp(next, 1, pages);
     if (n === pageNumRef.current) return;
+    recordProgress(n);
     if (isScroll) {
       pageNumRef.current = n;
       setPage(n);
@@ -325,10 +344,10 @@ export function ReaderScreen({
   const handleImagePageChange = useCallback(
     (p: number) => {
       syncImageToolbarPage(p);
+      recordProgress(p);
     },
-    [syncImageToolbarPage]
+    [syncImageToolbarPage, recordProgress]
   );
-
   const handleImageError = useCallback((e: string | null) => {
     setError(e);
   }, []);
@@ -361,7 +380,7 @@ export function ReaderScreen({
             disabled={(isImageMode ? pageNumRef.current : page) <= 1}
             aria-label="上一页"
           >
-            <Icon name="chevron-right" size={20} style={{transform: 'rotate(180deg)'}} />
+            <Icon name="chevron-left" size={20} />
           </button>
           {isImageMode ? (
             <input
@@ -407,8 +426,10 @@ export function ReaderScreen({
       {isImageMode ? (
         <ImageReader
           ref={imageReaderRef}
-          pagesDir={target.pagesDir!}
+          pagesDir={target.pagesDir}
+          online={target.online}
           pageCount={target.pageCount}
+          startPage={target.startPage}
           mode={isScroll ? 'scroll' : 'paged'}
           onPageChange={handleImagePageChange}
           onReady={handleImageReady}

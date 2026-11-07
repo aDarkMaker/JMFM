@@ -12,10 +12,23 @@ import {useDownloadTask} from '../hooks/useDownloadTask';
 import {topTags, rankTagsByFavorites} from '../library/tags';
 import {buildRecommendationsWithBackfill} from '../library/daily';
 import {filterBlockedAlbums, isBlockedAlbum} from '../../core/model/blocklist';
+import {ContinueReading} from '../components/ContinueReading';
+import {CategoryChips} from '../components/CategoryChips';
+import {HomeHero} from '../components/HomeHero';
+import {HomeSearch} from '../components/HomeSearch';
+import {RankList} from '../components/RankList';
+import {UpdateList} from '../components/UpdateList';
+import {AlbumCardSkeleton} from '../components/Skeletons';
+import {useNavStack} from '../hooks/useNavStack';
+import {useBrowseStore} from '../stores/browse';
+import {SORT} from '../../core/constants/sort';
+import type {ReaderTarget} from '../reader/types';
 
 const DISMISS_EXIT_MS = 220;
+const RANK_LIMIT = 10;
+const UPDATE_LIMIT = 12;
 
-export function HomeScreen() {
+export function HomeScreen({onOpenReader}: {onOpenReader: (target: ReaderTarget) => void}) {
   const albums = useDailyStore((s) => s.albums);
   const dismissed = useDailyStore((s) => s.dismissed);
   const loading = useDailyStore((s) => s.loading);
@@ -35,6 +48,10 @@ export function HomeScreen() {
   const whitelistTags = useSettingsStore((s) => s.settings.whitelistTags);
   const {enqueueAlbum} = useDownloadTask();
   const showToast = useToastStore((s) => s.show);
+  const {pushDiscover, pushDetail} = useNavStack();
+  const hot = useBrowseStore((s) => s.hot);
+  const loadHot = useBrowseStore((s) => s.loadHot);
+  const loadCategories = useBrowseStore((s) => s.loadCategories);
 
   const [extraTags, setExtraTags] = useState<Record<number, string[]>>({});
   const [leavingIds, setLeavingIds] = useState<number[]>([]);
@@ -44,26 +61,54 @@ export function HomeScreen() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadHot();
+    void loadCategories();
+  }, [load, loadHot, loadCategories]);
 
   const dismissedSet = useMemo(() => new Set(dismissed), [dismissed]);
   const refreshExclude = useDailyStore((s) => s.refreshExclude);
   const protectedSet = useMemo(() => new Set(refreshExclude), [refreshExclude]);
 
+  const ranked = useMemo(
+    () => filterBlockedAlbums(hot, blacklistTags).slice(0, RANK_LIMIT),
+    [hot, blacklistTags]
+  );
+
+  /** 本周焦点 = 本周热度榜第 1（API `mv_w`）；无榜时退回观看/点赞最高。 */
+  const hero = useMemo(() => {
+    if (ranked.length > 0) return ranked[0]!;
+    if (albums.length === 0) return null;
+    return albums.reduce((best, a) => {
+      const score = (x: typeof a) => (x.viewsCount ?? 0) * 10 + (x.likesCount ?? 0);
+      return score(a) > score(best) ? a : best;
+    });
+  }, [ranked, albums]);
+
+  const recommendExclude = useMemo(() => {
+    const ids = new Set(dismissedSet);
+    if (hero) ids.add(hero.albumId);
+    return ids;
+  }, [dismissedSet, hero]);
+
   const {picks: rawPicks, releasedIds} = useMemo(
     () =>
       buildRecommendationsWithBackfill(albums, favTags, 6, {
         whitelistTags,
-        excludeIds: dismissedSet,
+        excludeIds: recommendExclude,
         protectedIds: protectedSet,
       }),
-    [albums, favTags, whitelistTags, dismissedSet, protectedSet]
+    [albums, favTags, whitelistTags, recommendExclude, protectedSet]
   );
 
   const recommendations = useMemo(
     () => filterBlockedAlbums(rawPicks, blacklistTags),
     [rawPicks, blacklistTags]
   );
+
+  const updates = useMemo(() => {
+    const list = albums.filter((a) => a.updateAt != null);
+    return [...list].sort((a, b) => (b.updateAt ?? 0) - (a.updateAt ?? 0)).slice(0, UPDATE_LIMIT);
+  }, [albums]);
 
   // Persist any dismissed ids released to backfill the grid, so picks hold.
   // Skip while loading: the pool expand path re-reads dismissed itself.
@@ -77,7 +122,11 @@ export function HomeScreen() {
   const recommendationIds = useMemo(() => recommendations.map((a) => a.albumId), [recommendations]);
 
   useEffect(() => {
-    const ids = recommendationIds.filter((id) => !enrichedRef.current.has(id));
+    // Only albums the pool could not enrich need a detail request; the tag
+    // cache dedupes whatever is already known.
+    const ids = recommendations
+      .filter((a) => (!a.tags || a.tags.length === 0) && !enrichedRef.current.has(a.albumId))
+      .map((a) => a.albumId);
     if (ids.length === 0) return;
     void fetchAlbumTags(ids).then((tagsMap) => {
       for (const id of ids) {
@@ -104,7 +153,7 @@ export function HomeScreen() {
         return next;
       });
     });
-  }, [recommendationIds, fetchAlbumTags]);
+  }, [recommendations, recommendationIds, fetchAlbumTags]);
 
   const queuedIds = useMemo(() => {
     const ids = new Set(queuedTaskAlbumIds);
@@ -130,7 +179,7 @@ export function HomeScreen() {
       });
     }
     return map;
-  }, [recommendations, extraTags]);
+  }, [recommendations, extraTags, favTags]);
 
   const handleDownload = useCallback(
     (album: AlbumCardData) => {
@@ -176,34 +225,40 @@ export function HomeScreen() {
     }
   }, [albums.length, dismissed.length, resetDismissed, refresh]);
 
+  const openAlbum = useCallback(
+    (album: {albumId: number; name: string}) => pushDetail(album.albumId, album.name),
+    [pushDetail]
+  );
+
   const subtitle = favTags.length > 0 ? `偏爱 · ${favTags.join(' / ')}` : '每日推荐 · 精选漫画';
 
   return (
     <div className="app-screen">
-      <div className="home-hero">
-        <span className="home-hero-title">JMFM</span>
-        <span className="home-hero-subtitle">{subtitle}</span>
-      </div>
+      <HomeSearch onOpenAlbum={(id, title) => pushDetail(id, title)} />
+
+      {hero ? <HomeHero album={hero} onPress={openAlbum} /> : null}
+
+      <ContinueReading limit={5} onOpen={onOpenReader} />
+
       <SectionHeader
         title="今日推荐"
+        subtitle={subtitle}
         actionLabel="刷新"
         actionIcon="refresh"
         actionLoading={loading && albums.length > 0}
         onAction={handleRefresh}
       />
       {error && albums.length === 0 ? (
-        <div className="app-empty">
+        <div className="app-empty app-empty--fixed">
           <EmptyState icon="cloud-off" title="推荐加载失败" hint={error} />
           <button className="home-retry btn-primary" type="button" onClick={() => void refresh()}>
             重试
           </button>
         </div>
       ) : loading && albums.length === 0 ? (
-        <div className="app-empty">
-          <EmptyState icon="cloud-download" title="正在拉取今日漫画" hint="仅缓存元数据与封面" />
-        </div>
+        <AlbumCardSkeleton count={6} />
       ) : recommendations.length === 0 ? (
-        <div className="app-empty">
+        <div className="app-empty app-empty--fixed">
           <EmptyState icon="photo-library" title="暂无今日推荐" hint="稍后再试或刷新换一批" />
           <button className="home-retry btn-primary" type="button" onClick={handleEmptyRefresh}>
             刷新
@@ -215,6 +270,7 @@ export function HomeScreen() {
             <AlbumCard
               key={album.albumId}
               album={cardAlbums.get(album.albumId)!}
+              onPress={(card) => pushDetail(card.albumId, card.title)}
               onDownload={handleDownload}
               onDismiss={handleDismiss}
               downloading={queuedIds.has(album.albumId)}
@@ -223,6 +279,34 @@ export function HomeScreen() {
           ))}
         </div>
       )}
+
+      <SectionHeader
+        title="分类"
+        actionLabel="全部"
+        actionIcon="chevron-right"
+        onAction={() => pushDiscover()}
+      />
+      <CategoryChips onPick={(slug) => pushDiscover({category: slug})} />
+
+      {ranked.length > 0 ? (
+        <>
+          <SectionHeader
+            title="人气榜"
+            subtitle="本周热度"
+            actionLabel="更多"
+            actionIcon="chevron-right"
+            onAction={() => pushDiscover({order: SORT.WEEK_HOT})}
+          />
+          <RankList albums={ranked} onPress={openAlbum} />
+        </>
+      ) : null}
+
+      {updates.length > 0 ? (
+        <>
+          <SectionHeader title="最近更新" />
+          <UpdateList albums={updates} onPress={openAlbum} />
+        </>
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import {Icon} from './Icon';
 
 export interface SectionHeaderProps {
   title: string;
+  subtitle?: string;
   actionLabel?: string;
   actionIcon?: keyof typeof icons;
   actionLoading?: boolean;
@@ -11,6 +12,7 @@ export interface SectionHeaderProps {
 
 export function SectionHeader({
   title,
+  subtitle,
   actionLabel,
   actionIcon,
   actionLoading,
@@ -18,7 +20,10 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div className="section-header">
-      <span className="section-header-title">{title}</span>
+      <div className="section-header-text">
+        <span className="section-header-title">{title}</span>
+        {subtitle ? <span className="section-header-subtitle">{subtitle}</span> : null}
+      </div>
       {actionLabel ? (
         <button
           className={`section-header-action${actionLoading ? ' is-loading' : ''}`}

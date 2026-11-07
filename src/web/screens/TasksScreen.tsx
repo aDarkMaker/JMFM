@@ -202,7 +202,7 @@ export function TasksScreen() {
       </form>
       {tasks.length === 0 ? (
         <div className="app-empty">
-          <EmptyState icon="cloud-download" title="暂无下载任务" hint="在上方输入漫画ID开始下载" />
+          <EmptyState icon="download" title="暂无下载任务" hint="在上方输入漫画ID开始下载" />
         </div>
       ) : (
         <div className="tasks-stack">

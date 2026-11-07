@@ -3,11 +3,25 @@ import type {
   PDFDocumentLoadingTask,
 } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
+export interface OnlineReaderSource {
+  albumId: number;
+  photoId: number;
+  scrambleId?: number;
+}
+
 export interface ReaderTarget {
   filePath: string;
   title: string;
   pageCount?: number;
   pagesDir?: string;
+  /** Stream pages from the API (decoded in-memory); preferred when no local copy. */
+  online?: OnlineReaderSource;
+  /** Album this read belongs to, used for resume/history. */
+  albumId?: number;
+  /** Chapter (photo) id for multi-episode albums. */
+  photoId?: number;
+  chapterSort?: number;
+  startPage?: number;
 }
 
 export interface DocCacheEntry {

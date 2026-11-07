@@ -32,15 +32,17 @@ export function ListTile({
 }: ListTileProps) {
   const isInput = inputValue !== undefined;
   const isToggle = toggleValue !== undefined;
+  // Interactive trailing content must not nest inside a button element.
+  const hasCustomTrailing =
+    trailing !== undefined && !(typeof trailing === 'string' && trailing in icons);
+  const interactive = !isInput && !isToggle && !hasCustomTrailing && onClick != null;
 
-  return (
-    <button
-      className={`list-tile${isInput ? ' list-tile--input' : ''}${isToggle ? ' list-tile--toggle' : ''}${loading ? ' is-loading' : ''}`}
-      onClick={isInput || isToggle || loading ? undefined : onClick}
-      disabled={loading}
-    >
+  const className = `list-tile${isInput ? ' list-tile--input' : ''}${isToggle ? ' list-tile--toggle' : ''}${loading ? ' is-loading' : ''}`;
+
+  const content = (
+    <>
       {isInput ? (
-        <div className="list-tile-header" onClick={(e) => e.stopPropagation()}>
+        <div className="list-tile-header">
           <span className="list-tile-icon">
             <Icon name={icon} size={22} />
           </span>
@@ -84,19 +86,59 @@ export function ListTile({
             <span className="toggle-thumb" />
           </span>
         </label>
-      ) : trailing && !isInput ? (
-        <span className="list-tile-trailing">
-          {typeof trailing === 'string' && trailing in icons ? (
-            <Icon name={trailing as keyof typeof icons} size={20} />
-          ) : (
-            trailing
-          )}
-        </span>
+      ) : trailing !== undefined && !isInput ? (
+        interactive ? (
+          <span className="list-tile-trailing">
+            {typeof trailing === 'string' && trailing in icons ? (
+              <Icon name={trailing as keyof typeof icons} size={20} />
+            ) : (
+              trailing
+            )}
+          </span>
+        ) : (
+          <div className="list-tile-trailing">
+            {typeof trailing === 'string' && trailing in icons ? (
+              <Icon name={trailing as keyof typeof icons} size={20} />
+            ) : (
+              trailing
+            )}
+          </div>
+        )
       ) : !isInput && onClick ? (
         <span className="list-tile-trailing">
           <Icon name="chevron-right" size={20} />
         </span>
       ) : null}
+    </>
+  );
+
+  if (!interactive) {
+    // isInput rows keep their handler on the input; the rest of the row stays inert.
+    const rowClick = isInput && onClick ? onClick : undefined;
+    return (
+      <div
+        className={className}
+        role="group"
+        {...(rowClick
+          ? {
+              onClick: rowClick,
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  rowClick();
+                }
+              },
+            }
+          : {})}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button className={className} onClick={onClick} disabled={loading}>
+      {content}
     </button>
   );
 }

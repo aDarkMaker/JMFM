@@ -1,0 +1,197 @@
+.nav-layer {
+  position: fixed;
+  inset: 0;
+  /* Above tabbar so overlays never flash chrome underneath. */
+  z-index: calc(var(--z-tabbar) + 50);
+  animation: nav-enter 320ms var(--ease-emphasized) both;
+  background: var(--surface-canvas);
+  box-shadow: -12px 0 32px color-mix(in srgb, #000 28%, transparent);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.nav-layer.is-search {
+  animation: search-enter 280ms var(--ease-out) both;
+  box-shadow: none;
+}
+
+.nav-layer.is-closing {
+  animation: nav-exit 240ms var(--ease-emphasized) forwards;
+  pointer-events: none;
+}
+
+.nav-layer.is-search.is-closing {
+  animation: search-exit 200ms var(--ease-out) forwards;
+}
+
+@keyframes nav-enter {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes nav-exit {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+@keyframes search-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes search-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-layer,
+  .nav-layer.is-search,
+  .nav-layer.is-closing,
+  .nav-layer.is-search.is-closing {
+    animation-duration: 1ms;
+  }
+}
+
+.nav-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-canvas);
+  min-width: 0;
+}
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-top: calc(var(--space-2) + max(env(safe-area-inset-top), 32px));
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--color-edge);
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-primary);
+  flex-shrink: 0;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.nav-btn:active {
+  background: var(--surface-sunken);
+  transform: scale(0.94);
+}
+
+.nav-title {
+  flex: 1;
+  font-size: var(--text-base);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.nav-bar-search {
+  gap: var(--space-2);
+  padding-left: var(--space-2);
+  padding-right: var(--space-4);
+}
+
+.nav-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-search .search-bar {
+  height: 40px;
+  background: var(--surface-sunken);
+  box-shadow: none;
+  padding: 0 var(--space-4);
+}
+
+.nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Nav sits above the tabbar; only need end breathing room + home indicator. */
+  padding: 0 var(--space-4) calc(var(--space-8) + max(env(safe-area-inset-bottom), 20px));
+  min-width: 0;
+  position: relative;
+}
+
+.nav-scroll.is-switching::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  transform-origin: left center;
+  animation: feed-progress 1s var(--ease-out) infinite;
+}
+
+@keyframes feed-progress {
+  0% {
+    transform: scaleX(0.1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleX(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.app-content {
+  transition: opacity 280ms var(--ease-out);
+}
+
+.app-content.is-covered {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 280ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-content,
+  .app-content.is-covered {
+    transition-duration: 1ms;
+  }
+}

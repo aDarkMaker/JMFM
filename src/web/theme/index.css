@@ -1,43 +1,106 @@
+/* Design tokens: primitive → semantic.
+   Colors preserve the original Cirrus palette; dark is the default theme. */
+
 :root {
-  /* surfaces (Cirrus: cloud white / light fill) */
-  --surface-canvas: #f3f6fa;
-  --surface-card: #ffffff;
-  --surface-sunken: #eef2f6;
+  /* ---- primitives ---- */
+  --c-ink-950: #0a0c10;
+  --c-ink-900: #0e1116;
+  --c-ink-850: #101318;
+  --c-ink-800: #191d24;
+  --c-ink-700: #232832;
+  --c-ink-600: #2a3038;
+  --c-ink-400: #6b7583;
+  --c-ink-300: #9aa4b2;
+  --c-ink-200: #c2cad6;
+  --c-ink-050: #f2f4f8;
+  --c-ink-000: #ffffff;
 
-  /* ink (Cirrus: ink / mist / placeholder) */
-  --ink-primary: #0e1116;
-  --ink-secondary: #5b6472;
-  --ink-tertiary: #8a93a3;
-  --ink-inverse: #ffffff;
+  --c-blue-400: #4d9dff;
+  --c-blue-500: #2e7def;
+  --c-blue-900: #16304d;
+  --c-blue-050: #e8f0fe;
 
-  /* accent (Cirrus: signal / meadow) */
-  --accent-primary: #2e7def;
-  --accent-primary-soft: #e8f0fe;
-  --accent-success: #2bc48a;
-  --accent-success-soft: #e4f7ef;
-  --accent-danger: #ff3b30;
-  --accent-danger-soft: #ffebea;
-  --accent-warning: #ffb020;
+  --c-jade-400: #36d29a;
+  --c-jade-500: #2bc48a;
+  --c-jade-900: #0f2f24;
+  --c-jade-050: #e4f7ef;
 
-  /* favorite star + scrim + focus ring */
-  --color-favorite: #ffd54f;
-  --scrim: rgba(14, 17, 22, 0.45);
-  --focus-ring: 0 0 0 3px rgba(46, 125, 239, 0.32);
+  --c-rose-400: #ff453a;
+  --c-rose-500: #ff3b30;
+  --c-rose-900: #4a1f1c;
+  --c-rose-050: #ffebea;
 
-  /* borders */
-  --color-edge: #e3e8ee;
+  --c-amber-400: #ffc34d;
+  --c-amber-500: #ffb020;
+  --c-gold-400: #ffd54f;
 
-  /* radii */
+  --c-tint-1: #3b2b33;
+  --c-tint-2: #2b3340;
+  --c-tint-3: #3a2f28;
+  --c-tint-4: #2c3a36;
+  --c-tint-5: #35304a;
+  --c-tint-6: #40332b;
+
+  /* ---- semantic: surfaces (dark) ---- */
+  --surface-canvas: var(--c-ink-850);
+  --surface-card: var(--c-ink-800);
+  --surface-raised: #1e232b;
+  --surface-sunken: var(--c-ink-700);
+  --surface-overlay: rgba(0, 0, 0, 0.6);
+
+  /* ---- semantic: ink ---- */
+  --ink-primary: var(--c-ink-050);
+  --ink-secondary: var(--c-ink-300);
+  --ink-tertiary: var(--c-ink-400);
+  --ink-inverse: var(--c-ink-900);
+
+  /* ---- semantic: accent (Cirrus blue) ---- */
+  --accent-primary: var(--c-blue-400);
+  --accent-primary-soft: var(--c-blue-900);
+  --accent-primary-strong: var(--c-blue-500);
+  --accent-success: var(--c-jade-400);
+  --accent-success-soft: var(--c-jade-900);
+  --accent-danger: var(--c-rose-400);
+  --accent-danger-soft: var(--c-rose-900);
+  --accent-warning: var(--c-amber-400);
+
+  /* ---- cover ---- */
+  --cover-scrim: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.45) 42%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  --cover-scrim-full: linear-gradient(
+    to top,
+    var(--surface-canvas) 0%,
+    rgba(0, 0, 0, 0.65) 48%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  --cover-tint-1: var(--c-tint-1);
+  --cover-tint-2: var(--c-tint-2);
+  --cover-tint-3: var(--c-tint-3);
+  --cover-tint-4: var(--c-tint-4);
+  --cover-tint-5: var(--c-tint-5);
+  --cover-tint-6: var(--c-tint-6);
+
+  --color-edge: var(--c-ink-600);
+  --hairline: 1px solid var(--color-edge);
+  --scrim: var(--surface-overlay);
+  --scrim-weak: rgba(0, 0, 0, 0.45);
+  --color-favorite: var(--c-gold-400);
+  --focus-ring: 0 0 0 3px rgba(77, 157, 255, 0.32);
+
   --radius-pill: 999px;
+  --radius-xl: 32px;
   --radius-lg: 28px;
   --radius-md: 20px;
   --radius-sm: 14px;
 
-  /* elevation (Cirrus layered ink shadows) */
-  --shadow-1: 0 1px 1px rgba(14, 17, 22, 0.05), 0 20px 40px -20px rgba(14, 17, 22, 0.25);
-  --shadow-2: 0 1px 1px rgba(14, 17, 22, 0.06), 0 24px 48px -24px rgba(14, 17, 22, 0.35);
+  --shadow-1: 0 1px 1px rgba(0, 0, 0, 0.3), 0 20px 40px -20px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 1px 1px rgba(0, 0, 0, 0.35), 0 24px 48px -24px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 2px 2px rgba(0, 0, 0, 0.4), 0 32px 64px -28px rgba(0, 0, 0, 0.55);
 
-  /* spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -46,7 +109,6 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  /* typography */
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'Alimama ShuHeiTi', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --text-xs: 12px;
@@ -54,53 +116,73 @@
   --text-base: 16px;
   --text-lg: 20px;
   --text-xl: 26px;
+  --text-2xl: 34px;
+  --text-hero: 44px;
 
-  /* motion (Cirrus ease-out-expo) */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.9, 0.2, 1);
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 140ms;
   --dur-base: 220ms;
   --dur-slow: 320ms;
 
-  /* toast + dialog z-index */
-  --z-toast: calc(var(--z-tabbar) + 300);
-
-  /* z-index */
   --z-tabbar: 1000;
+  --z-toast: calc(var(--z-tabbar) + 300);
+  color-scheme: dark;
 }
 
-[data-theme='dark'] {
-  /* surfaces */
-  --surface-canvas: #101318;
-  --surface-card: #191d24;
-  --surface-sunken: #232832;
+[data-theme='light'] {
+  color-scheme: light;
 
-  /* ink */
-  --ink-primary: #f2f4f8;
-  --ink-secondary: #9aa4b2;
-  --ink-tertiary: #6b7583;
-  --ink-inverse: #0e1116;
+  --surface-canvas: #f3f6fa;
+  --surface-card: var(--c-ink-000);
+  --surface-raised: var(--c-ink-000);
+  --surface-sunken: #eef2f6;
+  --surface-overlay: rgba(14, 17, 22, 0.45);
 
-  /* accent */
-  --accent-primary: #4d9dff;
-  --accent-primary-soft: #16304d;
-  --accent-success: #36d29a;
-  --accent-success-soft: #0f2f24;
-  --accent-danger: #ff453a;
-  --accent-danger-soft: #4a1f1c;
-  --accent-warning: #ffc34d;
+  --ink-primary: var(--c-ink-900);
+  --ink-secondary: #5b6472;
+  --ink-tertiary: #8a93a3;
+  --ink-inverse: var(--c-ink-000);
 
-  /* favorite star + scrim + focus ring */
-  --color-favorite: #ffd54f;
-  --scrim: rgba(0, 0, 0, 0.6);
-  --focus-ring: 0 0 0 3px rgba(77, 157, 255, 0.32);
+  --accent-primary: var(--c-blue-500);
+  --accent-primary-soft: var(--c-blue-050);
+  --accent-primary-strong: #1f6ad6;
+  --accent-success: var(--c-jade-500);
+  --accent-success-soft: var(--c-jade-050);
+  --accent-danger: var(--c-rose-500);
+  --accent-danger-soft: var(--c-rose-050);
+  --accent-warning: var(--c-amber-500);
 
-  /* borders */
-  --color-edge: #2a3038;
+  --cover-scrim: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.35) 42%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  --cover-scrim-full: linear-gradient(
+    to top,
+    var(--surface-canvas) 0%,
+    rgba(0, 0, 0, 0.55) 48%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+  --cover-tint-1: #e8d5c0;
+  --cover-tint-2: #d0dbe8;
+  --cover-tint-3: #e8d0c8;
+  --cover-tint-4: #c8d8e0;
+  --cover-tint-5: #e8d8d0;
+  --cover-tint-6: #d8e0c8;
 
-  /* elevation */
-  --shadow-1: 0 1px 1px rgba(0, 0, 0, 0.3), 0 20px 40px -20px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 1px 1px rgba(0, 0, 0, 0.35), 0 24px 48px -24px rgba(0, 0, 0, 0.5);
+  --color-edge: #e3e8ee;
+  --hairline: 1px solid var(--color-edge);
+  --scrim: var(--surface-overlay);
+  --scrim-weak: rgba(0, 0, 0, 0.35);
+  --color-favorite: var(--c-gold-400);
+  --focus-ring: 0 0 0 3px rgba(46, 125, 239, 0.32);
+
+  --shadow-1: 0 1px 1px rgba(14, 17, 22, 0.05), 0 20px 40px -20px rgba(14, 17, 22, 0.25);
+  --shadow-2: 0 1px 1px rgba(14, 17, 22, 0.06), 0 24px 48px -24px rgba(14, 17, 22, 0.35);
+  --shadow-3: 0 2px 2px rgba(14, 17, 22, 0.06), 0 32px 64px -28px rgba(14, 17, 22, 0.4);
 }
 
 html {
@@ -169,7 +251,6 @@ input {
   color: inherit;
 }
 
-/* Shared primitives */
 .btn-primary {
   background: var(--accent-primary);
   color: var(--ink-inverse);
@@ -186,12 +267,27 @@ input {
 
 .grid-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
   min-width: 0;
+  width: 100%;
 }
 
-/* Shared keyframes; referenced across files via tokens where possible. */
+@media (min-width: 520px) {
+  .grid-cards {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+    gap: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -217,7 +313,6 @@ input {
   }
 }
 
-/* Theme switch cross-fade on surfaces (color still jumps; this softens it) */
 .app,
 .app-screen,
 .app-tabbar,

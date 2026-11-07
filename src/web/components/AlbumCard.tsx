@@ -1,6 +1,6 @@
-import {memo, useEffect, useState} from 'react';
+import {memo} from 'react';
 import {Icon} from './Icon';
-import {useCoverSrc} from '../hooks/useCoverSrc';
+import {Poster} from './Poster';
 import {hasJapanese} from '../hooks/useJapaneseFont';
 
 export interface AlbumCardData {
@@ -14,6 +14,8 @@ export interface AlbumCardData {
   coverPath?: string;
   filePath?: string;
   favorite?: boolean;
+  /** Pages read / total pages, rendered as a thin bar under the meta row. */
+  progress?: {page: number; total: number};
 }
 
 export interface AlbumCardProps {
@@ -27,12 +29,6 @@ export interface AlbumCardProps {
   leaving?: boolean;
 }
 
-const COVER_PALETTE = ['#e8d5c0', '#d0dbe8', '#e8d0c8', '#c8d8e0', '#e8d8d0', '#d8e0c8'];
-
-function coverColorOf(albumId: number): string {
-  return COVER_PALETTE[albumId % COVER_PALETTE.length];
-}
-
 export const AlbumCard = memo(function AlbumCard({
   album,
   onPress,
@@ -43,17 +39,7 @@ export const AlbumCard = memo(function AlbumCard({
   downloading,
   leaving,
 }: AlbumCardProps) {
-  const coverSrc = useCoverSrc(album.coverPath, album.filePath);
-  const [imgFailed, setImgFailed] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-
-  useEffect(() => {
-    setImgFailed(false);
-    setImgLoaded(false);
-  }, [album.albumId]);
-
   const tags = album.tags ?? [];
-  const showCover = coverSrc !== null && !imgFailed;
   const metaParts = [
     album.chapterCount != null ? `${album.chapterCount}话` : null,
     album.pageCount != null ? `${album.pageCount}页` : null,
@@ -67,23 +53,22 @@ export const AlbumCard = memo(function AlbumCard({
       onClick={() => onPress?.(album)}
       aria-label={album.title}
     >
-      <div
-        className="album-cover"
-        style={{background: album.coverColor ?? coverColorOf(album.albumId)}}
+      <Poster
+        coverPath={album.coverPath}
+        albumDir={album.filePath}
+        title={album.title}
+        tintIndex={album.albumId}
+        scrim={tags.length > 0}
       >
-        {showCover ? (
-          <img
-            className={`album-cover-img${imgLoaded ? ' is-loaded' : ''}`}
-            src={coverSrc ?? undefined}
-            alt={album.title}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <span className="cover-title">{album.title.slice(0, 4)}</span>
-        )}
+        {tags.length > 0 ? (
+          <span className="poster-tag">
+            {tags.slice(0, 2).map((tag) => (
+              <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>
+                {tag}
+              </span>
+            ))}
+          </span>
+        ) : null}
         {onFavorite ? (
           <button
             className={`album-corner-btn${album.favorite ? ' is-active' : ''}`}
@@ -133,7 +118,17 @@ export const AlbumCard = memo(function AlbumCard({
             <Icon name="close" size={16} />
           </button>
         ) : null}
-      </div>
+      </Poster>
+      {album.progress && album.progress.total > 0 ? (
+        <span className="album-progress-track" aria-hidden>
+          <span
+            className="album-progress-fill"
+            style={{
+              width: `${Math.min(100, (album.progress.page / album.progress.total) * 100)}%`,
+            }}
+          />
+        </span>
+      ) : null}
       <div className="album-info">
         <span className={`album-title${hasJapanese(album.title) ? ' is-ja' : ''}`}>
           {album.title}
@@ -142,15 +137,6 @@ export const AlbumCard = memo(function AlbumCard({
           <span className={`album-meta${hasJapanese(album.author) ? ' is-ja' : ''}`}>
             {album.author}
           </span>
-        ) : null}
-        {tags.length > 0 ? (
-          <div className="album-tags">
-            {tags.map((tag) => (
-              <span className={`album-tag${hasJapanese(tag) ? ' is-ja' : ''}`} key={tag}>
-                {tag}
-              </span>
-            ))}
-          </div>
         ) : null}
         <span className="album-stats">
           <span className="album-stats-id">ID {album.albumId}</span>

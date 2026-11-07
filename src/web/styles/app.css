@@ -18,19 +18,83 @@
   flex-direction: column;
   min-width: 0;
   width: 100%;
+  position: relative;
+}
+
+/* Tabs stay mounted; inactive ones keep their scroll offset but are inert. */
+.tab-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.tab-pane[hidden] {
+  display: none;
+}
+
+.tab-pane-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Pull-to-refresh: the gesture translates the scroller itself. */
+.app-screen.is-pulling,
+.app-screen.is-refreshing {
+  will-change: transform;
+}
+
+.app-screen.is-pulling::before,
+.app-screen.is-refreshing::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  border: 2px solid var(--color-edge);
+  border-top-color: var(--accent-primary);
+  opacity: calc(var(--pull-progress, 0) + 0.15);
+  transform: rotate(calc(var(--pull-progress, 0) * 180deg));
+  z-index: 30;
+  pointer-events: none;
+}
+
+.app-screen.is-refreshing::before {
+  animation: spin 700ms linear infinite;
+  opacity: 1;
+  transform: none;
 }
 
 .app-screen {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-5) var(--space-4) var(--space-8);
-  padding-bottom: calc(var(--space-8) + 72px + max(env(safe-area-inset-bottom), 44px));
+  padding: var(--space-4) var(--space-4) var(--space-6);
+  padding-bottom: calc(88px + max(env(safe-area-inset-bottom), 16px));
+  scroll-padding-top: 56px;
+  scrollbar-gutter: stable;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-screen.is-search-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .app-empty {
@@ -40,6 +104,13 @@
   align-items: center;
   justify-content: center;
   min-height: 0;
+}
+
+/* Reserves vertical space while a section is loading or empty, so the page
+   never collapses and jumps when content arrives. */
+.app-empty--fixed {
+  min-height: 240px;
+  flex: 0 0 auto;
 }
 
 .app-tabbar {
@@ -61,7 +132,18 @@
   box-sizing: border-box;
   min-width: 0;
   flex-shrink: 0;
-  transition: transform var(--dur-base) var(--ease-out);
+  transition: transform var(--dur-base) var(--ease-emphasized);
+}
+
+/* Hide chrome while reading downward; reveal on any upward scroll. */
+.app.chrome-hidden .app-tabbar {
+  transform: translateY(100%);
+}
+
+/* Nav overlays cover the shell — tuck the tabbar so it cannot flash through. */
+.app.nav-open .app-tabbar {
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 body.keyboard-open .app-tabbar {

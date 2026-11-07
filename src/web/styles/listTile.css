@@ -8,12 +8,14 @@
   box-shadow: var(--shadow-1);
   min-width: 0;
   width: 100%;
+  text-align: left;
+  border: none;
   transition:
     transform var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.list-tile:active {
+button.list-tile:active:not(:disabled) {
   transform: scale(0.98);
 }
 
@@ -22,7 +24,7 @@
   cursor: default;
 }
 
-.list-tile.is-loading:active {
+button.list-tile.is-loading:active {
   transform: none;
 }
 
@@ -62,6 +64,9 @@
   color: var(--ink-tertiary);
   font-size: 20px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .list-tile--input {
@@ -71,7 +76,7 @@
   gap: var(--space-3);
 }
 
-.list-tile--input:active {
+button.list-tile--input:active {
   transform: none;
 }
 

@@ -1,11 +1,18 @@
 import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef} from 'react';
-import {clamp, SCALE_MAX, SCALE_MIN} from './types';
+import {clamp, OnlineReaderSource, SCALE_MAX, SCALE_MIN} from './types';
 import {
   getImageDocMeta,
   loadImageDocMeta,
   resolveImageSrcLazy,
   ImageDocMeta,
 } from './image-doc';
+import {
+  getOnlineDocMeta,
+  loadOnlineDocMeta,
+  onlineDocKey,
+  resolveOnlineSrc,
+  OnlineDocMeta,
+} from './online-doc';
 import {applyToImg} from './image-loader';
 
 export interface ImageReaderHandle {
@@ -14,10 +21,15 @@ export interface ImageReaderHandle {
   fitToWidth: () => void;
 }
 
+type ReaderDocMeta = ImageDocMeta | OnlineDocMeta;
+
 interface ImageReaderProps {
-  pagesDir: string;
+  pagesDir?: string;
+  online?: OnlineReaderSource;
   pageCount?: number;
   mode: 'scroll' | 'paged';
+  /** Page to open on when the reader mounts (1-based). */
+  startPage?: number;
   onPageChange: (p: number) => void;
   onReady: (total: number) => void;
   onError: (e: string | null) => void;
@@ -31,12 +43,21 @@ const SCROLL_EDGE = 2;
 const PAGED_FLIP_MS = 200;
 const SWIPE_MIN = 48;
 
+function isLocalMeta(meta: ReaderDocMeta): meta is ImageDocMeta {
+  return 'pagesDir' in meta;
+}
+
 export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(function ImageReader(
-  {pagesDir, mode, onPageChange, onReady, onError},
+  {pagesDir, online, mode, startPage, onPageChange, onReady, onError},
   ref
 ) {
-  const metaRef = useRef<ImageDocMeta | null>(getImageDocMeta(pagesDir) ?? null);
-  const pageRef = useRef(1);
+  const initialMeta = pagesDir
+    ? (getImageDocMeta(pagesDir) ?? null)
+    : online
+      ? (getOnlineDocMeta(onlineDocKey(online.albumId, online.photoId)) ?? null)
+      : null;
+  const metaRef = useRef<ReaderDocMeta | null>(initialMeta);
+  const pageRef = useRef(clamp(startPage ?? 1, 1, Number.MAX_SAFE_INTEGER));
   const scaleRef = useRef(1);
   const slotWRef = useRef(320);
   const slotHRef = useRef(320 * SLOT_RATIO + PAGE_GAP);
@@ -98,11 +119,15 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
         applyToImg(img, src);
         return;
       }
-      // SAF src not resolved yet: kick off a lazy resolve; dataset.pageIndex marks in-flight.
       const meta = metaRef.current;
-      if (!meta?.saf || img.dataset.pageIndex === String(index)) return;
+      if (!meta || img.dataset.pageIndex === String(index)) return;
       img.dataset.pageIndex = String(index);
-      void resolveImageSrcLazy(meta, index).then((resolved) => {
+      const resolve = isLocalMeta(meta)
+        ? meta.saf
+          ? resolveImageSrcLazy(meta, index)
+          : Promise.resolve(undefined)
+        : resolveOnlineSrc(meta, index);
+      void resolve.then((resolved) => {
         if (!resolved || img.dataset.pageIndex !== String(index)) return;
         applyToImg(img, resolved);
       });
@@ -389,31 +414,45 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
 
   useEffect(() => {
     let alive = true;
-    const boot = (m: ImageDocMeta) => {
+    const boot = (m: ReaderDocMeta) => {
       metaRef.current = m;
       onReadyRef.current(m.pageCount);
       measureSlots();
+      const first = clamp(startPage ?? 1, 1, Math.max(1, m.pageCount));
+      pageRef.current = first;
+      if (first > 1) {
+        onPageChangeRef.current(first);
+      }
       if (mode === 'scroll') {
-        ensureScrollWindow(1, true);
+        ensureScrollWindow(first, true);
+        requestAnimationFrame(() => goTo(first));
       } else {
         setTrackX(-33.3333, false);
-        paintPagedSlides(1);
-        // Prefetch page 3 into the spare leading slot so the first flip lands fast.
+        paintPagedSlides(first);
+        // Prefetch the next page into the spare leading slot so the first flip lands fast.
         const spare = slideRefs.current[0];
         if (spare && m.pageCount >= 3) {
           sizeImg(spare);
-          bindImg(spare, 2);
+          bindImg(spare, Math.max(1, first - 1));
         }
       }
     };
-    const cached = getImageDocMeta(pagesDir);
-    if (cached) {
-      boot(cached);
-      return () => {
-        alive = false;
-      };
-    }
-    loadImageDocMeta(pagesDir)
+    const load = pagesDir
+      ? (() => {
+          const cached = getImageDocMeta(pagesDir);
+          return cached ? Promise.resolve(cached) : loadImageDocMeta(pagesDir);
+        })()
+      : online
+        ? (() => {
+            const key = onlineDocKey(online.albumId, online.photoId);
+            const cached = getOnlineDocMeta(key);
+            return cached
+              ? Promise.resolve(cached)
+              : loadOnlineDocMeta(online.albumId, online.photoId, online.scrambleId);
+          })()
+        : Promise.reject(new Error('缺少阅读源'));
+
+    load
       .then((m) => {
         if (!alive) return;
         boot(m);
@@ -434,7 +473,17 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
       scrollPagesRef.current?.replaceChildren();
       scrollWindowRef.current = {start: -1, end: -1};
     };
-  }, [pagesDir, mode, measureSlots, ensureScrollWindow, paintPagedSlides, setTrackX]);
+  }, [
+    pagesDir,
+    online?.albumId,
+    online?.photoId,
+    online?.scrambleId,
+    mode,
+    measureSlots,
+    ensureScrollWindow,
+    paintPagedSlides,
+    setTrackX,
+  ]);
 
   useEffect(() => {
     if (mode !== 'scroll') return;

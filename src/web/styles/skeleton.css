@@ -1,0 +1,111 @@
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface-card) 70%, transparent),
+    transparent
+  );
+  animation: skeleton-sweep 1.4s var(--ease-out) infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-cover {
+  aspect-ratio: 3 / 4;
+  border-radius: 0;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: var(--radius-pill);
+}
+
+.skeleton-line-sm {
+  width: 60%;
+  height: 10px;
+}
+
+.skeleton-line-xs {
+  width: 40%;
+  height: 10px;
+}
+
+.skeleton-list {
+  pointer-events: none;
+}
+
+.skeleton-row {
+  pointer-events: none;
+}
+
+.skeleton-row-cover {
+  width: 68px;
+  aspect-ratio: 3 / 4;
+  flex-shrink: 0;
+}
+
+.skeleton-row .album-row-body {
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.skeleton-rail {
+  pointer-events: none;
+}
+
+.skeleton-tile {
+  height: 76px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-grid {
+  pointer-events: none;
+}
+
+.skeleton-line-lg {
+  height: 18px;
+  width: 70%;
+}
+
+.detail-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  pointer-events: none;
+}
+
+.detail-skeleton-cover {
+  width: 116px;
+  aspect-ratio: 3 / 4;
+  flex-shrink: 0;
+}
+
+.detail-skeleton-action {
+  height: 44px;
+  border-radius: var(--radius-pill);
+}
+
+.detail-skeleton-ep {
+  height: 40px;
+  border-radius: var(--radius-sm);
+}

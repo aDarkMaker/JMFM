@@ -1,16 +1,27 @@
-import {lazy, Suspense, useEffect, useRef, useState} from 'react';
+import {lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {gsap} from 'gsap';
 import {Icon} from './components/Icon';
 import {HomeScreen} from './screens/HomeScreen';
 import {LibraryScreen} from './screens/LibraryScreen';
 import {TasksScreen} from './screens/TasksScreen';
 import {SettingsScreen} from './screens/SettingsScreen';
+import {DiscoverScreen} from './screens/DiscoverScreen';
+import {SearchScreen} from './screens/SearchScreen';
+import {AlbumDetailScreen} from './screens/AlbumDetailScreen';
 import {ToastHost} from './components/Toast';
 import {useSettingsStore} from './stores/settings';
 import {useLibraryStore} from './stores/library';
 import {preloadCovers} from './library/coverCache';
 import {useKeyboardVisibility} from './hooks/useKeyboardVisibility';
 import {useReaderLifecycle} from './hooks/reader-lifecycle';
+import {useNavStack} from './hooks/useNavStack';
+import {useHistoryStore} from './stores/history';
+import {useHideOnScroll} from './hooks/useHideOnScroll';
+import {usePullToRefresh} from './hooks/usePullToRefresh';
+import {useEdgeSwipeBack} from './hooks/useEdgeSwipeBack';
+import {useTabKeepAlive} from './hooks/useTabKeepAlive';
+import {useDailyStore} from './stores/daily';
+import {useBrowseStore} from './stores/browse';
 
 const ReaderScreen = lazy(() =>
   import('./screens/ReaderScreen').then((m) => ({default: m.ReaderScreen}))
@@ -29,15 +40,10 @@ const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download
     {id: 'settings', label: '设置', icon: 'settings'},
   ];
 
-const SCREEN_ENTRIES: [Exclude<TabId, 'library'>, () => import('react').ReactElement][] = [
-  ['home', HomeScreen],
-  ['tasks', TasksScreen],
-  ['settings', SettingsScreen],
-];
+const THEME_COLORS = {dark: '#101318', light: '#f3f6fa'} as const;
 
 export function App() {
   const [tab, setTab] = useState<TabId>('home');
-  const [prevTab, setPrevTab] = useState<TabId | null>(null);
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>(
     {} as Record<TabId, HTMLButtonElement | null>
   );
@@ -46,7 +52,22 @@ export function App() {
   const loaded = useSettingsStore((s) => s.loaded);
   const load = useSettingsStore((s) => s.load);
   const {reader, readerClosing, openReader, closeReader} = useReaderLifecycle();
+  const {stack, closing: navClosing, back: navBack} = useNavStack();
+  const navEntry = navClosing ?? stack[stack.length - 1];
   useKeyboardVisibility();
+  const chromeHidden = useHideOnScroll();
+  const navLayerRef = useEdgeSwipeBack(navBack, stack.length > 0 && !navClosing);
+
+  const refreshHome = useCallback(async () => {
+    await useDailyStore.getState().refresh();
+    await useBrowseStore.getState().loadHot(true);
+  }, []);
+  const homePullRef = usePullToRefresh(refreshHome);
+
+  const homeKeepAlive = useTabKeepAlive(tab === 'home');
+  const libraryKeepAlive = useTabKeepAlive(tab === 'library');
+  const tasksKeepAlive = useTabKeepAlive(tab === 'tasks');
+  const settingsKeepAlive = useTabKeepAlive(tab === 'settings');
 
   useEffect(() => {
     if (!loaded) {
@@ -56,6 +77,7 @@ export function App() {
 
   useEffect(() => {
     void useLibraryStore.getState().load();
+    void useHistoryStore.getState().load();
   }, []);
 
   useEffect(() => {
@@ -74,6 +96,8 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_COLORS[theme]);
   }, [theme]);
 
   useEffect(() => {
@@ -83,52 +107,81 @@ export function App() {
     gsap.fromTo(activeEl, {scale: 0.9}, {scale: 1, duration: 0.25, ease: 'back.out(1.5)'});
   }, [tab]);
 
-  useEffect(() => {
-    if (!contentRef.current || prevTab === null) return;
-
-    const content = contentRef.current;
-    const direction = getTabIndex(tab) > getTabIndex(prevTab) ? 1 : -1;
-
-    gsap.fromTo(
-      content,
-      {
-        opacity: 0,
-        x: 24 * direction,
-      },
-      {
-        opacity: 1,
-        x: 0,
-        duration: 0.28,
-        ease: 'power2.out',
-      }
-    );
-
-    setPrevTab(null);
-  }, [tab, prevTab]);
-
   const handleTabChange = (newTab: TabId) => {
     if (newTab === tab) return;
-    setPrevTab(tab);
+    if (stack.length > 0) navBack();
     setTab(newTab);
   };
 
+  const navTarget = useMemo(() => {
+    if (!navEntry) return null;
+    if (navEntry.type === 'discover') {
+      return (
+        <DiscoverScreen
+          initialCategory={navEntry.params?.category}
+          initialOrder={navEntry.params?.order}
+        />
+      );
+    }
+    if (navEntry.type === 'search') {
+      return <SearchScreen initialQuery={navEntry.params?.query ?? ''} />;
+    }
+    return (
+      <AlbumDetailScreen
+        albumId={navEntry.params.albumId}
+        fallbackTitle={navEntry.params.title}
+        onOpenReader={openReader}
+      />
+    );
+  }, [navEntry, openReader]);
+
+  const renderPane = (
+    id: TabId,
+    keepAlive: ReturnType<typeof useTabKeepAlive>,
+    node: React.ReactNode,
+    pullRef?: React.Ref<HTMLDivElement>
+  ) => (
+    <div
+      key={id}
+      ref={pullRef}
+      className="tab-pane"
+      hidden={tab !== id}
+      aria-hidden={tab !== id}
+      onScrollCapture={keepAlive.onScrollCapture}
+    >
+      <div ref={keepAlive.paneRef} className="tab-pane-inner">
+        {keepAlive.mounted ? node : null}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="app">
-      <div ref={contentRef} className="app-content">
-        {tab === 'library' ? (
+    <div className={`app${chromeHidden ? ' chrome-hidden' : ''}${navEntry ? ' nav-open' : ''}`}>
+      <div ref={contentRef} className={`app-content${navEntry ? ' is-covered' : ''}`}>
+        {renderPane(
+          'home',
+          homeKeepAlive,
+          <HomeScreen onOpenReader={openReader} />,
+          homePullRef
+        )}
+        {renderPane(
+          'library',
+          libraryKeepAlive,
           <LibraryScreen
-            onOpenReader={(item) =>
+            onOpenReader={(item, startPage) =>
               openReader({
                 filePath: item.filePath,
                 title: item.title,
                 pageCount: item.pageCount,
                 pagesDir: item.pagesDir,
+                albumId: item.albumId,
+                ...(startPage != null ? {startPage} : {}),
               })
             }
           />
-        ) : (
-          SCREEN_ENTRIES.map(([id, Screen]) => (tab === id ? <Screen key={id} /> : null))
         )}
+        {renderPane('tasks', tasksKeepAlive, <TasksScreen />)}
+        {renderPane('settings', settingsKeepAlive, <SettingsScreen />)}
       </div>
       <nav className="app-tabbar">
         {TABS.map((t) => (
@@ -147,6 +200,14 @@ export function App() {
           </button>
         ))}
       </nav>
+      {navTarget ? (
+        <div
+          ref={navLayerRef}
+          className={`nav-layer${navEntry?.type === 'search' ? ' is-search' : ''}${navClosing ? ' is-closing' : ''}`}
+        >
+          {navTarget}
+        </div>
+      ) : null}
       {reader ? (
         <Suspense fallback={null}>
           <ReaderScreen target={reader} closing={readerClosing} onClose={closeReader} />
@@ -155,10 +216,4 @@ export function App() {
       <ToastHost />
     </div>
   );
-}
-
-const TAB_INDEX = new Map(TABS.map((t, i) => [t.id, i]));
-
-function getTabIndex(id: TabId): number {
-  return TAB_INDEX.get(id) ?? 0;
 }
