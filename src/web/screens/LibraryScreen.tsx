@@ -21,14 +21,6 @@ const CATEGORIES: {key: CategoryKey; label: string}[] = [
   {key: 'recent', label: '常看'},
 ];
 
-type SortKey = 'recent' | 'downloaded' | 'title';
-
-const SORTS: {key: SortKey; label: string}[] = [
-  {key: 'recent', label: '最近阅读'},
-  {key: 'downloaded', label: '最近下载'},
-  {key: 'title', label: '标题'},
-];
-
 export function LibraryScreen({
   onOpenReader,
 }: {
@@ -41,7 +33,6 @@ export function LibraryScreen({
   const markOpened = useLibraryStore((s) => s.markOpened);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryKey>('all');
-  const [sort, setSort] = useState<SortKey>('recent');
   const [pendingDelete, setPendingDelete] = useState<LibraryItem | null>(null);
   const [sliderStyle, setSliderStyle] = useState({left: 0, width: 0});
   const showToast = useToastStore((s) => s.show);
@@ -68,6 +59,8 @@ export function LibraryScreen({
     let list = items;
     if (category === 'favorite') {
       list = list.filter((it) => it.favorite);
+    } else if (category === 'recent') {
+      list = list.filter((it) => (it.lastOpenedAt ?? 0) > 0);
     }
     const q = query.trim().toLowerCase();
     if (q) {
@@ -75,16 +68,18 @@ export function LibraryScreen({
         (it) => it.title.toLowerCase().includes(q) || String(it.albumId).includes(q)
       );
     }
+    // 常看 / 默认按最近阅读；已下载按最近下载 —— 不再单独提供排序 chip。
     const sorted = [...list];
-    if (sort === 'recent') {
-      sorted.sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0));
-    } else if (sort === 'downloaded') {
+    if (category === 'downloaded') {
       sorted.sort((a, b) => (b.downloadedAt ?? 0) - (a.downloadedAt ?? 0));
     } else {
-      sorted.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'));
+      sorted.sort(
+        (a, b) =>
+          (b.lastOpenedAt ?? b.downloadedAt ?? 0) - (a.lastOpenedAt ?? a.downloadedAt ?? 0)
+      );
     }
     return sorted;
-  }, [items, category, query, sort]);
+  }, [items, category, query]);
 
   const showEmpty = filtered.length === 0;
   const historyByAlbum = useHistoryStore((s) => s.entries);
@@ -157,21 +152,6 @@ export function LibraryScreen({
                 onClick={() => setCategory(cat.key)}
               >
                 {cat.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        {items.length > 0 ? (
-          <div className="sort-row" role="tablist" aria-label="排序">
-            {SORTS.map((s) => (
-              <button
-                key={s.key}
-                role="tab"
-                aria-selected={sort === s.key}
-                className={`chip chip-sm${sort === s.key ? ' is-active' : ''}`}
-                onClick={() => setSort(s.key)}
-              >
-                {s.label}
               </button>
             ))}
           </div>
