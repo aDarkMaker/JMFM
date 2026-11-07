@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   domains: ['18comic.vip', '18comic.org', 'jmcomic.me', 'jmcomic1.me', 'jmcomic2.me'],
   blacklistTags: [],
   whitelistTags: [],
-  theme: 'light',
+  theme: 'dark',
   readerMode: 'scroll',
 };
 
@@ -57,7 +57,7 @@ export function sanitizeSettings(raw: Partial<Settings>): Settings {
     domains: sanitizeDomains(raw.domains),
     blacklistTags: sanitizeBlacklist(raw.blacklistTags),
     whitelistTags: sanitizeWhitelist(raw.whitelistTags),
-    theme: raw.theme === 'dark' ? 'dark' : 'light',
+    theme: raw.theme === 'light' ? 'light' : 'dark',
     readerMode: raw.readerMode === 'paged' ? 'paged' : 'scroll',
   };
 }

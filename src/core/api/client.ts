@@ -1,10 +1,19 @@
 import {config} from '../../config';
 import {HttpClient, bytesOf} from '../net';
 import {retry} from '../net/retry';
-import {AlbumDetail, AlbumSummary, ImageItem, PhotoDetail, createImageItem} from '../model';
+import {
+  AlbumDetail,
+  AlbumSummary,
+  Category,
+  ImageItem,
+  PhotoDetail,
+  TagGroup,
+  createImageItem,
+} from '../model';
 import {aesEcbDecrypt, md5Hex} from '../crypto';
 import {utf8Decode} from '../util/utf8';
-import {parseAlbumDetail, parseAlbumList, parsePhotoDetail} from './parse';
+import {SORT} from '../constants/sort';
+import {parseAlbumDetail, parseAlbumList, parseCategories, parsePhotoDetail} from './parse';
 
 function stripNonAsciiPrefix(text: string): string {
   let s = text;
@@ -87,19 +96,42 @@ export class ApiClient {
     page = 1,
     opts?: {order?: string; category?: string}
   ): Promise<{albums: AlbumSummary[]; total: number}> {
+    return this.browseAlbums(page, opts);
+  }
+
+  /** Category tree plus tag word blocks used for browse/search entry points. */
+  async getCategories(): Promise<{categories: Category[]; blocks: TagGroup[]}> {
+    const data = await this.req('/categories', {});
+    return parseCategories(data);
+  }
+
+  /**
+   * Browse albums in one category. Verified `c` values accept both ids and
+   * slugs; verified `o` values are mr_t / mv_t / mv_w / mv_m only.
+   */
+  async browseAlbums(
+    page = 1,
+    opts?: {order?: string; category?: string}
+  ): Promise<{albums: AlbumSummary[]; total: number}> {
     const data = await this.req('/categories/filter', {
       page,
       order: '',
       c: opts?.category ?? '0',
-      o: opts?.order ?? 'mr_t',
+      o: opts?.order ?? SORT.DEFAULT,
     });
     return parseAlbumList(data);
   }
 
-  async searchAlbums(query: string, page = 1): Promise<{albums: AlbumSummary[]; total: number}> {
+  async searchAlbums(
+    query: string,
+    page = 1,
+    opts?: {category?: string; order?: string}
+  ): Promise<{albums: AlbumSummary[]; total: number}> {
     const data = await this.req('/search', {
       search_query: query,
       page,
+      ...(opts?.category ? {c: opts.category} : {}),
+      ...(opts?.order ? {o: opts.order} : {}),
     });
     return parseAlbumList(data);
   }

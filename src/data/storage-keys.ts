@@ -4,4 +4,6 @@ export const STORAGE_KEYS = {
   dailyCachePrefix: 'jmf.daily.',
   dismissedPrefix: 'jmf.daily.dismissed.',
   tagCachePrefix: 'jmf.tags.',
+  recentSearches: 'jmf.search.recent',
+  history: 'jmf.history',
 } as const;

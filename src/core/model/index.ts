@@ -12,18 +12,56 @@ export interface AlbumSummary {
   author: string;
   tags: string[];
   category?: string;
+  categoryId?: string;
   updateAt?: number;
   coverUrl?: string;
+  likesCount?: number;
+  viewsCount?: number;
+  pageCount?: number;
 }
 
 export interface AlbumDetail {
   albumId: number;
   name: string;
   description: string;
+  /** Joined authors for single-line UI. */
   author: string;
+  /** Source `author` array — chip block「作者」. */
+  authors: string[];
   tags: string[];
+  /** Source `works` — chip block「作品」. */
+  works: string[];
+  /** Source `actors` — chip block「出场人物」. */
+  actors: string[];
   scrambleId: number;
   episodes: Episode[];
+  category?: string;
+  coverUrl?: string;
+  updateAt?: number;
+  likesCount?: number;
+  viewsCount?: number;
+  pageCount?: number;
+  commentCount?: number;
+  related: AlbumSummary[];
+}
+
+export interface CategorySub {
+  cid: string;
+  name: string;
+  slug: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  totalAlbums: number;
+  subCategories: CategorySub[];
+}
+
+export interface TagGroup {
+  title: string;
+  tags: string[];
 }
 
 export interface PhotoDetail {
