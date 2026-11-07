@@ -68,20 +68,25 @@ if [[ "$VARIANT" == "release" ]]; then
   ensure_keystore
 fi
 # Resolve version from repo root before entering android/ (bun import is cwd-relative).
+# NO_COLOR: bun may wrap console.log in ANSI when FORCE_COLOR is set (breaks Gradle ints).
 if [[ -n "${CI_VERSION_CODE:-}" ]]; then
   GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
 elif command -v bun >/dev/null; then
   CI_VERSION_CODE="$(
-    cd "$ROOT" && bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().versionCode)"
+    cd "$ROOT" && NO_COLOR=1 bun -e "import {readVersion} from './scripts/read-version.ts'; process.stdout.write(String(readVersion().versionCode))"
   )"
+  CI_VERSION_CODE="$(printf '%s' "$CI_VERSION_CODE" | tr -cd '0-9')"
+  [[ -n "$CI_VERSION_CODE" ]] || fail "failed to read versionCode from version.json"
   GRADLE_EXTRA+=("-PciVersionCode=${CI_VERSION_CODE}")
 fi
 if [[ -n "${CI_VERSION_NAME:-}" ]]; then
   GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
 elif command -v bun >/dev/null; then
   CI_VERSION_NAME="$(
-    cd "$ROOT" && bun -e "import {readVersion} from './scripts/read-version.ts'; console.log(readVersion().version)"
+    cd "$ROOT" && NO_COLOR=1 bun -e "import {readVersion} from './scripts/read-version.ts'; process.stdout.write(readVersion().version)"
   )"
+  CI_VERSION_NAME="$(printf '%s' "$CI_VERSION_NAME" | tr -cd '0-9.')"
+  [[ -n "$CI_VERSION_NAME" ]] || fail "failed to read version from version.json"
   GRADLE_EXTRA+=("-PciVersionName=${CI_VERSION_NAME}")
 fi
 cd "$ROOT/android"
