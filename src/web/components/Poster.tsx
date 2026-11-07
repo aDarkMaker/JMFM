@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useCoverSrc} from '../hooks/useCoverSrc';
+import {invalidateCoverSrc} from '../library/coverCache';
 import {hasJapanese} from '../hooks/useJapaneseFont';
 
 export interface PosterProps {
@@ -41,7 +42,7 @@ export function Poster({
   useEffect(() => {
     setFailed(false);
     setLoaded(false);
-  }, [coverPath, title]);
+  }, [coverPath, title, src]);
 
   const tint = `var(--cover-tint-${(((tintIndex ?? 0) % TINTS) + TINTS) % TINTS + 1})`;
   const showImg = src !== null && !failed;
@@ -58,10 +59,21 @@ export function Poster({
           className={`poster-img${loaded ? ' is-loaded' : ''}`}
           src={src ?? undefined}
           alt=""
-          loading="lazy"
           decoding="async"
+          ref={(el) => {
+            // Preload can finish before mount; cached imgs skip onLoad and stay opacity:0.
+            if (!el || loaded || failed) return;
+            if (el.complete && el.naturalWidth > 0) {
+              queueMicrotask(() => setLoaded(true));
+            } else if (el.complete) {
+              queueMicrotask(() => setFailed(true));
+            }
+          }}
           onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
+          onError={() => {
+            if (coverPath) invalidateCoverSrc(coverPath);
+            setFailed(true);
+          }}
         />
       ) : (
         <span className={`poster-fallback${hasJapanese(title) ? ' is-ja' : ''}`}>

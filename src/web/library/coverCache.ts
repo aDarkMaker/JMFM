@@ -2,7 +2,7 @@ import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import {useSettingsStore} from '../stores/settings';
 import {toSafRelativePath} from '../../core/fs/saf/safPaths';
-import {safGetEntryUri, safListDirectory} from '../../core/fs/saf/safStorage';
+import {safEntryExists, safGetEntryUri, safListDirectory} from '../../core/fs/saf/safStorage';
 import {registerCacheClear} from '../util/cacheRegistry';
 
 const uriCache = new Map<string, string>();
@@ -15,6 +15,10 @@ function isRemoteSrc(path: string): boolean {
 export function clearCoverCache(): void {
   uriCache.clear();
   inflight.clear();
+}
+
+export function invalidateCoverSrc(coverPath: string): void {
+  uriCache.delete(coverPath);
 }
 
 registerCacheClear(clearCoverCache);
@@ -70,9 +74,12 @@ async function resolveSafCoverSrc(
   downloadPath: string,
   paths: string[]
 ): Promise<string | null> {
+  // getEntryUri builds a URI without checking existence — verify first or a
+  // stale coverPath permanently shadows albumDir/cover.jpg.
   for (const path of paths) {
     try {
       const rel = toSafRelativePath(path, downloadPath);
+      if (!rel || !(await safEntryExists(treeUri, rel))) continue;
       const uri = await safGetEntryUri(treeUri, rel);
       return toImgSrc(uri);
     } catch {
@@ -116,6 +123,7 @@ async function resolveNativeCoverSrc(
   }
   for (const path of candidates) {
     try {
+      await Filesystem.stat({path, directory: Directory.Documents});
       const r = await Filesystem.getUri({path, directory: Directory.Documents});
       return toImgSrc(r.uri);
     } catch {
