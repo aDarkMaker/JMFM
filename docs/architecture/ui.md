@@ -64,7 +64,7 @@ flowchart LR
 
 ## 页面职责
 
-- **Home**：展示每日推荐卡片（封面、标题、作者、标签、章节数），点击下载。数据来自 `useDailyStore` + `buildRecommendations`：白名单优先 → 偏爱标签 → 按时间梯度（今天更新优先、不足按 `mr_t` 顺序往前推进）补齐至 6 本，按日缓存，支持 dismiss / 刷新。
+- **Home**：分区自上而下为 顶栏（品牌 + 搜索）→ Hero（本周焦点）→ 继续阅读 → 今日推荐网格 → 人气榜 Top8 → 最近更新（相对时间）→ 分类 chips。全部数据派生自现有 store，无新增接口：Hero 取推荐池 `likesCount` 最高者；人气榜用 `useBrowseStore.hot`；最近更新由 `useDailyStore.albums` 按 `updateAt` 倒序。推荐本身仍走 `buildRecommendations`（白名单 → 偏爱标签 → 时间梯度补齐 6 本），按日缓存，支持 dismiss / 刷新。
 - **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读；删除使用 `ConfirmDialog`。
 - **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本经 `queue.ts` 串行；完成 3s 后 GSAP 高度折叠离场；卡片为标题左对齐 + 状态徽章（无对号图标）。
 - **Reader**：`ReaderTarget.pagesDir` 存在时走图片直读（`image-reader.tsx` + `image-loader.ts`）：纵向窗口 ±1/+3，横向三页轨道；否则回退 pdf.js。`ReaderScreen` 由 `App` 用 `React.lazy` 懒加载，pdf.js 仅 PDF 模式动态 import。
@@ -107,20 +107,55 @@ flowchart TD
 | `useSettingsStore` | 包装 `data/settings` 的读取与持久化（Capacitor Preferences / localStorage） |
 | `useDownloadStore` | 下载任务集合与进度（pending / running / paused / done / error） |
 | `useLibraryStore` | 本地已下载漫画（`LibraryItem`，含 `pagesDir` / `coverPath`），支持收藏 / 常看 / 删除 |
+| `useDailyStore` | 今日推荐池、dismiss、刷新；拉取逻辑下沉到 `library/dailyFetch.ts` |
+| `useBrowseStore` | 分类树 + 本周热门（`hot` / `loadHot`），Home 与 Discover 共用 |
+| `useBrowseFeedStore` | 发现页分页缓存，键 `category\|order`，用 `library/pagedFeed.ts` 合并页 |
+| `useSearchStore` | 搜索结果分页，同样复用 `pagedFeed` 的 slice 形状 |
+
+### 拼页与骨架
+
+- 分页合并（append / dedupe / end / LRU 缓存）统一在 `src/web/library/pagedFeed.ts`，`browseFeed` 与 `search` 只保留 API 差异。
+- **stale-while-revalidate**：切分类/排序时若新键无缓存，`selectVisibleFeed` 继续渲染上一份列表，顶栏显示细进度条（`.nav-scroll.is-switching`），不再闪 `EmptyState`。
+- **无限滚动门控**：`useInfiniteScroll` 对一次「可见」只触发一次加载，请求结束（`disabled` 回 false）后再解锁，避免 loading 中重复翻页。
+- **骨架屏**：`src/web/components/Skeletons.tsx` + `styles/skeleton.css` 提供 6 卡网格、列表行、热门横滑、分类格子四种占位；加载中取代 `app-empty`，`app-empty--fixed` 保留 240px 高度，页面不再塌陷。
+
+## 交互约束
+
+- `ListTile` 在 `isInput` / `isToggle` / 自定义 `trailing`（ReactNode）时根节点渲染为 `<div role="group">`，仅整行可点时才是 `<button>`，避免 `<button>` 嵌套 `<button>`。
+- 列表订阅 store 时，选择器返回数组/对象必须加 `useShallow` 或改为布尔判断，否则 React 19 会因 `getSnapshot` 不稳定触发无限渲染。
+- **Tab keep-alive**：`useTabKeepAlive` 让 tab 首次访问后常驻挂载，未激活容器 `hidden`，切换时恢复 `.app-screen` 的 `scrollTop`。Library 仍首次访问才挂载，避免启动即扫盘。
+- **左缘返回**：`useEdgeSwipeBack` 只在导航层存在时生效，起手 28px 内、水平位移 >64px 才 `back()`；拖拽直接写在 `.nav-layer` 的 transform 上，松手复位或交给 `is-closing` 动画。
+- **折叠头部**：`useHideOnScroll` 在捕获阶段监听 `.app-screen` 滚动，下滑 24px 隐藏 tabbar 与首页顶栏（`.chrome-hidden`），上滑或回到顶部即恢复。
+- **下拉刷新**：`usePullToRefresh` 仅指针为 coarse 时启用，`.app-screen` 处于顶部且下拉 80px 触发；Home 刷新推荐 + 热门，外层 `is-pulling` / `is-refreshing` 提供指示器。
 
 ## 样式体系
 
-基于 `src/web/theme/index.css` 的 Cirrus 设计 token（CSS 变量：surface / ink / accent / radii / shadow / spacing / typography / easing）。
+`src/web/theme/index.css` 分两层：**primitive**（`--c-ink-*`、`--c-coral-*`、`--c-jade/amber/rose`、`--c-tint-*`）与 **semantic**（`--surface-*`、`--ink-*`、`--accent-*`、`--cover-*`、`--color-edge`、`--hairline`、`--scrim(-weak)`、`--radius-*`、`--shadow-1/2/3`、`--dur-*`、`--ease-*`）。
 
-- 页面与组件样式分别置于 `src/web/styles/` 下对应 CSS 文件，tsx 不内联样式。
-- 主题色：`ink` 主文本、`accent-primary` 主操作、`accent-success` 成功、`accent-danger` 危险、`surface` 表面、`shadow-1/2` 双层阴影、`ease-spring` 弹性动效。
+- **暗色优先**：`:root` 即暗色语义；`[data-theme='light']` 只重绑 primitive/alias，组件选择器不换。`src/data/settings.ts` 默认 `theme: 'dark'`。
+- 组件 CSS 只引用 semantic token，禁止裸 hex / `rgba()`；封面底色统一走 `--cover-tint-1..6`，渐变走 `--cover-scrim` / `--cover-scrim-full`。
+- 页面与组件样式分别置于 `src/web/styles/` 下对应 CSS 文件，tsx 不内联样式表。
+- `--ease-emphasized` 与 `--dur-*` 统一 nav / tab / 卡片过渡；`prefers-reduced-motion` 会把 `--dur-*` 压到 1ms。
+
+### 卡片体系
+
+`Poster`（`components/Poster.tsx` + `styles/poster.css`）是唯一封面底座：`useCoverSrc` 取源、渐显、失败回退标题字数块、`--cover-tint-*` 打底、可选 scrim 与角标层。
+
+| 变体 | 组件 | 形态 |
+| --- | --- | --- |
+| `AlbumCard` | 网格主卡 | 3:4 封面 + scrim 标签 + 角标操作 + 两行标题 |
+| `AlbumRow` | 列表行 | 3:4 小封面 + 标题/作者/`meta`/统计，可带下载按钮或 chevron |
+| `HomeHero` | 首页焦点 | 全幅 3:4 裁切 + 底部渐隐 + 标题/元信息 |
+| `RankItem` | 人气榜 | 序号 + 1:1 封面 + 标题/作者 + 喜欢数 |
+| `ContinueCard` | 继续阅读 | 小封面 + 标题 + 进度条 |
 
 ## 资产规范
 
 ### 图标
 
 - 来源：[Iconify Material Symbols](https://icon-sets.iconify.design/material-symbols/)，仅存 SVG 矢量文件到 `src/web/assets/icons/`。
-- `scripts/gen-icons.ts` 生成 `src/web/generated/icons.ts`（SVG 字符串映射）。
+- **唯一性**：一个语义只保留一个文件，禁止复制改名，禁止 `path d` 重复；删除前先 `rg` 确认零引用。
+- `scripts/gen-icons.ts` 生成 `src/web/generated/icons.ts`（SVG 字符串映射）；`scripts/check-icons.ts` 校验命名、重复 path、生成物漂移、未知引用与零引用，必须通过。
 - 组件 `Icon` 用 `dangerouslySetInnerHTML` 内联渲染 `<svg>`，图标使用 `currentColor`，颜色由外层 CSS 控制。
 - Tab 图标：`home`、`auto-stories`、`download`、`settings`。
 

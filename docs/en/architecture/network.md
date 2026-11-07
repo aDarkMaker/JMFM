@@ -98,6 +98,16 @@ https://{cdn[photoId % len]}/media/photos/{photoId}/{fileName}
 
 Relevant settings live in the `domains` and `app` sections of `src/config/app-config.json`: HTML/API/CDN domains, domain server URLs, all secrets, request headers, timeouts and retries.
 
+## Request gating and deduplication
+
+A cold start that fires `/categories`, `/categories/filter`, and a fan-out of `/album` calls trips source rate limits (empty `data` triggers retries), so the UI layer converges them in three ways:
+
+1. **Album detail dedupe**: `src/web/library/albumTags.ts` exposes `fetchAlbumTagsFor` / `fetchAlbumTagsBatch` with an in-memory + `STORAGE_KEYS.tagCachePrefix` disk cache, a shared in-flight Promise per `albumId`, and a `DETAIL_FETCH_CONCURRENCY=3` worker pool. `daily` and Home enrichment both go through it, so the same album is never fetched twice.
+2. **Bounded cold pool**: `fetchMissingTags` in `src/web/library/dailyFetch.ts` enriches at most `MAX_DETAIL_FETCH=12` candidates; the grid only ranks six cards and the pool tail is enriched on demand.
+3. **Staggered secondary requests**: `CategoryGrid` and `WeeklyHotRow` render skeletons first and request via `IntersectionObserver` (`rootMargin: 200px`) once near the viewport, so taxonomy and weekly hot never race the recommendation pagination.
+
+`__tests__/feed.test.ts` covers chip dedupe and page merging; network counts need a manual cold-start check in the Network panel as described in `docs/en/development/verify.md`.
+
 ## In-app updates
 
 - Download `version.json` and `JMFM.apk` by GitHub Release tag

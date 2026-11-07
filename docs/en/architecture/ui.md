@@ -64,7 +64,7 @@ flowchart LR
 
 ## Screen responsibilities
 
-- **Home**: shows daily recommendation cards (cover, title, author, tags, chapter count) with download. Data comes from `useDailyStore` + `buildRecommendations`: whitelist first → favorite tags → time-tiered fill (today first, then earlier days by `mr_t` order) to 6 albums, cached per day with dismiss / refresh.
+- **Home**: sections top to bottom are topbar (brand + search) → hero (weekly spotlight) → continue reading → daily grid → popularity Top 8 → recent updates (relative time) → category chips. Everything derives from existing stores, no new endpoints: the hero is the highest `likesCount` pick, the ranking reuses `useBrowseStore.hot`, and updates are `useDailyStore.albums` sorted by `updateAt`. Picks still come from `buildRecommendations` (whitelist → favorite tags → time-tiered fill) and stay cached per day with dismiss / refresh.
 - **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open. Delete uses `ConfirmDialog`.
 - **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a GSAP height collapse; card is left-aligned title + status badge (no check icon).
 - **Reader**: when `ReaderTarget.pagesDir` exists, uses direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+3, horizontal three-slide track; otherwise pdf.js fallback. `ReaderScreen` is lazy-loaded via `React.lazy`; pdf.js is imported dynamically only in PDF mode.
@@ -107,20 +107,53 @@ flowchart TD
 | `useSettingsStore` | wraps `data/settings` load and persistence (Capacitor Preferences / localStorage) |
 | `useDownloadStore` | download task set and progress (pending / running / paused / done / error) |
 | `useLibraryStore` | locally downloaded albums (`LibraryItem`, with `pagesDir` / `coverPath`), favorite / recent / delete |
+| `useDailyStore` | today's recommendation pool, dismiss, refresh; fetching lives in `library/dailyFetch.ts` |
+| `useBrowseStore` | category tree plus weekly hot (`hot` / `loadHot`), shared by Home and Discover |
+| `useBrowseFeedStore` | Discover paginated cache keyed by `category\|order`, merged via `library/pagedFeed.ts` |
+| `useSearchStore` | search result pagination, reusing the same `pagedFeed` slice shape |
+
+### Paging and skeletons
+
+- Page merging (append / dedupe / end / LRU cache) is centralized in `src/web/library/pagedFeed.ts`; `browseFeed` and `search` keep only their API differences.
+- **Stale-while-revalidate**: switching category/order with no cache for the new key keeps rendering the previous list and shows a thin progress bar (`.nav-scroll.is-switching`) instead of flashing `EmptyState`.
+- **Infinite-scroll gating**: `useInfiniteScroll` fires once per visibility and re-arms only after the request settles (`disabled` back to false), so it cannot pile up pages while loading.
+- **Skeletons**: `src/web/components/Skeletons.tsx` + `styles/skeleton.css` provide six-card grid, list row, hot rail, and category tile placeholders. They replace `app-empty` while loading, and `app-empty--fixed` reserves 240px so the page never collapses.
+
+## Interaction constraints
+
+- `ListTile` renders a `<div role="group">` root when `isInput`, `isToggle`, or `trailing` is a ReactNode; only fully clickable rows use `<button>`. This prevents `<button>` inside `<button>`.
+- Store selectors that return arrays or objects need `useShallow` (or a boolean projection); otherwise React 19 treats `getSnapshot` as unstable and loops forever.
+- **Tab keep-alive**: `useTabKeepAlive` mounts a tab on first visit and keeps it; inactive panes are `hidden` and restore their `.app-screen` `scrollTop` on return. Library still mounts lazily to avoid an eager disk scan.
+- **Edge swipe back**: `useEdgeSwipeBack` arms only while an overlay exists; a touch starting within 28px of the left edge that travels past 64px horizontally pops the stack. Drag writes `.nav-layer` transform directly and releases into `is-closing`.
+- **Hide-on-scroll**: `useHideOnScroll` listens in the capture phase for `.app-screen` scrolls and hides the tabbar plus home topbar after 24px downward (`.chrome-hidden`), restoring on upward scroll or when back at the top.
+- **Pull-to-refresh**: `usePullToRefresh` runs only for coarse pointers, requires the scroller at the top and an 80px pull; Home refreshes picks plus the hot rail while `is-pulling` / `is-refreshing` drive the indicator.
 
 ## Style system
 
-Built on the Cirrus design tokens in `src/web/theme/index.css` (CSS variables: surface / ink / accent / radii / shadow / spacing / typography / easing).
+`src/web/theme/index.css` has two layers: **primitives** (`--c-ink-*`, `--c-coral-*`, `--c-jade/amber/rose`, `--c-tint-*`) and **semantic** roles (`--surface-*`, `--ink-*`, `--accent-*`, `--cover-*`, `--color-edge`, `--hairline`, `--scrim(-weak)`, `--radius-*`, `--shadow-1/2/3`, `--dur-*`, `--ease-*`).
 
-- Page and component styles live in separate CSS files under `src/web/styles/`; tsx files contain no inline styles.
-- Palette: `ink` primary text, `accent-primary` primary action, `accent-success` success, `accent-danger` danger, `surface` surfaces, `shadow-1/2` layered elevation, `ease-spring` springy motion.
+- **Dark first**: `:root` is the dark semantic set; `[data-theme='light']` only rebinds primitives/aliases, component selectors never change. `src/data/settings.ts` defaults to `theme: 'dark'`.
+- Component CSS references semantic tokens only; no raw hex or `rgba()`. Covers use `--cover-tint-1..6` with `--cover-scrim` / `--cover-scrim-full` gradients.
+- Page and component styles live in dedicated files under `src/web/styles/`; no inline stylesheets in tsx.
+- `--ease-emphasized` plus the `--dur-*` steps drive nav, tab and card motion; `prefers-reduced-motion` collapses durations to 1ms.
 
-## Asset conventions
+### Card system
+
+`Poster` (`components/Poster.tsx` + `styles/poster.css`) is the single cover base: `useCoverSrc` lookup, fade-in, title-fragment fallback, `--cover-tint-*` backdrop, optional scrim and badge layer.
+
+| Variant | Component | Shape |
+| --- | --- | --- |
+| `AlbumCard` | grid card | 3:4 cover, scrim tags, corner actions, two-line title |
+| `AlbumRow` | list row | 3:4 thumb, title/author/`meta`/stats, optional download or chevron |
+| `HomeHero` | home spotlight | full-bleed crop, bottom gradient, title and meta |
+| `RankItem` | popularity list | rank number, 1:1 thumb, title/author, likes |
+| `ContinueCard` | resume rail | thumb, title, progress bar |
 
 ### Icons
 
 - Source: [Iconify Material Symbols](https://icon-sets.iconify.design/material-symbols/), stored as SVG files in `src/web/assets/icons/`.
-- `scripts/gen-icons.ts` generates `src/web/generated/icons.ts` (an SVG string map).
+- **Uniqueness**: one file per semantic, no copy-and-rename, no duplicate `path d`; grep for references before deleting.
+- `scripts/gen-icons.ts` generates `src/web/generated/icons.ts` (an SVG string map); `scripts/check-icons.ts` enforces naming, duplicate paths, generated drift, unknown and unused references.
 - The `Icon` component renders them inline with `dangerouslySetInnerHTML`; icons use `currentColor`, so the color comes from surrounding CSS.
 - Tab icons: `home`, `auto-stories`, `download`, `settings`.
 

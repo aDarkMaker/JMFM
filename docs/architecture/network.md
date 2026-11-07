@@ -98,6 +98,20 @@ https://{cdn[photoId % len]}/media/photos/{photoId}/{fileName}
 
 相关配置位于 `src/config/app-config.json` 的 `domains` 与 `app` 段：HTML/API/CDN 域名、域名服务器地址、全部密钥、请求头、超时与重试。
 
+## 请求门控与去重
+
+冷启动同时打 `/categories`、`/categories/filter`、`/album` 会造成源站限流（返回空 `data` 触发重试），因此 UI 层做了三层收敛：
+
+1. **album 详情去重**：`src/web/library/albumTags.ts` 提供 `fetchAlbumTagsFor` / `fetchAlbumTagsBatch`。
+   内存 + `STORAGE_KEYS.tagCachePrefix` 磁盘缓存，同一 `albumId` 的 in-flight Promise 复用，批量走
+   `DETAIL_FETCH_CONCURRENCY=3` 的并发池。`daily`、Home 补标签全部经此模块，绝不再出现串行 `for` 循环重复拉同一本。
+2. **冷启动池上限**：`src/web/library/dailyFetch.ts` 的 `fetchMissingTags` 只补 `MAX_DETAIL_FETCH=12`
+   本候选，网格只排 6 张卡，池尾按需补。
+3. **次要请求错开**：`CategoryGrid` / `WeeklyHotRow` 先渲染骨架，用 `IntersectionObserver`
+   （`rootMargin: 200px`）在进入视口后再请求分类与本周热门，避免与推荐池翻页抢带宽。
+
+`__tests__/feed.test.ts` 覆盖 chip 去重与分页合并；网络次数需按 `docs/development/verify.md` 手测冷启动 Network 面板确认。
+
 ## 应用内更新
 
 `src/core/update/` 负责版本检查与 APK 安装：
