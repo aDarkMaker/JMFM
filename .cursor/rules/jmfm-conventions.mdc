@@ -1,0 +1,14 @@
+---
+description: JMFM 工程契约摘要
+alwaysApply: true
+---
+
+# JMFM 约定
+
+以仓库根目录 `AGENTS.md` 为准。最易违反的五条：
+
+1. 颜色/间距/尺寸/层级只走 `src/web/theme/index.css` 的 token，业务 CSS 零裸 `#hex`、`rgba()`、裸 `px` 间距。
+2. 组件样式用 `*.module.css`；全局 CSS 只有 `src/web/styles/shell.css`，且只放 9 个契约类。
+3. 基础件只能在 `src/web/ui/`（一目录一组件 + 同名 module css），业务件放 `src/web/features/<feature>/`。
+4. 用户可见文案只走 `t('域:语义')`，字典在 `src/web/i18n/zh-CN.ts`。
+5. 提交前 `bun run lint && bun run typecheck && bun test && bun run check` 必须全绿；调试不碰 `capacitor.config.ts` 的 `server.url`。

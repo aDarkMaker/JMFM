@@ -39,6 +39,16 @@ jobs:
       - name: Install JS deps
         run: bun install --frozen-lockfile
 
+      - name: Lint and test
+        run: |
+          bun run lint
+          bun run typecheck
+          bun test
+          bun run check
+
+      - name: Check version metadata
+        run: bun scripts/check-release.ts
+
       - name: Read version
         id: version
         run: |
@@ -72,14 +82,23 @@ jobs:
           mkdir -p dist-apk
           cp -f dist-apk/jmfmobile-release.apk dist-apk/JMFM.apk
           SHA256="$(sha256sum dist-apk/JMFM.apk | awk '{print $1}')"
-          JMF_SHA256="$SHA256" bun -e "
+          SIZE="$(stat -c %s dist-apk/JMFM.apk)"
+          JMF_SHA256="$SHA256" JMF_APK_SIZE="$SIZE" bun -e "
             import {readFileSync, writeFileSync} from 'node:fs';
             const v = JSON.parse(readFileSync('version.json', 'utf8'));
-            v.apkSha256 = process.env.JMF_SHA256;
-            writeFileSync('dist-apk/version.json', JSON.stringify(v, null, 2) + '\n');
+            const manifest = {
+              version: v.version,
+              versionCode: v.versionCode,
+              ...(v.minVersionCode ? {minVersionCode: v.minVersionCode} : {}),
+              apkSha256: process.env.JMF_SHA256,
+              apkSize: Number(process.env.JMF_APK_SIZE),
+              notes: v.notes ?? '',
+            };
+            writeFileSync('dist-apk/version.json', JSON.stringify(manifest, null, 2) + '\n');
           "
           ls -lh dist-apk/JMFM.apk dist-apk/version.json
           echo "apkSha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "apkSize=$SIZE" >> "$GITHUB_OUTPUT"
 
       - name: Publish Latest release
         env:

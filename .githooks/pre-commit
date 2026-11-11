@@ -9,3 +9,6 @@ bun run lint
 
 echo "[pre-commit] typecheck..."
 bun run typecheck
+
+echo "[pre-commit] gates..."
+bun run check
