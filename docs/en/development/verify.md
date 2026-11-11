@@ -2,7 +2,7 @@
 
 ## Unit tests
 
-`bun test` covers the core modules (currently 20 test files, 149 cases):
+`bun test` covers the core modules (currently 28 test files, 235 cases):
 
 | Module | Coverage |
 |---|---|
@@ -11,15 +11,20 @@
 | `parser` | Base64 decode, HTML parsing |
 | `model` | image URL construction, ImageItem creation |
 | `net` | domain rotation, URL construction, retryable classification, requestWithRetry |
+| `native-http` | native HTTP channel with fetch fallback |
 | `download-service` | end-to-end orchestration (mocked network and runtime), atomic writes |
 | `scheduler` | concurrency math, Semaphore, MemoryGate watermark |
 | `sha256` / `download-apk` | incremental SHA-256 reference vectors, APK streaming download & verify |
-| `update-http` | version-check / APK-download request and response handling |
+| `update-http` / `update-manifest` | version check and APK download requests, manifest parsing, `decideUpdate`, mirror candidates |
+| `user-storage` | `{v, data}` envelope read/write, legacy migration, corrupt-payload fallback |
 | `safPaths` | SAF relative paths, delete protection |
 | `resolveLibraryPaths` | library path resolution and remapping |
 | `discoverLibrary` / `filterTags` | local library discovery, tag filtering |
+| `coverCache` | cover URI cache, inflight dedupe |
 | `daily` | daily recommendations (whitelist / favorites / time-tiered fill) |
+| `browse` / `feed` / `paging` | category tree, page merging, stale-while-revalidate |
 | `download-store` | task state machine: albumId dedupe, status transitions, pause/resume, throttled progress flush |
+| `relativeTime` | relative-time key + params |
 | `settings` / `constants` / `semver` | config, constants, version comparison |
 | `formatTaskError` | task error message formatting |
 
@@ -78,4 +83,21 @@ Writes `temp/bench-reader-1214052.json` (first paint, first scroll, full scroll,
 bun run typecheck   # tsc --noEmit
 bun run lint        # eslint
 bun run build       # bun build output (--minify --splitting)
+```
+
+## Repo gates
+
+`bun run check` aggregates the scripts below; `.githooks/pre-commit` and CI both run it before building:
+
+| Script | Enforcement |
+| --- | --- |
+| `check:icons` | icon naming uniqueness, duplicate `path d`, `generated/icons.ts` drift, unknown/unused references |
+| `check:tokens` | raw hex / `rgb()` / `rgba()`, non-token `padding` / `margin` / `gap`, `calc(var(--z-*) ± N)` |
+| `check:ui` | every `ui/` folder must have `index.tsx` + matching `.module.css`; `ui/index.ts` re-exports all; `shell.css` contract classes only |
+| `check:i18n` | `t()` key existence, unused keys, CJK outside the dictionary, `IconButton` without `label` |
+| `check:debug` | production code forbids `console.log/info/debug`, `debugger`, `alert` (`dev/**`, `scripts/**` exempt) |
+| `check:release` | `package.json` / `version.json` / derived `versionCode` all agree |
+
+```bash
+bun run check
 ```

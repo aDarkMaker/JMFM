@@ -34,11 +34,12 @@ flowchart TB
 ```
 
 - **App**: lightweight state-based tab switching hosting the 4 main screens (no routing library).
-- **Screens**: page-level components responsible only for composition and event dispatch, with no business implementation.
+- **Screens**: page-level components in `src/web/features/<feature>/index.tsx`, responsible only for composition and event dispatch, with no business implementation.
 - **Stores**: zustand stores for UI state, bridging the core services.
-- **Components**: presentational components without business semantics.
-- **Styles**: all styles are separate CSS files under `src/web/styles/`; tsx files contain no inline style sheets.
+- **Components**: primitives live in `src/web/ui/` (each directory has `index.tsx` + a matching `.module.css`); anything shared by ≥2 features moves up to `src/web/shared/`.
+- **Styles**: component styles are colocated `*.module.css` files; the only global CSS is `styles/fonts.css` and `styles/shell.css` (25 contract classes + tabbar).
 - **Assets**: icons (Iconify SVG) and fonts (Alimama / BebasNeue) are stored centrally.
+- **i18n**: every user-visible string goes through `t(key)`; the dictionary is `src/web/i18n/zh-CN.ts`.
 
 ## Navigation
 
@@ -65,10 +66,10 @@ flowchart LR
 ## Screen responsibilities
 
 - **Home**: sections top to bottom are topbar (brand + search) → hero (weekly spotlight) → continue reading → daily grid → popularity Top 8 → recent updates (relative time) → category chips. Everything derives from existing stores, no new endpoints: the hero is the highest `likesCount` pick, the ranking reuses `useBrowseStore.hot`, and updates are `useDailyStore.albums` sorted by `updateAt`. Picks still come from `buildRecommendations` (whitelist → favorite tags → time-tiered fill) and stay cached per day with dismiss / refresh.
-- **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open. Delete uses `ConfirmDialog`.
-- **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a GSAP height collapse; card is left-aligned title + status badge (no check icon).
+- **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open. Delete uses `ConfirmDialog`. Search uses `shared/SearchBar` (capsule) and is geometry-identical to the tasks ID field, sitting `--space-3` below the header.
+- **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a GSAP height collapse; card is left-aligned title + status badge (no check icon). The ID field at the top is the `ui/Input` capsule variant, sharing the library search metrics.
 - **Reader**: when `ReaderTarget.pagesDir` exists, uses direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+3, horizontal three-slide track; otherwise pdf.js fallback. `ReaderScreen` is lazy-loaded via `React.lazy`; pdf.js is imported dynamically only in PDF mode.
-- **Settings**: theme, reading mode, download path (with SAF directory grant), proxy toggle; **General → Repair files** scans and backfills missing pages and covers with an always-visible progress bar and queue hint (survives tab switches); **Check for updates** download progress lives in `useUpdateStore`, so it stays visible after leaving and returning.
+- **Settings**: theme, reading mode, download path (with SAF directory grant), proxy toggle; grouped as display / download / network / content filter / general, all rendered with `ui/ListGroup` cards; **General → Repair files** scans and backfills missing pages and covers with an always-visible progress bar and queue hint (survives tab switches); **Check for updates** download progress lives in `useUpdateStore`, so it stays visible after leaving and returning.
 
 ## Cover preload
 
@@ -117,7 +118,7 @@ flowchart TD
 - Page merging (append / dedupe / end / LRU cache) is centralized in `src/web/library/pagedFeed.ts`; `browseFeed` and `search` keep only their API differences.
 - **Stale-while-revalidate**: switching category/order with no cache for the new key keeps rendering the previous list and shows a thin progress bar (`.nav-scroll.is-switching`) instead of flashing `EmptyState`.
 - **Infinite-scroll gating**: `useInfiniteScroll` fires once per visibility and re-arms only after the request settles (`disabled` back to false), so it cannot pile up pages while loading.
-- **Skeletons**: `src/web/components/Skeletons.tsx` + `styles/skeleton.css` provide six-card grid, list row, hot rail, and category tile placeholders. They replace `app-empty` while loading, and `app-empty--fixed` reserves 240px so the page never collapses.
+- **Skeletons**: `src/web/shared/Skeletons.tsx` + `skeletons.module.css` provide six-card grid, list row, hot rail, and category tile placeholders. They replace `app-empty` while loading, and `app-empty--fixed` reserves 240px so the page never collapses.
 
 ## Interaction constraints
 
@@ -134,12 +135,49 @@ flowchart TD
 
 - **Dark first**: `:root` is the dark semantic set; `[data-theme='light']` only rebinds primitives/aliases, component selectors never change. `src/data/settings.ts` defaults to `theme: 'dark'`.
 - Component CSS references semantic tokens only; no raw hex or `rgba()`. Covers use `--cover-tint-1..6` with `--cover-scrim` / `--cover-scrim-full` gradients.
-- Page and component styles live in dedicated files under `src/web/styles/`; no inline stylesheets in tsx.
+- Component styles live in `*.module.css` next to the component, enforced by `scripts/check-tokens.ts`: raw colors, non-token `padding/margin/gap`, and `calc(var(--z-*) ± N)` fail the build; `/* token-ignore: reason */` allowlists an exception.
+- The only global CSS is `styles/fonts.css` (`@font-face`) and `styles/shell.css`; the latter may only contain classes touched by JS: `.app`, `.app-content`, `.app-screen`, `.app-tabbar`, `.app-empty(-fixed)`, `.sticky-chrome`, `.tab-pane(-inner)`, `.tab-item`, `.tab-icon`, `.tab-label`, `.nav-layer`, `.nav-screen`, `.nav-scroll`, `.chrome-hidden`, `.is-pulling`, `.is-search-locked`, `.keyboard-open`, `.is-active`, `.is-covered`, `.is-closing`, `.is-search`, `.is-switching`, `.nav-open`, validated by `scripts/check-ui.ts`.
 - `--ease-emphasized` plus the `--dur-*` steps drive nav, tab and card motion; `prefers-reduced-motion` collapses durations to 1ms.
+
+### UI kit `src/web/ui/`
+
+33 primitives, each directory `index.tsx` + matching `.module.css`, all re-exported from `src/web/ui/index.ts`. Components never read stores and size themselves with `--control-*`.
+
+| Group | Components |
+| --- | --- |
+| Actions | `Button` (primary / secondary / ghost / danger × sm / md / lg), `IconButton` (`label` required), `Fab` |
+| Inputs | `Input` (default / capsule / flat / borderless), `Switch`, `Checkbox`, `RadioGroup`, `Slider`, `Select`, `DatePicker` |
+| Display | `Card`, `ListGroup`, `ListTile` (card / plain), `SectionHeader`, `Chip` + `ChipRow`, `Segmented`, `Tabs` + `AnimatedTabs`, `Badge` + `RedDot`, `Avatar`, `Divider`, `Spinner`, `ProgressBar`, `Skeleton` + `SkeletonText`, `EmptyState`, `AutoWidthText`, `ReadMoreText` |
+| Overlays | `NavBar`, `Sheet`, `Dialog`, `ConfirmDialog`, `ToastHost` + `showToast`, `Tooltip`, `ImagePreview` |
+
+### Settings groups
+
+Settings use one grouped-card pattern: `ui/ListGroup` renders a `--surface-card` card (`--radius-md`, `--shadow-1`, `overflow: hidden`) whose adjacent children pick up a `1px` hairline separator (`.card > * + *`). The caption is `--text-xs` / `--ink-tertiary` and an optional `hint` sits under the card.
+
+- Rows inside a card are always `ListTile variant="plain"`: no own surface or shadow, and the pressed state uses `--surface-sunken` instead of a scale transform.
+- Work blocks such as `.progress` are direct children too, so they inherit the separator and the `--space-4` inset.
+- Groups: display / download / network / content filter / general. `ConfirmDialog` renders outside `ListGroup` (same fragment) so `overflow: hidden` cannot clip it.
+
+### Single input source
+
+`ui/Input` is the only field base, with four variants: `default` (sunken + `--radius-md`), `capsule` (raised + pill + `--shadow-1`), `flat` (sunken + pill + `--control-xl`, used by nav bars and the home top bar) and `borderless`.
+
+- `shared/SearchBar` no longer owns input metrics; it composes `ui/Input` — `default` maps to `capsule`, `nav` / `home` map to `flat` — and only supplies host layout plus the home expanded outline.
+- The library search field and the tasks ID field are therefore identical (same `--control-2xl` height, pill radius, `--space-4` inset), and both sit `--space-3` below their section header (`SectionHeader`'s `--space-2` bottom plus the page container's `--space-3` top).
+- `Input` forwards its ref to the native `<input>`; `focusRing={false}` lets a caller draw its own focus affordance.
+
+### Release notes rendering
+
+Both the `version.json` `notes` field and the GitHub release body are author-written Markdown; dumping them into a dialog shows `##`, `-` and `**` as literal text.
+
+- `parseNotes` in `features/update/notes.ts` flattens the text into `heading` / `bullet` / `text` blocks: heading hashes, list markers, inline emphasis and link syntax are stripped, code fences are skipped, and blockquotes plus indented sub-bullets collapse to the same level (GitHub's nested lists stay readable).
+- `features/update/ReleaseNotes.tsx` renders them: a `--surface-sunken` panel with an "update notes" caption, `--ink-primary` heading blocks and dotted bullet rows; the panel caps at `32vh` with its own scroll and `overscroll-behavior: contain`.
+- `UpdatePrompt` and the settings "check for updates" `ConfirmDialog` share the component, so `ConfirmDialog`'s `message` is now a `ReactNode` and no longer forces `white-space: pre-wrap`.
+- The version line keeps only "current vA → latest vB"; package size, cache notice and mirror switching collapse into one metadata row instead of mixing with the notes.
 
 ### Card system
 
-`Poster` (`components/Poster.tsx` + `styles/poster.css`) is the single cover base: `useCoverSrc` lookup, fade-in, title-fragment fallback, `--cover-tint-*` backdrop, optional scrim and badge layer.
+`Poster` (`shared/Poster.tsx` + `poster.module.css`) is the single cover base: `useCoverSrc` lookup, fade-in, title-fragment fallback, `--cover-tint-*` backdrop, optional scrim and badge layer.
 
 | Variant | Component | Shape |
 | --- | --- | --- |
@@ -175,19 +213,31 @@ src/web/
   assets/
     fonts/                # Alimama / BebasNeue / Nagino (woff2)
     icons/                # Iconify SVG
-  components/             # Icon / AlbumCard / ConfirmDialog / SearchBar / ...
+  features/
+    home/                 # HomeScreen / HomeHero / HomeSearch / ContinueReading / RankList / UpdateList
+    library/              # LibraryScreen + module.css
+    tasks/                # TasksScreen + module.css
+    settings/             # index.tsx + sections/{General,Download,Filter,Maintenance}Section + useLibraryRepair
+    detail/               # DetailHero / DetailMeta / DetailSections
+    discover/             # DiscoverScreen
+    search/               # SearchScreen
+    reader/               # ReaderScreen / ReaderToolbar / ReaderStatus
+    update/               # UpdatePrompt / ReleaseNotes / notes (release-note parser)
+    errors/               # AppErrorBoundary (render errors + unhandled rejections)
+  shared/                 # Icon / Poster / AlbumCard / AlbumRow / AlbumListSection / SearchBar / Skeletons / ListFooter
+  ui/                     # 33 primitives, index.tsx + matching module.css
   download/               # createDownloadRuntime / safRuntime / taskCleanup
   generated/              # icons.ts (generated)
-  hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
+  hooks/                  # useAppUpdate / useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
+  i18n/                   # zh-CN.ts dictionary + t(key, params)
   library/                # saveToLibrary / coverCache / repairLibrary / discoverLibrary / daily / tags / uid
-  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer
-  screens/                # Home / Library / Tasks / Settings / Reader
-  stores/                 # zustand stores
-  styles/                 # CSS style modules
+  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer (+ engine.css)
+  stores/                 # zustand stores (incl. storage-version.ts)
+  styles/                 # fonts.css / shell.css
   theme/                  # Cirrus tokens (CSS variables)
   util/                   # cacheRegistry (cache invalidation registry)
-  App.tsx                 # tab switching + cover warm + lazy Reader mount
-  main.tsx                # ReactDOM.createRoot entry
+  App.tsx                 # tab switching + cover warm + lazy Reader + UpdatePrompt
+  main.tsx                # createRoot entry, wrapped in AppErrorBoundary
   index.html              # WebView host page
 ```
 

@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-11-11 (Wed)
+
+### Release-notes rendering and a reworked content filter
+
+- **Release notes**: added `features/update/notes.ts` (`parseNotes` flattens Markdown into heading / bullet / text blocks) and `ReleaseNotes.tsx` (a `--surface-sunken` panel with an "update notes" caption and dotted bullets, capped at `32vh` with its own scroll). `UpdatePrompt` and the settings "check for updates" dialog share it, and the dialog splits into a version line, a metadata row (size / cache / mirror switch) and the notes panel. `ConfirmDialog.message` is now a `ReactNode` and no longer forces `white-space: pre-wrap`.
+- **Copy keys**: `update.newVersionPrompt` / `update.newVersionNote` drop the `{notes}` placeholder — notes are no longer inlined into a single line — and `update.notesTitle` is added.
+- **Content filter**: black/white lists became one list where each row carries a mode pill (tap to swap) and the composer has a target toggle on the left; `setFilterTag` / `removeFilterTag` own the mutual-exclusion invariant, and clearing asks for confirmation.
+- **Detail top offset**: the root cause was cascade order — the global `.nav-scroll` (`padding: 0 …`) is emitted after `detail.module.css`, so at equal specificity it zeroed the scroller's top padding. The inset therefore lives as `padding-top: --space-4` on `.hero` / `.detailHero` (cover and skeleton land on the same Y) while `.heroBg` still fills the whole hero block flush against the bar — no `margin-top`, and no upward bleed that the `overflow-y: auto` scroller would clip into a hard band.
+- **Nav icon centring**: `IconButton`'s inner `span` is now `inline-flex` with `line-height: 1`, removing the ~3px rise caused by the line box descent; the back arrow, the title text and the 40×40 button now share one centre line.
+- **Gates**: `check-icons` walks `src/` in pure Bun and no longer shells out to `rg`, so the pre-commit hook's restricted PATH still passes.
+
+## 2026-11-10 (Tue)
+
+### Grouped settings cards and a single input source
+
+- **Grouped cards**: added `ui/ListGroup` (a `--surface-card` card with `1px` hairline separators between children, a `--text-xs` caption and an optional `hint`); `ListTile` gains `variant="plain"` so rows inside a card drop their own shadow and use `--surface-sunken` for the pressed state. All five settings groups (display / download / network / content filter / general) now use the card structure, and `ConfirmDialog` moved outside the card so `overflow: hidden` cannot clip it.
+- **One input base**: `ui/Input` gains a `flat` variant (sunken pill at `--control-xl`), forwards its ref to the native input, and exposes a `focusRing` switch; `shared/SearchBar` now composes `ui/Input` instead of owning `.bar/.input/.clear` metrics, keeping only host layout and the home expanded outline.
+- **Page parity**: the library search field and the tasks ID field are both capsule (`--control-2xl` height, same inset) and sit `--space-3` below their header; tasks shake / invalid behaviour is unchanged.
+- **Docs**: UI architecture documents both the grouped-card pattern and the single input source; setup gains a commit / package / release runbook.
+
+## 2026-11-09 (Mon)
+
+### Full standardization refactor
+
+- **Contract & lint**: added `AGENTS.md` and `.cursor/rules/jmfm-conventions.mdc`; ESLint enables `react-hooks/recommended`, `no-console` (warn/error allowed), `consistent-type-imports`, `no-restricted-imports` (no `core → web` reverse dependency, no deep relative imports); every `src/web` relative import became `@/`; `bunfig.toml` injects `__APP_VERSION__`.
+- **Dev loop**: added `dev:web` / `dev:android` / `dev:android:usb` / `dev:apk`; the debug manifest allows cleartext only for `localhost`, `127.0.0.1`, `192.168.*`; `dev:web` runs with HMR off (Bun CSS Modules bug oven-sh/bun#18258 — refresh to pick up edits).
+- **Design tokens**: `theme/index.css` gains `--control-*`, `--tap-min`, `--z-*` (incl. `--z-fab`), `--grad-metal-*`, `--mask-to-right-fade`, `--shadow-nav`; `app.css` + `navScreen.css` merged into `styles/shell.css`, keeping only the 25 JS-touched contract classes + tabbar; `main.tsx` entry consolidated.
+- **Component kit**: new `src/web/ui/` with 32 primitives (each directory `index.tsx` + matching `*.module.css`, barrel-exported), `IconButton` requires `label`; all pages and components migrated, styles moved into colocated modules, legacy global CSS deleted.
+- **Structure**: `src/web` co-locates by feature (home / library / tasks / settings / detail / discover / search / reader / update / errors); `SettingsScreen` split into 5 sections + `useLibraryRepair`, `ReaderScreen` split toolbar and status; only ≥2 consumers rise to `shared/`; `DiscoverSections.tsx` and its orphan CSS removed.
+- **i18n**: single `zh-CN.ts` dictionary with `t(key, params)` and a typed `MessageKey`, 293 literals extracted; `document.documentElement.lang` set at runtime.
+- **Updates & downloads**: `version.json` expands to `version` / `versionCode` / `minVersionCode` / `apkSha256` / `apkSize` / `notes`; `core/update/source.ts` falls back across API (`If-None-Match`) → raw manifest → TTL cache; `decideUpdate` yields `none | optional | force`; APK candidates across mirrors, web `.part` + `Range` resume (206 append / 200 rewrite), native mirror rotation, streaming SHA-256 required before install; `UpdatePrompt` cannot be dismissed when forced.
+- **State robustness**: `user-storage` adds `readVersioned` / `writeVersioned` (`{v, data}` envelope + legacy migration), adopted by library / history / settings; failed writes surface "save failed" asynchronously; new `AppErrorBoundary` (render errors + global `error` / `unhandledrejection`) wraps `<App />`.
+- **Code gates**: `check-tokens` / `check-ui` / `check-i18n` / `check-debug-code` / `check-release` added; `bun run check` aggregates them and is wired into `.githooks/pre-commit` and CI.
+- Regression: `bun test` 235 cases / 28 files, typecheck / lint / build / check all green.
+
 ## 2026-08-28 (Fri)
 
 ### Full-pipeline optimization & renovation

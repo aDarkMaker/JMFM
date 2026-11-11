@@ -34,11 +34,12 @@ flowchart TB
 ```
 
 - **App**：轻量 state tab 切换，承载 4 个主页面（无路由库）。
-- **Screens**：页面级组件，只负责组合与事件分发，无业务实现。
+- **Screens**：`src/web/features/<feature>/index.tsx` 页面级组件，只负责组合与事件分发，无业务实现。
 - **Stores**：zustand 状态库，页面通过 store 读写 UI 状态，并桥接 `core` 的服务。
-- **Components**：无业务语义的展示组件。
-- **Styles**：全部样式为独立 CSS 文件，置于 `src/web/styles/`，tsx 内不写内联样式表。
+- **Components**：基础件在 `src/web/ui/`（每目录 `index.tsx` + 同名 `.module.css`）；≥2 个 feature 共用才提升到 `src/web/shared/`。
+- **Styles**：组件用 `*.module.css` 与组件共置；全局 CSS 只剩 `styles/fonts.css` 与 `styles/shell.css`（25 个契约类 + tabbar）。
 - **Assets**：图标（Iconify SVG）与字体（Alimama / BebasNeue）统一存放。
+- **i18n**：全部用户可见文案走 `t(key)`，字典在 `src/web/i18n/zh-CN.ts`。
 
 ## 导航结构
 
@@ -65,10 +66,10 @@ flowchart LR
 ## 页面职责
 
 - **Home**：分区自上而下为 顶栏（品牌 + 搜索）→ Hero（本周焦点）→ 继续阅读 → 今日推荐网格 → 人气榜 Top8 → 最近更新（相对时间）→ 分类 chips。全部数据派生自现有 store，无新增接口：Hero 取推荐池 `likesCount` 最高者；人气榜用 `useBrowseStore.hot`；最近更新由 `useDailyStore.albums` 按 `updateAt` 倒序。推荐本身仍走 `buildRecommendations`（白名单 → 偏爱标签 → 时间梯度补齐 6 本），按日缓存，支持 dismiss / 刷新。
-- **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读；删除使用 `ConfirmDialog`。
-- **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本经 `queue.ts` 串行；完成 3s 后 GSAP 高度折叠离场；卡片为标题左对齐 + 状态徽章（无对号图标）。
+- **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读；删除使用 `ConfirmDialog`。搜索框为 `shared/SearchBar`（capsule），与下载页 ID 输入框同构，顶部间距 `--space-3`。
+- **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本经 `queue.ts` 串行；完成 3s 后 GSAP 高度折叠离场；卡片为标题左对齐 + 状态徽章（无对号图标）。顶部 ID 输入框为 `ui/Input` capsule 变体，与资源页搜索框共享同一度量。
 - **Reader**：`ReaderTarget.pagesDir` 存在时走图片直读（`image-reader.tsx` + `image-loader.ts`）：纵向窗口 ±1/+3，横向三页轨道；否则回退 pdf.js。`ReaderScreen` 由 `App` 用 `React.lazy` 懒加载，pdf.js 仅 PDF 模式动态 import。
-- **Settings**：主题、阅读方式、下载路径（支持 SAF 目录授权）、启用代理；「通用 → 修复文件」扫描并补齐缺失页面与封面，扫描进度条与入队提示常驻（跨 Tab 不中断）；「检查更新」下载进度由 `useUpdateStore` 承载，切页后回设置页仍可见。
+- **Settings**：主题、阅读方式、下载路径（支持 SAF 目录授权）、启用代理；分组为显示 / 下载 / 网络 / 内容过滤 / 通用，全部用 `ui/ListGroup` 卡片承载；「通用 → 修复文件」扫描并补齐缺失页面与封面，扫描进度条与入队提示常驻（跨 Tab 不中断）；「检查更新」下载进度由 `useUpdateStore` 承载，切页后回设置页仍可见。
 
 ## 封面预加载
 
@@ -117,7 +118,7 @@ flowchart TD
 - 分页合并（append / dedupe / end / LRU 缓存）统一在 `src/web/library/pagedFeed.ts`，`browseFeed` 与 `search` 只保留 API 差异。
 - **stale-while-revalidate**：切分类/排序时若新键无缓存，`selectVisibleFeed` 继续渲染上一份列表，顶栏显示细进度条（`.nav-scroll.is-switching`），不再闪 `EmptyState`。
 - **无限滚动门控**：`useInfiniteScroll` 对一次「可见」只触发一次加载，请求结束（`disabled` 回 false）后再解锁，避免 loading 中重复翻页。
-- **骨架屏**：`src/web/components/Skeletons.tsx` + `styles/skeleton.css` 提供 6 卡网格、列表行、热门横滑、分类格子四种占位；加载中取代 `app-empty`，`app-empty--fixed` 保留 240px 高度，页面不再塌陷。
+- **骨架屏**：`src/web/shared/Skeletons.tsx` + `skeletons.module.css` 提供 6 卡网格、列表行、热门横滑、分类格子四种占位；加载中取代 `app-empty`，`app-empty--fixed` 保留 240px 高度，页面不再塌陷。
 
 ## 交互约束
 
@@ -134,12 +135,49 @@ flowchart TD
 
 - **暗色优先**：`:root` 即暗色语义；`[data-theme='light']` 只重绑 primitive/alias，组件选择器不换。`src/data/settings.ts` 默认 `theme: 'dark'`。
 - 组件 CSS 只引用 semantic token，禁止裸 hex / `rgba()`；封面底色统一走 `--cover-tint-1..6`，渐变走 `--cover-scrim` / `--cover-scrim-full`。
-- 页面与组件样式分别置于 `src/web/styles/` 下对应 CSS 文件，tsx 不内联样式表。
+- 组件样式写在组件旁的 `*.module.css`，由 `scripts/check-tokens.ts` 强制：裸颜色、非 token 的 padding/margin/gap、`calc(var(--z-*) ± N)` 一律报错，`/* token-ignore: 理由 */` 可白名单。
+- 全局 CSS 只剩 `styles/fonts.css`（`@font-face`）与 `styles/shell.css`；后者只允许 JS 触达的契约类：`.app`、`.app-content`、`.app-screen`、`.app-tabbar`、`.app-empty(-fixed)`、`.sticky-chrome`、`.tab-pane(-inner)`、`.tab-item`、`.tab-icon`、`.tab-label`、`.nav-layer`、`.nav-screen`、`.nav-scroll`、`.chrome-hidden`、`.is-pulling`、`.is-search-locked`、`.keyboard-open`、`.is-active`、`.is-covered`、`.is-closing`、`.is-search`、`.is-switching`、`.nav-open`，由 `scripts/check-ui.ts` 校验。
 - `--ease-emphasized` 与 `--dur-*` 统一 nav / tab / 卡片过渡；`prefers-reduced-motion` 会把 `--dur-*` 压到 1ms。
+
+### 组件库 `src/web/ui/`
+
+33 个基础件，每目录 `index.tsx` + 同名 `.module.css`，统一从 `src/web/ui/index.ts` 导出，组件不读 store、尺寸走 `--control-*`。
+
+| 分组 | 组件 |
+| --- | --- |
+| 操作 | `Button`（primary / secondary / ghost / danger × sm / md / lg）、`IconButton`（`label` 必填）、`Fab` |
+| 输入 | `Input`（default / capsule / flat / borderless）、`Switch`、`Checkbox`、`RadioGroup`、`Slider`、`Select`、`DatePicker` |
+| 展示 | `Card`、`ListGroup`、`ListTile`（card / plain）、`SectionHeader`、`Chip` + `ChipRow`、`Segmented`、`Tabs` + `AnimatedTabs`、`Badge` + `RedDot`、`Avatar`、`Divider`、`Spinner`、`ProgressBar`、`Skeleton` + `SkeletonText`、`EmptyState`、`AutoWidthText`、`ReadMoreText` |
+| 浮层 | `NavBar`、`Sheet`、`Dialog`、`ConfirmDialog`、`ToastHost` + `showToast`、`Tooltip`、`ImagePreview` |
+
+### 设置页分组卡片
+
+设置页统一为「分组卡片」：`ui/ListGroup` 出一张 `--surface-card` 卡片（`--radius-md` + `--shadow-1` + `overflow: hidden`），卡片内相邻行自动加 `1px` 分隔线（`.card > * + *`），标题用 `--text-xs` / `--ink-tertiary`，补充说明走 `hint`。
+
+- 卡片内的行一律 `ListTile variant="plain"`：去掉自身表面与阴影，按下态改用 `--surface-sunken` 而不是缩放。
+- 进度条等工作块（`.progress`）也是卡片的直接子元素，因此同样带分隔线并左右对齐 `--space-4`。
+- 分组为显示 / 下载 / 网络 / 内容过滤 / 通用；`ConfirmDialog` 放在 `ListGroup` 之外的 fragment 中，避免被卡片 `overflow: hidden` 裁掉。
+
+### 输入框单一来源
+
+`ui/Input` 是唯一输入底座，四个变体：`default`（下沉 + `--radius-md`）、`capsule`（浮起 + 胶囊 + `--shadow-1`）、`flat`（下沉 + 胶囊 + `--control-xl`，用于导航栏 / 首页顶栏）、`borderless`（无底）。
+
+- `shared/SearchBar` 不再自带输入度量，改为组合 `ui/Input`：`default` 走 `capsule`，`nav` / `home` 走 `flat`，只额外提供 host 布局与首页展开态描边。
+- 资源页搜索框与下载页 ID 输入框因此完全同构（同高 `--control-2xl`、同胶囊圆角、同 `--space-4` 内边距），两页与标题的间距都固定为 `--space-3`（`SectionHeader` 自带 `--space-2` 下边距 + 页面容器 `--space-3` 上边距）。
+- `Input` 用 `forwardRef` 暴露原生 `<input>`，`focusRing={false}` 可在调用方自绘聚焦态时关闭内建 ring。
+
+### 更新说明渲染
+
+`version.json` 的 `notes` 与 GitHub Release body 都是作者手写的 Markdown，直接塞进弹窗会把 `##`、`-`、`**` 当正文显示。
+
+- `features/update/notes.ts` 的 `parseNotes` 把文本拍平成 `heading` / `bullet` / `text` 三类块：剥离标题井号、列表符号、行内强调与链接语法，跳过代码围栏，`>` 引用与缩进子项按同级处理（GitHub body 的嵌套列表不会退化成层级错乱）。
+- `features/update/ReleaseNotes.tsx` 负责渲染：`--surface-sunken` 面板 + 顶部「更新内容」标签 + `--ink-primary` 标题块 + 圆点列表项，面板最高 `32vh` 内部滚动、`overscroll-behavior: contain` 不带动外层面板。
+- `UpdatePrompt` 与设置页「检查更新」的 `ConfirmDialog` 共用同一组件；`ConfirmDialog` 的 `message` 因此改为 `ReactNode` 并去掉 `white-space: pre-wrap`（换行改由块布局表达）。
+- 版本行只保留「当前 vA → 最新 vB」，安装包大小 / 缓存提示 / 镜像切换收敛到一行 metadata，不再与说明文字混排。
 
 ### 卡片体系
 
-`Poster`（`components/Poster.tsx` + `styles/poster.css`）是唯一封面底座：`useCoverSrc` 取源、渐显、失败回退标题字数块、`--cover-tint-*` 打底、可选 scrim 与角标层。
+`Poster`（`shared/Poster.tsx` + `poster.module.css`）是唯一封面底座：`useCoverSrc` 取源、渐显、失败回退标题字数块、`--cover-tint-*` 打底、可选 scrim 与角标层。
 
 | 变体 | 组件 | 形态 |
 | --- | --- | --- |
@@ -177,19 +215,31 @@ src/web/
   assets/
     fonts/                # Alimama / BebasNeue / Nagino（woff2）
     icons/                # Iconify SVG
-  components/             # Icon / AlbumCard / ConfirmDialog / SearchBar / ...
+  features/
+    home/                 # HomeScreen / HomeHero / HomeSearch / ContinueReading / RankList / UpdateList
+    library/              # LibraryScreen + module.css
+    tasks/                # TasksScreen + module.css
+    settings/             # index.tsx + sections/{General,Download,Filter,Maintenance}Section + useLibraryRepair
+    detail/               # DetailHero / DetailMeta / DetailSections
+    discover/             # DiscoverScreen
+    search/               # SearchScreen
+    reader/               # ReaderScreen / ReaderToolbar / ReaderStatus
+    update/               # UpdatePrompt / ReleaseNotes / notes（说明文本解析）
+    errors/               # AppErrorBoundary（渲染异常 + 未处理 rejection）
+  shared/                 # Icon / Poster / AlbumCard / AlbumRow / AlbumListSection / SearchBar / Skeletons / ListFooter
+  ui/                     # 33 个基础件，index.tsx + 同名 module.css
   download/               # createDownloadRuntime / safRuntime / taskCleanup
   generated/              # icons.ts（脚本生成）
-  hooks/                  # useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
+  hooks/                  # useAppUpdate / useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
+  i18n/                   # zh-CN.ts 字典 + t(key, params)
   library/                # saveToLibrary / coverCache / repairLibrary / discoverLibrary / daily / tags / uid
-  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer
-  screens/                # Home / Library / Tasks / Settings / Reader
-  stores/                 # zustand stores
-  styles/                 # CSS 样式模块
+  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer（+ engine.css）
+  stores/                 # zustand stores（含 storage-version.ts）
+  styles/                 # fonts.css / shell.css
   theme/                  # Cirrus tokens（CSS 变量）
   util/                   # cacheRegistry（缓存失效注册）
-  App.tsx                 # tab 切换 + 封面预热 + Reader 懒加载挂载
-  main.tsx                # ReactDOM.createRoot 入口
+  App.tsx                 # tab 切换 + 封面预热 + Reader 懒加载 + UpdatePrompt
+  main.tsx                # createRoot + AppErrorBoundary 包裹
   index.html              # WebView 宿主页
 ```
 

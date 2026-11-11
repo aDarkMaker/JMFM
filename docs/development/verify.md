@@ -2,7 +2,7 @@
 
 ## 单测
 
-`bun test` 覆盖核心模块（当前 20 个测试文件、149 个用例）：
+`bun test` 覆盖核心模块（当前 28 个测试文件、235 个用例）：
 
 | 模块 | 覆盖点 |
 |---|---|
@@ -11,15 +11,20 @@
 | `parser` | Base64 解码、HTML 解析 |
 | `model` | 图片 URL 构造、ImageItem 创建 |
 | `net` | 域名轮换、URL 构造、retryable 重试分类、requestWithRetry |
+| `native-http` | 原生 HTTP 通道与 fetch 回退 |
 | `download-service` | 端到端编排（mock 网络与运行时）、原子写入 |
 | `scheduler` | 并发计算、Semaphore、内存水位 MemoryGate |
 | `sha256` / `download-apk` | 增量 SHA-256 参考向量、APK 流式下载与校验 |
-| `update-http` | 版本检查 / APK 下载的请求与响应处理 |
+| `update-http` / `update-manifest` | 版本检查与 APK 下载请求、manifest 解析、`decideUpdate`、镜像候选 |
+| `user-storage` | `{v, data}` 信封读写、旧格式迁移、损坏数据回退 |
 | `safPaths` | SAF 相对路径、删除保护 |
 | `resolveLibraryPaths` | 库路径解析与重定位 |
 | `discoverLibrary` / `filterTags` | 本地库发现、标签过滤 |
+| `coverCache` | 封面 URI 缓存、inflight 去重 |
 | `daily` | 每日推荐（白名单/偏爱/时间梯度补齐） |
+| `browse` / `feed` / `paging` | 分类树、分页合并、stale-while-revalidate |
 | `download-store` | 任务状态机：albumId 去重、状态流转、pause/resume、进度节流 flush |
+| `relativeTime` | 相对时间 key + params |
 | `settings` / `constants` / `semver` | 配置、常量、版本比较 |
 | `formatTaskError` | 任务错误信息格式化 |
 
@@ -78,4 +83,21 @@ bun scripts/bench-reader-flow.ts 1214052
 bun run typecheck   # tsc --noEmit
 bun run lint        # eslint
 bun run build       # bun build 产物（--minify --splitting）
+```
+
+## 门禁检查
+
+`bun run check` 汇总以下脚本，`.githooks/pre-commit` 与 CI 构建前均会执行：
+
+| 脚本 | 检查项 |
+| --- | --- |
+| `check:icons` | 图标命名唯一性、`path d` 重复、`generated/icons.ts` 漂移、未知/零引用 |
+| `check:tokens` | 裸 hex / `rgb()` / `rgba()`、非 token 的 `padding` / `margin` / `gap`、`calc(var(--z-*) ± N)` |
+| `check:ui` | `ui/` 每目录必须 `index.tsx` + 同名 `.module.css`；`ui/index.ts` 全导出；`shell.css` 仅契约类 |
+| `check:i18n` | `t()` key 存在性、未使用 key、字典外 CJK 字面量、`IconButton` 缺 `label` |
+| `check:debug` | 生产代码禁 `console.log/info/debug`、`debugger`、`alert`（`dev/**` 与 `scripts/**` 豁免） |
+| `check:release` | `package.json` / `version.json` / 派生 `versionCode` 三者一致 |
+
+```bash
+bun run check
 ```

@@ -1,5 +1,40 @@
 # 开发日志
 
+## 2026-11-11（三）
+
+### 更新说明渲染 + 内容过滤重排
+
+- **更新说明**：新增 `features/update/notes.ts`（`parseNotes` 拍平 Markdown 为 heading / bullet / text）与 `ReleaseNotes.tsx`（`--surface-sunken` 面板 + 「更新内容」标题 + 圆点列表，最高 `32vh` 内部滚动）；`UpdatePrompt` 与设置页「检查更新」弹窗共用该组件，版本行、metadata 行（大小 / 缓存 / 镜像切换）、说明面板分层。`ConfirmDialog.message` 改为 `ReactNode` 并移除 `white-space: pre-wrap`。
+- **文案键收敛**：`update.newVersionPrompt` / `update.newVersionNote` 去掉 `{notes}` 占位（说明不再拼进单行文案），新增 `update.notesTitle`。
+- **内容过滤**：黑白名单改为单一列表 + 每行模式 pill（点击即互换），输入区左侧目标按钮切换新增归属；`setFilterTag` / `removeFilterTag` 承接互斥不变量，清空需二次确认。
+- **详情页顶距**：根因是全局 `.nav-scroll`（`padding: 0 …`）在打包顺序上晚于 `detail.module.css`，同优先级下把滚动容器的上内边距抹成 0。间距改挂到 `.hero` / `.detailHero` 的 `padding-top: --space-4`：封面与占位块下移，`.heroBg` 仍铺满整块 hero、贴齐导航栏底边（不再用 `margin-top`，也不再向上溢出被裁成硬边）。
+- **导航图标居中**：`IconButton` 的内层 `span` 显式 `inline-flex` + `line-height: 1`，去掉行盒降部带来的约 3px 上浮；返回箭头、标题文字与 40×40 按钮现在共心。
+- **门禁**：`check-icons` 改为纯 Bun 遍历 `src/`，不再 `execSync('rg …')`，git hook 的受限 PATH 下也能过。
+
+## 2026-11-10（二）
+
+### 设置页分组卡片 + 输入框单一来源
+
+- **分组卡片**：新增 `ui/ListGroup`（`--surface-card` 卡片 + 相邻行 `1px` 分隔线 + `--text-xs` 标题 + 可选 `hint`）；`ListTile` 增 `variant="plain"`，卡片内行不再各带阴影，按下态改用 `--surface-sunken`。设置页五组（显示 / 下载 / 网络 / 内容过滤 / 通用）全部改为卡片结构，`ConfirmDialog` 移出卡片避免被 `overflow: hidden` 裁切。
+- **输入框收敛**：`ui/Input` 增 `flat` 变体（下沉胶囊 + `--control-xl`）并改用 `forwardRef` 暴露原生 input，新增 `focusRing` 开关；`shared/SearchBar` 改为组合 `ui/Input`，不再自带 `.bar/.input/.clear` 度量，只保留 host 布局与首页展开态描边。
+- **页面一致**：资源页搜索框与下载页 ID 输入框统一为 capsule（同高 `--control-2xl`、同内边距），与标题间距统一 `--space-3`；下载页 shake / invalid 逻辑不变。
+- **文档**：UI 架构补「设置页分组卡片」「输入框单一来源」两节；环境准备补「提交 · 打包 · 发布」运行手册。
+
+## 2026-11-09（一）
+
+### 全量规范化改造
+
+- **契约与 lint**：新增 `AGENTS.md` 与 `.cursor/rules/jmfm-conventions.mdc`；ESLint 启用 `react-hooks/recommended`、`no-console`（放行 warn/error）、`consistent-type-imports`、`no-restricted-imports`（禁 `core → web` 反向依赖与深度 ≥2 相对导入）；`src/web` 全量相对导入改 `@/` 别名；`bunfig.toml` 注入 `__APP_VERSION__`。
+- **调试链路**：新增 `dev:web` / `dev:android` / `dev:android:usb` / `dev:apk`；debug 清单只放行 `localhost`、`127.0.0.1`、`192.168.*` 明文；`dev:web` 关 HMR（Bun CSS Modules 缺陷 oven-sh/bun#18258），改动后刷新即可。
+- **设计 token**：`theme/index.css` 补全 `--control-*`、`--tap-min`、`--z-*`（含 `--z-fab`）、`--grad-metal-*`、`--mask-to-right-fade`、`--shadow-nav`；`app.css` + `navScreen.css` 合并为 `styles/shell.css`，只剩 25 个 JS 触达的契约类 + tabbar；`main.tsx` 入口收敛。
+- **组件库**：新增 `src/web/ui/` 32 个基础件（每目录 `index.tsx` + 同名 `*.module.css`，统一 barrel 导出），`IconButton` 强制 `label`；现有页面与组件全量替换，样式迁入共置 module，删除旧全局 CSS。
+- **目录收敛**：`src/web` 按 feature 共置（home / library / tasks / settings / detail / discover / search / reader / update / errors），`SettingsScreen` 拆为 5 个 section + `useLibraryRepair`，`ReaderScreen` 拆工具栏与状态；≥2 消费者才进 `shared/`；删除 `DiscoverSections.tsx` 及孤儿 CSS。
+- **i18n**：单字典 `zh-CN.ts` + `t(key, params)`，类型化 `MessageKey`，抽取 293 处中文字面量；运行时写 `document.documentElement.lang`。
+- **更新与下载**：`version.json` 扩为 `version` / `versionCode` / `minVersionCode` / `apkSha256` / `apkSize` / `notes`；`core/update/source.ts` 四级回退（API + `If-None-Match` → raw manifest → TTL 内缓存）；`decideUpdate` 输出 `none | optional | force`；APK 多镜像候选，Web `.part` + `Range` 续传（206 追加 / 200 重写）、原生镜像轮换，流式 SHA-256 通过才安装；`UpdatePrompt` 强制更新不可关闭。
+- **状态层健壮性**：`user-storage` 增 `readVersioned` / `writeVersioned`（`{v, data}` 信封 + 旧格式迁移），library / history / settings 接入；落盘失败改异步 `.catch()` 提示「保存失败」；新增 `AppErrorBoundary`（渲染异常 + 全局 `error` / `unhandledrejection`）包裹 `<App />`。
+- **代码门禁**：新增 `check-tokens` / `check-ui` / `check-i18n` / `check-debug-code` / `check-release`，`bun run check` 汇总五道脚本并接入 `.githooks/pre-commit` 与 CI。
+- 回归：`bun test` 235 用例 / 28 文件，typecheck / lint / build / check 全绿。
+
 ## 2026-08-28（五）
 
 ### 全链路优化与翻新
