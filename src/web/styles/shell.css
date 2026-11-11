@@ -1,0 +1,323 @@
+/* Global shell CSS.
+   Only classes that JavaScript reaches through classList / querySelector, plus the
+   tab bar and overlay chrome shared by every screen, may live here. Everything else
+   belongs to a *.module.css next to its component. */
+
+/* ---- root shell ---- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  /* Insets are injected by Capacitor SystemBars; older WebViews are padded natively. */
+  padding-top: calc(var(--space-3) + var(--safe-top));
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+  box-sizing: border-box;
+}
+
+.app-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  position: relative;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.app-content.is-covered {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Tabs stay mounted; inactive ones keep their scroll offset but are inert. */
+.tab-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.tab-pane[hidden] {
+  display: none;
+}
+
+.tab-pane-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Pull-to-refresh: rubber-band only — no spinner (sticky chrome would hide it). */
+.app-screen.is-pulling {
+  will-change: transform;
+}
+
+/* Keep sticky chrome pinned in screen space while the scroller rubber-bands. */
+.app-screen.is-pulling .sticky-chrome {
+  transform: translate3d(0, calc(-1 * var(--pull-y, 0px)), 0);
+}
+
+.app-screen {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-4) var(--space-4) var(--space-6);
+  padding-bottom: calc(88px + max(var(--safe-bottom), 16px));
+  scroll-padding-top: 56px;
+  scrollbar-gutter: stable;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-screen.is-search-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.app-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* Reserves vertical space while a section is loading or empty, so the page
+   never collapses and jumps when content arrives. */
+.app-empty--fixed {
+  min-height: 240px;
+  flex: 0 0 auto;
+}
+
+/* ---- tab bar ---- */
+
+.app-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: var(--z-tabbar);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: var(--space-2) calc(var(--space-4) + var(--safe-right))
+    calc(var(--space-2) + max(var(--safe-bottom), 12px))
+    calc(var(--space-4) + var(--safe-left));
+  background: var(--surface-card);
+  border-top: 1px solid var(--color-edge);
+  box-shadow: var(--shadow-1);
+  box-sizing: border-box;
+  min-width: 0;
+  flex-shrink: 0;
+  transition: transform var(--dur-base) var(--ease-emphasized);
+}
+
+/* Hide chrome while reading downward; reveal on any upward scroll. */
+.app.chrome-hidden .app-tabbar {
+  transform: translateY(100%);
+}
+
+/* Nav overlays cover the shell — tuck the tabbar so it cannot flash through. */
+.app.nav-open .app-tabbar {
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+body.keyboard-open .app-tabbar {
+  transform: translateY(100%);
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--ink-tertiary);
+  transition: color var(--dur-fast) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-primary-soft);
+  border-radius: var(--radius-md);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-spring);
+  z-index: -1;
+}
+
+.tab-item.is-active {
+  color: var(--accent-primary);
+}
+
+.tab-item.is-active::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tab-item .tab-label {
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.tab-item .tab-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* ---- overlay layer (JS-driven transitions) ---- */
+
+.nav-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-nav);
+  animation: nav-enter var(--dur-slow) var(--ease-emphasized) both;
+  background: var(--surface-canvas);
+  box-shadow: var(--shadow-nav);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.nav-layer.is-search {
+  animation: search-enter 280ms var(--ease-out) both;
+  box-shadow: none;
+}
+
+.nav-layer.is-closing {
+  animation: nav-exit 240ms var(--ease-emphasized) forwards;
+  pointer-events: none;
+}
+
+.nav-layer.is-search.is-closing {
+  animation: search-exit 200ms var(--ease-out) forwards;
+}
+
+@keyframes nav-enter {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes nav-exit {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+@keyframes search-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes search-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-layer,
+  .nav-layer.is-search,
+  .nav-layer.is-closing,
+  .nav-layer.is-search.is-closing {
+    animation-duration: 1ms;
+  }
+
+  .app-content,
+  .app-content.is-covered {
+    transition-duration: 1ms;
+  }
+}
+
+/* ---- overlay chrome shared by every pushed screen ---- */
+
+.nav-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-canvas);
+  min-width: 0;
+}
+
+.nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Nav sits above the tabbar; only need end breathing room + home indicator. */
+  padding: 0 var(--space-4) calc(var(--space-8) + max(var(--safe-bottom), 20px));
+  min-width: 0;
+  position: relative;
+}
+
+.nav-scroll.is-switching::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  transform-origin: left center;
+  animation: feed-progress 1s var(--ease-out) infinite;
+}
+
+@keyframes feed-progress {
+  0% {
+    transform: scaleX(0.1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleX(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}

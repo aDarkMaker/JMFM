@@ -1,9 +1,10 @@
 import {create} from 'zustand';
 import {Capacitor} from '@capacitor/core';
-import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
-import {STORAGE_KEYS} from '../../data/storage-keys';
+import {createUserStorage, migrateFromLocalStorage, readVersioned, writeVersioned} from '@/data/user-storage';
+import {STORAGE_KEYS} from '@/data/storage-keys';
+import {STORAGE_VERSION} from './storage-version';
 import {waitForSettingsLoaded, useSettingsStore} from './settings';
-import {resolveLibraryPaths} from '../library/resolveLibraryPaths';
+import {resolveLibraryPaths} from '@/web/library/resolveLibraryPaths';
 import {
   discoverLibraryFromDisk,
   dedupeLibraryItems,
@@ -12,11 +13,13 @@ import {
   repairAlbumIdsFromMeta,
   repairAlbumIdsFromTitle,
   LOCAL_ID_OFFSET,
-} from '../library/discoverLibrary';
-import {ApiClient} from '../../core/api';
-import {createHttpClient} from '../../core/net';
-import {writeLocalAlbumMeta} from '../library/saveToLibrary';
-import {createDownloadRuntime} from '../download/createDownloadRuntime';
+} from '@/web/library/discoverLibrary';
+import {ApiClient} from '@/core/api';
+import {createHttpClient} from '@/core/net';
+import {t} from '@/web/i18n';
+import {showToast} from '@/web/stores/toast';
+import {writeLocalAlbumMeta} from '@/web/library/saveToLibrary';
+import {createDownloadRuntime} from '@/web/download/createDownloadRuntime';
 
 export interface LibraryItem {
   albumId: number;
@@ -38,14 +41,35 @@ const SAVE_DEBOUNCE_MS = 400;
 
 const storage = createUserStorage();
 
-function parseItems(raw: string | null): LibraryItem[] {
-  if (!raw) return [];
-  try {
-    const data = JSON.parse(raw) as LibraryItem[];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+function parseItems(input: unknown): LibraryItem[] {
+  if (!input) return [];
+  if (!Array.isArray(input)) return [];
+  return input.filter(
+    (item): item is LibraryItem =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof (item as LibraryItem).albumId === 'number' &&
+      typeof (item as LibraryItem).title === 'string'
+  );
+}
+
+/** Legacy payloads were a bare array; v1 keeps the same shape inside the envelope. */
+function migrateItems(legacy: unknown): LibraryItem[] {
+  return parseItems(legacy);
+}
+
+async function loadItems(): Promise<LibraryItem[]> {
+  const versioned = await readVersioned<unknown>(
+    storage,
+    KEY,
+    STORAGE_VERSION,
+    (legacy) => migrateItems(legacy)
+  );
+  return parseItems(versioned?.data);
+}
+
+async function persistItems(items: LibraryItem[]): Promise<void> {
+  await writeVersioned(storage, KEY, STORAGE_VERSION, items);
 }
 
 let pendingSave: LibraryItem[] | null = null;
@@ -56,11 +80,7 @@ function flushSave(): void {
   if (!pendingSave) return;
   const snapshot = pendingSave;
   pendingSave = null;
-  try {
-    void storage.set(KEY, JSON.stringify(snapshot));
-  } catch {
-    // ignore
-  }
+  void persistItems(snapshot).catch(() => showToast(t('common.saveFailed'), 'error'));
 }
 
 function scheduleSave(items: LibraryItem[]): void {
@@ -182,8 +202,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return loadPromise;
     }
     const job = (async () => {
-      const raw = await migrateFromLocalStorage(storage, KEY);
-      const stored = parseItems(raw);
+      // Copies legacy localStorage into Preferences on native before versioned reads.
+      await migrateFromLocalStorage(storage, KEY);
+      const stored = await loadItems();
       const existing = get().items;
       const byId = new Map<number, LibraryItem>();
       for (const item of stored) byId.set(item.albumId, item);
@@ -233,9 +254,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
           repaired.changed
         ) {
           try {
-            await storage.set(KEY, JSON.stringify(items));
+            await persistItems(items);
           } catch {
-            // ignore
+            showToast(t('common.saveFailed'), 'error');
           }
         }
       }

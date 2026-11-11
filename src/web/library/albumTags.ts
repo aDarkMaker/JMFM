@@ -1,7 +1,7 @@
-import type {ApiClient} from '../../core/api';
-import {sleep} from '../../core/net';
-import {createUserStorage} from '../../data/user-storage';
-import {STORAGE_KEYS} from '../../data/storage-keys';
+import type {ApiClient} from '@/core/api';
+import {sleep} from '@/core/net';
+import {createUserStorage} from '@/data/user-storage';
+import {STORAGE_KEYS} from '@/data/storage-keys';
 
 export const DETAIL_FETCH_CONCURRENCY = 3;
 

@@ -10,16 +10,15 @@ function scrollerOf(target: EventTarget | null): HTMLElement | null {
 }
 
 function reset(el: HTMLElement) {
-  el.classList.remove('is-pulling', 'is-refreshing');
+  el.classList.remove('is-pulling');
   el.style.removeProperty('--pull-y');
-  el.style.removeProperty('--pull-progress');
   el.style.transform = '';
 }
 
 function touchBlocked(target: EventTarget | null, scroller: HTMLElement): boolean {
   if (scroller.classList.contains('is-search-locked')) return true;
   const node = target as HTMLElement | null;
-  return Boolean(node?.closest?.('.home-search-shell'));
+  return Boolean(node?.closest?.('.sticky-chrome'));
 }
 
 /**
@@ -56,35 +55,37 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown> | unknown) {
       tracking = true;
     };
 
+    const cancel = () => {
+      tracking = false;
+      distance = 0;
+      if (scroller) reset(scroller);
+    };
+
     const onMove = (e: TouchEvent) => {
       if (!tracking || !scroller) return;
       const dy = e.touches[0].clientY - startY;
+      // Pushing back past the start point cancels the gesture outright; rebasing
+      // on a partial pull would let a short flick reach the trigger.
       if (dy <= 0 || scroller.scrollTop > 0) {
-        reset(scroller);
-        distance = 0;
+        cancel();
         return;
       }
       distance = Math.min(dy * RESISTANCE, PULL_MAX);
       scroller.classList.add('is-pulling');
       scroller.style.setProperty('--pull-y', `${distance}px`);
-      scroller.style.setProperty('--pull-progress', String(Math.min(1, distance / PULL_TRIGGER)));
       scroller.style.transform = `translateY(${distance}px)`;
     };
 
     const onEnd = () => {
       const el = scroller;
+      const reached = tracking && distance >= PULL_TRIGGER;
       tracking = false;
       scroller = null;
-      if (!el || distance <= 0) return;
-      if (distance < PULL_TRIGGER) {
-        reset(el);
-        distance = 0;
-        return;
-      }
-      busy = true;
       distance = 0;
-      // Snap back immediately; refresh runs without a spinner overlay.
+      if (!el) return;
       reset(el);
+      if (!reached) return;
+      busy = true;
       void Promise.resolve(handler.current())
         .catch(() => undefined)
         .finally(() => {

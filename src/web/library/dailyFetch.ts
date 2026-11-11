@@ -1,7 +1,7 @@
-import type {AlbumSummary} from '../../core/model';
-import type {ApiClient} from '../../core/api';
-import {sleep} from '../../core/net';
-import {filterBlockedAlbums} from '../../core/model/blocklist';
+import type {AlbumSummary} from '@/core/model';
+import type {ApiClient} from '@/core/api';
+import {sleep} from '@/core/net';
+import {filterBlockedAlbums} from '@/core/model/blocklist';
 import {todayKey} from './daily';
 import {writeCache, clearStaleCaches} from './dailyCache';
 import {fetchAlbumTagsBatch} from './albumTags';

@@ -1,6 +1,6 @@
-import {ApiClient} from '../../core/api';
-import {createHttpClient} from '../../core/net';
-import {useSettingsStore} from '../stores/settings';
+import {ApiClient} from '@/core/api';
+import {createHttpClient} from '@/core/net';
+import {useSettingsStore} from '@/web/stores/settings';
 
 export interface ApiOptions {
   proxyEnabled: boolean;

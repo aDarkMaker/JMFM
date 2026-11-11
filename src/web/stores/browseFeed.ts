@@ -1,8 +1,8 @@
 import {create} from 'zustand';
-import {ALL_CATEGORY, SORT} from '../../core/constants/sort';
-import {createApi} from '../api/createApi';
-import {filterBlockedAlbums} from '../../core/model/blocklist';
-import {feedKey} from '../library/paging';
+import {ALL_CATEGORY, SORT} from '@/core/constants/sort';
+import {createApi} from '@/web/api/createApi';
+import {filterBlockedAlbums} from '@/core/model/blocklist';
+import {feedKey} from '@/web/library/paging';
 import {
   EMPTY_SLICE,
   cacheFeedSlice,
@@ -10,7 +10,7 @@ import {
   latestSiblingFeed,
   mergeFeedPage,
   type FeedSlice,
-} from '../library/pagedFeed';
+} from '@/web/library/pagedFeed';
 import {useSettingsStore} from './settings';
 
 const MAX_CACHED_FEEDS = 6;

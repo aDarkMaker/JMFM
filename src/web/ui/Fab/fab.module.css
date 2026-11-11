@@ -1,0 +1,27 @@
+.fab {
+  position: fixed;
+  right: calc(var(--space-4) + var(--safe-right));
+  bottom: calc(var(--space-6) + max(var(--safe-bottom), 16px));
+  z-index: var(--z-fab);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: var(--ink-inverse);
+  font-size: 26px;
+  box-shadow: var(--shadow-2);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.aboveTabbar {
+  bottom: calc(88px + max(var(--safe-bottom), 16px));
+}
+
+.fab:active {
+  transform: scale(0.94);
+}

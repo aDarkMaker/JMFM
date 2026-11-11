@@ -1,0 +1,43 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  color: var(--ink-tertiary);
+  animation: empty-in var(--dur-base) var(--ease-out);
+}
+
+.fill {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-6);
+}
+
+@keyframes empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.icon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+.title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.hint {
+  font-size: var(--text-sm);
+}

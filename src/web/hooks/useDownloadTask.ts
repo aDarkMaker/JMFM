@@ -1,16 +1,18 @@
 import {useCallback} from 'react';
-import {DownloadEvent, DownloadService, isCanceledError} from '../../core/download';
-import {ApiClient} from '../../core/api';
-import {createHttpClient} from '../../core/net';
-import {createDownloadRuntime} from '../download/createDownloadRuntime';
-import {useSettingsStore} from '../stores/settings';
-import {useDownloadStore} from '../stores/download';
-import {saveToLibrary, AlbumInfo} from '../library/saveToLibrary';
-import {useLibraryStore} from '../stores/library';
-import {enqueueDownload, abortDownload, isDownloadAborted, clearDownloadAborted} from '../download/queue';
-import {cleanupTaskFiles} from '../download/taskCleanup';
-import {uid} from '../library/uid';
-import {formatTaskError} from '../util/formatTaskError';
+import type {DownloadEvent} from '@/core/download';
+import { DownloadService, isCanceledError} from '@/core/download';
+import {ApiClient} from '@/core/api';
+import {createHttpClient} from '@/core/net';
+import {createDownloadRuntime} from '@/web/download/createDownloadRuntime';
+import {useSettingsStore} from '@/web/stores/settings';
+import {useDownloadStore} from '@/web/stores/download';
+import type { AlbumInfo} from '@/web/library/saveToLibrary';
+import {saveToLibrary} from '@/web/library/saveToLibrary';
+import {useLibraryStore} from '@/web/stores/library';
+import {enqueueDownload, abortDownload, isDownloadAborted, clearDownloadAborted} from '@/web/download/queue';
+import {cleanupTaskFiles} from '@/web/download/taskCleanup';
+import {uid} from '@/web/library/uid';
+import {formatTaskError} from '@/web/util/formatTaskError';
 
 export function useDownloadTask() {
   const downloadPath = useSettingsStore((s) => s.settings.downloadPath);

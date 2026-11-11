@@ -1,0 +1,77 @@
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-4);
+  min-height: var(--control-2xl);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.focused {
+  box-shadow: var(--focus-ring);
+}
+
+.invalid {
+  box-shadow: 0 0 0 1px var(--accent-danger);
+}
+
+/* Pill field shared by the library search and the download ID input. */
+.capsule {
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+  min-height: var(--control-2xl);
+  padding: 0 var(--space-4);
+}
+
+/* Flat search field used inside nav bars and the home top bar. */
+.flat {
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  min-height: var(--control-xl);
+}
+
+.borderless {
+  background: transparent;
+  padding: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-base);
+  color: var(--ink-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+  appearance: none;
+  padding: var(--space-2) 0;
+}
+
+.input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--ink-tertiary);
+}
+
+.input:read-only {
+  cursor: pointer;
+  caret-color: transparent;
+}
+
+.icon,
+.suffix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ink-tertiary);
+}

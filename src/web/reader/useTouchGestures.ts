@@ -1,9 +1,10 @@
 import {useEffect, useRef} from 'react';
-import {clamp, SCALE_MAX, SCALE_MIN, TouchState} from './types';
+import type { TouchState} from './types';
+import {clamp, SCALE_MAX, SCALE_MIN} from './types';
 import * as paged from './paged-viewer';
 import * as scroll from './scroll-viewer';
-import {PagedViewerCtx} from './paged-viewer';
-import {ScrollViewerCtx} from './scroll-viewer';
+import type {PagedViewerCtx} from './paged-viewer';
+import type {ScrollViewerCtx} from './scroll-viewer';
 
 export interface GestureViewerCtx extends PagedViewerCtx, ScrollViewerCtx {
   isScroll: boolean;

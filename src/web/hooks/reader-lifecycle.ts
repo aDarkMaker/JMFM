@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {Capacitor} from '@capacitor/core';
 import {App as CapacitorApp} from '@capacitor/app';
-import {ReaderTarget} from '../reader/types';
-import {useNavStore} from '../stores/nav';
+import type {ReaderTarget} from '@/web/reader/types';
+import {useNavStore} from '@/web/stores/nav';
 
 const CLOSE_MS = 220;
 

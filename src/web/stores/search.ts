@@ -1,10 +1,10 @@
 import {create} from 'zustand';
-import {SORT} from '../../core/constants/sort';
-import {createApi} from '../api/createApi';
-import {filterBlockedAlbums} from '../../core/model/blocklist';
-import {mergeFeedPage, feedErrorSlice, EMPTY_SLICE, type FeedSlice} from '../library/pagedFeed';
+import {SORT} from '@/core/constants/sort';
+import {createApi} from '@/web/api/createApi';
+import {filterBlockedAlbums} from '@/core/model/blocklist';
+import {mergeFeedPage, feedErrorSlice, EMPTY_SLICE, type FeedSlice} from '@/web/library/pagedFeed';
 import {useSettingsStore} from './settings';
-import {readRecentSearches, pushRecentSearch, clearRecentSearches} from '../library/recentSearches';
+import {readRecentSearches, pushRecentSearch, clearRecentSearches} from '@/web/library/recentSearches';
 
 interface SearchState extends FeedSlice {
   query: string;

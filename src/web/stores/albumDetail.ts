@@ -1,6 +1,6 @@
 import {create} from 'zustand';
-import type {AlbumDetail} from '../../core/model';
-import {createApi} from '../api/createApi';
+import type {AlbumDetail} from '@/core/model';
+import {createApi} from '@/web/api/createApi';
 
 const DETAIL_TTL_MS = 10 * 60 * 1000;
 const MAX_CACHED = 10;

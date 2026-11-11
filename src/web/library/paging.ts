@@ -1,4 +1,4 @@
-import type {AlbumSummary} from '../../core/model';
+import type {AlbumSummary} from '@/core/model';
 
 /** API pages are ~80 items; a short page means the feed ended. */
 export const FEED_PAGE_SIZE = 80;

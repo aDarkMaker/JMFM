@@ -1,11 +1,11 @@
-import type {ImageItem} from '../../core/model';
-import {createApi, currentApiOptions} from '../api/createApi';
-import {createHttpClient} from '../../core/net';
-import {fetchImageBytes} from '../../core/download/pages';
-import {base64ToBytes} from '../../core/util/base64';
-import {getNum} from '../../core/transcode';
-import {decodeAndSave} from '../../core/transcode/decode';
-import {registerCacheClear} from '../util/cacheRegistry';
+import type {ImageItem} from '@/core/model';
+import {createApi, currentApiOptions} from '@/web/api/createApi';
+import {createHttpClient} from '@/core/net';
+import {fetchImageBytes} from '@/core/download/pages';
+import {base64ToBytes} from '@/core/util/base64';
+import {getNum} from '@/core/transcode';
+import {decodeAndSave} from '@/core/transcode/decode';
+import {registerCacheClear} from '@/web/util/cacheRegistry';
 
 export interface OnlineDocMeta {
   key: string;

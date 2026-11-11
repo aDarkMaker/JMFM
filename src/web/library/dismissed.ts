@@ -1,5 +1,5 @@
-import {createUserStorage} from '../../data/user-storage';
-import {STORAGE_KEYS} from '../../data/storage-keys';
+import {createUserStorage} from '@/data/user-storage';
+import {STORAGE_KEYS} from '@/data/storage-keys';
 
 const storage = createUserStorage();
 

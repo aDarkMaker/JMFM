@@ -1,10 +1,10 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import type {LibraryItem} from '../stores/library';
-import {LEGACY_PREFIXES} from '../../core/fs/saf/safPaths';
-import {albumRelativeKey, toSafRelativePath} from '../../core/fs/saf/safPaths';
-import {safFileExists, safListDirectory, safReadTextFile} from '../../core/fs/saf/safStorage';
-import {IMAGE_EXT_SET, extOf} from '../../core/model';
-import {sleep} from '../../core/net';
+import type {LibraryItem} from '@/web/stores/library';
+import {LEGACY_PREFIXES} from '@/core/fs/saf/safPaths';
+import {albumRelativeKey, toSafRelativePath} from '@/core/fs/saf/safPaths';
+import {safFileExists, safListDirectory, safReadTextFile} from '@/core/fs/saf/safStorage';
+import {IMAGE_EXT_SET, extOf} from '@/core/model';
+import {sleep} from '@/core/net';
 
 const META_FILE = '.jmf-meta.json';
 /** Offset so locally-hashed ids never collide with real API album ids. */

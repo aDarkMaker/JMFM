@@ -1,9 +1,9 @@
 import {create} from 'zustand';
-import type {AlbumSummary, Category, TagGroup} from '../../core/model';
-import {SORT} from '../../core/constants/sort';
-import {createApi} from '../api/createApi';
-import {filterBlockedAlbums} from '../../core/model/blocklist';
-import {enrichAlbumStats} from '../library/albumStats';
+import type {AlbumSummary, Category, TagGroup} from '@/core/model';
+import {SORT} from '@/core/constants/sort';
+import {createApi} from '@/web/api/createApi';
+import {filterBlockedAlbums} from '@/core/model/blocklist';
+import {enrichAlbumStats} from '@/web/library/albumStats';
 import {useSettingsStore} from './settings';
 
 const CATEGORY_TTL_MS = 6 * 60 * 60 * 1000;

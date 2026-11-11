@@ -1,7 +1,8 @@
-import {CDN_DOMAINS, REQUEST} from '../../core/constants';
-import {HttpClient, bytesOf} from '../../core/net';
-import {FileSystem} from '../../core/fs/types';
-import {atomicWrite} from '../../core/fs/write';
+import {CDN_DOMAINS, REQUEST} from '@/core/constants';
+import type {HttpClient} from '@/core/net';
+import { bytesOf} from '@/core/net';
+import type {FileSystem} from '@/core/fs/types';
+import {atomicWrite} from '@/core/fs/write';
 
 export async function downloadCover(
   http: HttpClient,

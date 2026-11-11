@@ -1,0 +1,14 @@
+.grid {
+  transition: opacity var(--dur-base) var(--ease-out);
+  min-width: 0;
+  width: 100%;
+}
+
+.refreshing {
+  opacity: 0.5;
+}
+
+.retry {
+  margin: var(--space-4) auto 0;
+  display: block;
+}

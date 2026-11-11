@@ -1,11 +1,12 @@
 import {create} from 'zustand';
+import type {
+  Settings} from '@/data/settings';
 import {
   createSettingsStorage,
   DEFAULT_SETTINGS,
-  sanitizeSettings,
-  Settings,
-} from '../../data/settings';
-import {clearAllCaches} from '../util/cacheRegistry';
+  sanitizeSettings
+} from '@/data/settings';
+import {clearAllCaches} from '@/web/util/cacheRegistry';
 
 interface SettingsState {
   settings: Settings;

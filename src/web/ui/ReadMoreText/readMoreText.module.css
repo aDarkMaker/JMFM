@@ -1,0 +1,31 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--ink-secondary);
+  white-space: pre-wrap;
+  overflow: hidden;
+}
+
+.text:not(.expanded) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+
+.toggle {
+  align-self: flex-start;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.toggle:active {
+  opacity: 0.7;
+}

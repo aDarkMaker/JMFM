@@ -1,4 +1,4 @@
-import type {AlbumSummary} from '../../core/model';
+import type {AlbumSummary} from '@/core/model';
 import {isLanguageTag} from './tags';
 
 export interface RecommendOptions {

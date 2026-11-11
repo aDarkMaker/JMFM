@@ -111,6 +111,7 @@
 
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'Alimama ShuHeiTi', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --text-xs: 12px;
   --text-sm: 14px;
   --text-base: 16px;
@@ -126,8 +127,42 @@
   --dur-base: 220ms;
   --dur-slow: 320ms;
 
+  /* Control sizing: every interactive primitive picks one of these. */
+  --control-xs: 24px;
+  --control-sm: 28px;
+  --control-md: 32px;
+  --control-lg: 36px;
+  --control-xl: 40px;
+  --control-2xl: 48px;
+  --tap-min: 44px;
+
+  --z-content: 1;
+  --z-fab: 999;
   --z-tabbar: 1000;
-  --z-toast: calc(var(--z-tabbar) + 300);
+  --z-nav: 1050;
+  --z-reader: 1100;
+  --z-dialog: 1200;
+  --z-toast: 1300;
+
+  /* Metal tints for rank/badge accents. */
+  --grad-metal-gold: linear-gradient(135deg, #ffd54f 0%, #b8860b 100%);
+  --grad-metal-silver: linear-gradient(135deg, #e8e8e8 0%, #9aa4b2 100%);
+  --grad-metal-bronze: linear-gradient(135deg, #e0a677 0%, #8a5a3b 100%);
+
+  /* Fade masks shared by rails and scroll edges. */
+  --mask-to-right-fade: linear-gradient(to right, #000 85%, transparent 100%);
+  --mask-to-bottom-fade: linear-gradient(to bottom, #000 85%, transparent 100%);
+
+  /* Shadows that depend on the palette rather than a single surface. */
+  --shadow-nav: -12px 0 32px color-mix(in srgb, #000 28%, transparent);
+
+  /* Capacitor's SystemBars injects --safe-area-inset-* on html for Android
+     WebViews where env() reports 0. */
+  --safe-top: max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), 0px);
+  --safe-right: max(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)), 0px);
+  --safe-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 0px);
+  --safe-left: max(var(--safe-area-inset-left, env(safe-area-inset-left, 0px)), 0px);
+
   color-scheme: dark;
 }
 
@@ -315,17 +350,7 @@ input {
 
 .app,
 .app-screen,
-.app-tabbar,
-.settings-group,
-.list-tile,
-.task-tile,
-.album-card,
-.search-bar,
-.category-tab,
-.theme-segmented-item,
-.domain-input,
-.list-tile-input,
-.reader-toolbar {
+.app-tabbar {
   transition:
     background-color var(--dur-base) var(--ease-out),
     color var(--dur-base) var(--ease-out),

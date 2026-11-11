@@ -1,4 +1,5 @@
-import {ALL_CATEGORY, CATEGORY_FALLBACK} from '../../core/constants/sort';
+import {ALL_CATEGORY, CATEGORY_FALLBACK} from '@/core/constants/sort';
+import {t, type MessageKey} from '@/web/i18n';
 
 export interface CategoryChip {
   slug: string;
@@ -19,7 +20,7 @@ export function buildCategoryChips(categories: CategoryLike[], limit?: number): 
       ? categories
           .filter((c) => c.slug !== ALL_CATEGORY)
           .map((c) => ({slug: c.slug, name: c.name}))
-      : CATEGORY_FALLBACK.map((c) => ({...c}));
+      : CATEGORY_FALLBACK.map((c) => ({slug: c.slug, name: t(c.nameKey as MessageKey)}));
   const trimmed = limit == null ? list : list.slice(0, limit);
-  return [{slug: ALL_CATEGORY, name: '最新'}, ...trimmed];
+  return [{slug: ALL_CATEGORY, name: t('sort.latest')}, ...trimmed];
 }

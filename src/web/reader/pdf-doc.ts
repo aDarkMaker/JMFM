@@ -1,13 +1,15 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
 import type {PDFDocumentProxy} from 'pdfjs-dist/legacy/build/pdf.mjs';
-import {createDownloadRuntime} from '../download/createDownloadRuntime';
-import {useSettingsStore} from '../stores/settings';
-import {base64ToBytes} from '../../core/util/base64';
-import {DocCacheEntry} from './types';
+import {createDownloadRuntime} from '@/web/download/createDownloadRuntime';
+import {useSettingsStore} from '@/web/stores/settings';
+import {base64ToBytes} from '@/core/util/base64';
+import type {DocCacheEntry} from './types';
 
 export const DEFAULT_SCALE = 1.2;
 
+// pdfjs is loaded lazily; a static type import would eagerly pull the module.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 type PdfjsModule = typeof import('pdfjs-dist/legacy/build/pdf.mjs');
 
 let pdfjsPromise: Promise<PdfjsModule> | null = null;

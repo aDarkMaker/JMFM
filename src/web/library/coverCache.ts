@@ -1,9 +1,9 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import {useSettingsStore} from '../stores/settings';
-import {toSafRelativePath} from '../../core/fs/saf/safPaths';
-import {safEntryExists, safGetEntryUri, safListDirectory} from '../../core/fs/saf/safStorage';
-import {registerCacheClear} from '../util/cacheRegistry';
+import {useSettingsStore} from '@/web/stores/settings';
+import {toSafRelativePath} from '@/core/fs/saf/safPaths';
+import {safEntryExists, safGetEntryUri} from '@/core/fs/saf/safStorage';
+import {registerCacheClear} from '@/web/util/cacheRegistry';
 
 const uriCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string | null>>();
@@ -69,13 +69,22 @@ function toImgSrc(uri: string): string {
   return converted || uri;
 }
 
+function coverCandidates(coverPath: string, albumDir?: string): string[] {
+  const candidates = [coverPath];
+  if (albumDir) {
+    const canonical = `${albumDir}/cover.jpg`;
+    if (canonical !== coverPath) candidates.push(canonical);
+  }
+  return candidates;
+}
+
 async function resolveSafCoverSrc(
   treeUri: string,
   downloadPath: string,
   paths: string[]
 ): Promise<string | null> {
-  // getEntryUri builds a URI without checking existence — verify first or a
-  // stale coverPath permanently shadows albumDir/cover.jpg.
+  // getEntryUri builds a URI without checking existence, so a stale coverPath
+  // would otherwise shadow albumDir/cover.jpg forever.
   for (const path of paths) {
     try {
       const rel = toSafRelativePath(path, downloadPath);
@@ -94,32 +103,9 @@ async function resolveNativeCoverSrc(
   albumDir?: string
 ): Promise<string | null> {
   const {downloadPath, downloadTreeUri} = useSettingsStore.getState().settings;
+  const candidates = coverCandidates(coverPath, albumDir);
   if (downloadTreeUri) {
-    const candidates = [coverPath];
-    if (albumDir) {
-      candidates.push(`${albumDir}/cover.jpg`);
-    }
-    const resolved = await resolveSafCoverSrc(downloadTreeUri, downloadPath, candidates);
-    if (resolved) {
-      return resolved;
-    }
-    if (albumDir) {
-      try {
-        const albumRel = toSafRelativePath(albumDir, downloadPath);
-        const entries = await safListDirectory(downloadTreeUri, albumRel);
-        if (entries.some((e) => e.type === 'file' && e.name === 'cover.jpg')) {
-          const uri = await safGetEntryUri(downloadTreeUri, `${albumRel}/cover.jpg`);
-          return toImgSrc(uri);
-        }
-      } catch {
-        // ignore
-      }
-    }
-    return null;
-  }
-  const candidates = [coverPath];
-  if (albumDir) {
-    candidates.push(`${albumDir}/cover.jpg`);
+    return resolveSafCoverSrc(downloadTreeUri, downloadPath, candidates);
   }
   for (const path of candidates) {
     try {

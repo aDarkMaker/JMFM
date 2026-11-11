@@ -1,0 +1,88 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-2xl);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  text-align: left;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.trigger:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.trigger:active:not(:disabled) {
+  box-shadow: var(--focus-ring);
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--ink-tertiary);
+}
+
+.chevron {
+  display: inline-flex;
+  color: var(--ink-tertiary);
+  flex-shrink: 0;
+  transform: rotate(90deg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--ink-secondary);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.option:active {
+  background: var(--surface-sunken);
+}
+
+.optionText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-primary);
+}
+
+.optionHint {
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+}
+
+.active {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+}

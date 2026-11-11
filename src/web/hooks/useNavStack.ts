@@ -1,5 +1,5 @@
 import {useCallback, useEffect} from 'react';
-import {useNavStore} from '../stores/nav';
+import {useNavStore} from '@/web/stores/nav';
 
 /** Matches `.nav-layer.is-closing` exit duration. */
 export const NAV_CLOSE_MS = 240;

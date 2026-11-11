@@ -1,9 +1,9 @@
-import type {Task} from '../stores/download';
-import {useLibraryStore} from '../stores/library';
-import {useSettingsStore} from '../stores/settings';
+import type {Task} from '@/web/stores/download';
+import {useLibraryStore} from '@/web/stores/library';
+import {useSettingsStore} from '@/web/stores/settings';
 import {createDownloadRuntime} from './createDownloadRuntime';
-import {sanitizeTitle} from '../../core/util/filename';
-import {clearImageDocCache} from '../reader/image-doc';
+import {sanitizeTitle} from '@/core/util/filename';
+import {clearImageDocCache} from '@/web/reader/image-doc';
 
 function isPlaceholderTitle(title: string): boolean {
   return /^漫画 \d+$/.test(title);

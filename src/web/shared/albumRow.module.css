@@ -1,0 +1,148 @@
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
+  min-width: 0;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.row:active {
+  transform: scale(0.985);
+  box-shadow: var(--shadow-2);
+}
+
+.active {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.poster {
+  width: 68px;
+  flex: 0 0 68px;
+  border-radius: var(--radius-sm) !important;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-1) 0;
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ja {
+  font-family: 'Nagino', var(--font-body);
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.author svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.metaNote {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: auto;
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaNote svg {
+  color: var(--ink-tertiary);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.chip {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+  font-size: var(--text-xs);
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+}
+
+.stat svg {
+  color: var(--color-favorite);
+}
+
+.action {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-xl);
+  height: var(--control-xl);
+  border-radius: var(--radius-sm);
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.action:active:not(:disabled) {
+  transform: scale(0.9);
+  background: var(--accent-primary-soft);
+}
+
+.actionActive {
+  color: var(--accent-success);
+}
+
+.chevron {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-sm);
+  color: var(--ink-tertiary);
+  flex-shrink: 0;
+}

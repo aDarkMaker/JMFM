@@ -1,0 +1,219 @@
+.scroll {
+  padding-bottom: calc(var(--space-8) + 80px);
+}
+
+/* Global `.nav-scroll` zeroes the scroller's top padding (cascade order beats
+   `.scroll`), so content inset lives on the hero — the tint fills the whole
+   block and sits flush against the bar; cover/title keep the padding. */
+.hero {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4) 0 var(--space-5);
+  min-width: 0;
+}
+
+.heroBg {
+  position: absolute;
+  inset: 0 calc(-1 * var(--space-4)) 0;
+  background: linear-gradient(180deg, var(--accent-primary-soft) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.cover {
+  position: relative;
+  width: 116px;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-2);
+  flex-shrink: 0;
+  animation: coverIn 320ms var(--ease-out);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@keyframes coverIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.head {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-top: var(--space-1);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.author {
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: auto;
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+}
+
+.readAction {
+  flex: 1;
+}
+
+.blocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-edge);
+}
+
+.blockTitle {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--ink-tertiary);
+}
+
+.titleJa {
+  font-family: 'Nagino', var(--font-body);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-edge);
+}
+
+.chapterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--space-2);
+}
+
+.chapter {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
+  font-size: var(--text-sm);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.chapter:active {
+  transform: scale(0.95);
+}
+
+.chapterCurrent {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.chapterWide {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+}
+
+.rail {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scrollbar-width: none;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.relatedCard {
+  flex-shrink: 0;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  text-align: left;
+}
+
+.relatedCover {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+
+.relatedCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.relatedTitle {
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.retry {
+  margin-top: var(--space-3);
+}

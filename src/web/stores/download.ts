@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {DownloadController} from '../../core/download';
+import type {DownloadController} from '@/core/download';
 
 export type TaskStatus = 'pending' | 'running' | 'paused' | 'done' | 'error';
 

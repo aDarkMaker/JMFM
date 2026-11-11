@@ -1,0 +1,31 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-reader);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrim);
+  animation: preview-in var(--dur-fast) var(--ease-out);
+}
+
+.close {
+  position: fixed;
+  top: calc(var(--space-3) + var(--safe-top));
+  right: calc(var(--space-3) + var(--safe-right));
+}
+
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

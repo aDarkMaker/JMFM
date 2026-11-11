@@ -1,12 +1,13 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import {LibraryItem} from '../stores/library';
-import {PagesContext, collectAlbumPages, downloadPages} from '../../core/download/pages';
-import type {DownloadRuntime} from '../../core/download';
-import {IMAGE_EXT_SET, extOf} from '../../core/model';
-import {clearImageDocCache} from '../reader/image-doc';
+import type {LibraryItem} from '@/web/stores/library';
+import type {PagesContext} from '@/core/download/pages';
+import { collectAlbumPages, downloadPages} from '@/core/download/pages';
+import type {DownloadRuntime} from '@/core/download';
+import {IMAGE_EXT_SET, extOf} from '@/core/model';
+import {clearImageDocCache} from '@/web/reader/image-doc';
 import {resolveItemPaths} from './resolveLibraryPaths';
-import {toSafRelativePath} from '../../core/fs/saf/safPaths';
-import {safEntryExists, safListDirectory} from '../../core/fs/saf/safStorage';
+import {toSafRelativePath} from '@/core/fs/saf/safPaths';
+import {safEntryExists, safListDirectory} from '@/core/fs/saf/safStorage';
 import {downloadCover} from './cover';
 
 export type Defect =

@@ -1,10 +1,10 @@
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import {useSettingsStore} from '../stores/settings';
-import {toSafRelativePath} from '../../core/fs/saf/safPaths';
-import {safGetEntryUri, safListDirectory} from '../../core/fs/saf/safStorage';
-import {IMAGE_EXT_SET, extOf} from '../../core/model';
-import {registerCacheClear} from '../util/cacheRegistry';
+import {useSettingsStore} from '@/web/stores/settings';
+import {toSafRelativePath} from '@/core/fs/saf/safPaths';
+import {safGetEntryUri, safListDirectory} from '@/core/fs/saf/safStorage';
+import {IMAGE_EXT_SET, extOf} from '@/core/model';
+import {registerCacheClear} from '@/web/util/cacheRegistry';
 
 export interface ImageDocMeta {
   pagesDir: string;

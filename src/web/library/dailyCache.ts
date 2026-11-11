@@ -1,6 +1,6 @@
-import type {AlbumSummary} from '../../core/model';
-import {createUserStorage, migrateFromLocalStorage} from '../../data/user-storage';
-import {STORAGE_KEYS} from '../../data/storage-keys';
+import type {AlbumSummary} from '@/core/model';
+import {createUserStorage, migrateFromLocalStorage} from '@/data/user-storage';
+import {STORAGE_KEYS} from '@/data/storage-keys';
 
 const storage = createUserStorage();
 

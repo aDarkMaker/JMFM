@@ -1,8 +1,8 @@
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import type {LibraryItem} from '../stores/library';
-import {toSafRelativePath, LEGACY_PREFIXES} from '../../core/fs/saf/safPaths';
-import {safEntryExists} from '../../core/fs/saf/safStorage';
-import {sanitizeTitle} from '../../core/util/filename';
+import type {LibraryItem} from '@/web/stores/library';
+import {toSafRelativePath, LEGACY_PREFIXES} from '@/core/fs/saf/safPaths';
+import {safEntryExists} from '@/core/fs/saf/safStorage';
+import {sanitizeTitle} from '@/core/util/filename';
 
 async function defaultPathExists(
   path: string,

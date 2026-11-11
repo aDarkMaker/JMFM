@@ -1,6 +1,6 @@
-import type {AlbumSummary} from '../../core/model';
-import type {ApiClient} from '../../core/api';
-import {createApi} from '../api/createApi';
+import type {AlbumSummary} from '@/core/model';
+import type {ApiClient} from '@/core/api';
+import {createApi} from '@/web/api/createApi';
 import {seedAlbumTags} from './albumTags';
 
 const CONCURRENCY = 3;

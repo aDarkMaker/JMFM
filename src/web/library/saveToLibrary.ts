@@ -1,9 +1,9 @@
-import {HttpClient} from '../../core/net';
-import {DownloadRuntime} from '../../core/download';
+import type {HttpClient} from '@/core/net';
+import type {DownloadRuntime} from '@/core/download';
 import {preloadCovers} from './coverCache';
 import {downloadCover} from './cover';
-import {clearImageDocCache} from '../reader/image-doc';
-import {atomicWrite} from '../../core/fs/write';
+import {clearImageDocCache} from '@/web/reader/image-doc';
+import {atomicWrite} from '@/core/fs/write';
 import type {LocalAlbumMeta} from './discoverLibrary';
 
 const META_FILE = '.jmf-meta.json';

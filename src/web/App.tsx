@@ -1,14 +1,18 @@
 import {lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {gsap} from 'gsap';
-import {Icon} from './components/Icon';
-import {HomeScreen} from './screens/HomeScreen';
-import {LibraryScreen} from './screens/LibraryScreen';
-import {TasksScreen} from './screens/TasksScreen';
-import {SettingsScreen} from './screens/SettingsScreen';
-import {DiscoverScreen} from './screens/DiscoverScreen';
-import {SearchScreen} from './screens/SearchScreen';
-import {AlbumDetailScreen} from './screens/AlbumDetailScreen';
-import {ToastHost} from './components/Toast';
+import {Capacitor} from '@capacitor/core';
+import {Icon} from '@/web/shared/Icon';
+import {HomeScreen} from '@/web/features/home';
+import {LibraryScreen} from '@/web/features/library';
+import {TasksScreen} from '@/web/features/tasks';
+import {SettingsScreen} from '@/web/features/settings';
+import {DiscoverScreen} from '@/web/features/discover';
+import {SearchScreen} from '@/web/features/search';
+import {AlbumDetailScreen} from '@/web/features/detail';
+import {ToastHost} from '@/web/ui/Toast';
+import {UpdatePrompt} from '@/web/features/update/UpdatePrompt';
+import {useAppUpdate} from '@/web/hooks/useAppUpdate';
+import {useUpdateStore} from '@/web/stores/update';
 import {useSettingsStore} from './stores/settings';
 import {useLibraryStore} from './stores/library';
 import {preloadCovers} from './library/coverCache';
@@ -22,9 +26,10 @@ import {useEdgeSwipeBack} from './hooks/useEdgeSwipeBack';
 import {useTabKeepAlive} from './hooks/useTabKeepAlive';
 import {useDailyStore} from './stores/daily';
 import {useBrowseStore} from './stores/browse';
+import {t, type MessageKey} from '@/web/i18n';
 
 const ReaderScreen = lazy(() =>
-  import('./screens/ReaderScreen').then((m) => ({default: m.ReaderScreen}))
+  import('@/web/features/reader').then((m) => ({default: m.ReaderScreen}))
 );
 
 type TabId = 'home' | 'library' | 'tasks' | 'settings';
@@ -32,18 +37,23 @@ type TabId = 'home' | 'library' | 'tasks' | 'settings';
 /** Only eagerly preload the first N covers; the rest are lazy-loaded on scroll. */
 const COVER_PRELOAD_COUNT = 8;
 
-const TABS: {id: TabId; label: string; icon: 'home' | 'auto-stories' | 'download' | 'settings'}[] =
-  [
-    {id: 'home', label: '首页', icon: 'home'},
-    {id: 'library', label: '资源', icon: 'auto-stories'},
-    {id: 'tasks', label: '下载', icon: 'download'},
-    {id: 'settings', label: '设置', icon: 'settings'},
-  ];
+const TABS: {
+  id: TabId;
+  labelKey: MessageKey;
+  icon: 'home' | 'auto-stories' | 'download' | 'settings';
+}[] = [
+  {id: 'home', labelKey: 'tab.home', icon: 'home'},
+  {id: 'library', labelKey: 'tab.library', icon: 'auto-stories'},
+  {id: 'tasks', labelKey: 'tab.tasks', icon: 'download'},
+  {id: 'settings', labelKey: 'tab.settings', icon: 'settings'},
+];
 
 const THEME_COLORS = {dark: '#101318', light: '#f3f6fa'} as const;
 
 export function App() {
   const [tab, setTab] = useState<TabId>('home');
+  const update = useAppUpdate();
+  const updateOpen = useUpdateStore((s) => s.promptOpen);
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>(
     {} as Record<TabId, HTMLButtonElement | null>
   );
@@ -81,6 +91,22 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') {
+      return;
+    }
+    let cancelled = false;
+    void update.checkUpdate().then((result) => {
+      if (!cancelled && result.kind === 'available') {
+        useUpdateStore.getState().setPromptOpen(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Runs once per app start; manual checks reuse the same hook instance.
+  }, []);
+
+  useEffect(() => {
     const warm = () => {
       const covers = useLibraryStore
         .getState()
@@ -92,6 +118,10 @@ export function App() {
     return useLibraryStore.subscribe((state, prev) => {
       if (state.items !== prev.items) warm();
     });
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = 'zh-CN';
   }, []);
 
   useEffect(() => {
@@ -184,19 +214,19 @@ export function App() {
         {renderPane('settings', settingsKeepAlive, <SettingsScreen />)}
       </div>
       <nav className="app-tabbar">
-        {TABS.map((t) => (
+        {TABS.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             ref={(el) => {
-              tabRefs.current[t.id] = el;
+              tabRefs.current[item.id] = el;
             }}
-            className={`tab-item${tab === t.id ? ' is-active' : ''}`}
-            onClick={() => handleTabChange(t.id)}
+            className={`tab-item${tab === item.id ? ' is-active' : ''}`}
+            onClick={() => handleTabChange(item.id)}
           >
             <span className="tab-icon">
-              <Icon name={t.icon} size={24} />
+              <Icon name={item.icon} size={24} />
             </span>
-            <span className="tab-label">{t.label}</span>
+            <span className="tab-label">{t(item.labelKey)}</span>
           </button>
         ))}
       </nav>
@@ -214,6 +244,11 @@ export function App() {
         </Suspense>
       ) : null}
       <ToastHost />
+      <UpdatePrompt
+        open={updateOpen}
+        update={update}
+        onClose={() => useUpdateStore.getState().setPromptOpen(false)}
+      />
     </div>
   );
 }

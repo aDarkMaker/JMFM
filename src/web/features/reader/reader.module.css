@@ -1,0 +1,167 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-reader);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-canvas);
+  animation: enter 0.28s var(--ease-out);
+}
+
+.closing {
+  animation: exit 0.22s var(--ease-out) forwards;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-top: calc(var(--space-2) + var(--safe-top));
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--color-edge);
+  min-width: 0;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.pageInput {
+  width: 52px;
+  min-height: var(--control-lg);
+  justify-content: center;
+}
+
+.pageInput input {
+  text-align: center;
+}
+
+.total {
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+}
+
+.scrollArea {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  padding: var(--space-3) var(--space-3) calc(var(--space-4) + max(var(--safe-bottom), 20px));
+  min-height: 0;
+}
+
+.scrollContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.scrollPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  contain: layout style paint;
+  flex-shrink: 0;
+  background: var(--surface-canvas);
+}
+
+.pagedArea {
+  flex: 1;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  touch-action: pan-y;
+  min-height: 0;
+}
+
+.canvas {
+  margin: auto;
+  background: var(--surface-canvas);
+  box-shadow: var(--shadow-2);
+  flex-shrink: 0;
+}
+
+.canvasPaged {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  touch-action: pan-y;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.error {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  font-size: var(--text-base);
+  color: var(--ink-secondary);
+  text-align: center;
+}
+
+.errorActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--ink-tertiary);
+}

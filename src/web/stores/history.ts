@@ -1,6 +1,9 @@
 import {create} from 'zustand';
-import {createUserStorage} from '../../data/user-storage';
-import {STORAGE_KEYS} from '../../data/storage-keys';
+import {createUserStorage, readVersioned, writeVersioned} from '@/data/user-storage';
+import {STORAGE_KEYS} from '@/data/storage-keys';
+import {t} from '@/web/i18n';
+import {showToast} from '@/web/stores/toast';
+import {STORAGE_VERSION} from './storage-version';
 
 const MAX_ENTRIES = 100;
 const SAVE_DEBOUNCE_MS = 500;
@@ -36,7 +39,9 @@ function flush(): void {
   if (!pending) return;
   const snapshot = pending;
   pending = null;
-  void storage.set(STORAGE_KEYS.history, JSON.stringify(Object.values(snapshot))).catch(() => undefined);
+  void writeVersioned(storage, STORAGE_KEYS.history, STORAGE_VERSION, Object.values(snapshot)).catch(
+    () => showToast(t('common.saveFailed'), 'error')
+  );
 }
 
 function scheduleSave(entries: Record<string, HistoryEntry>): void {
@@ -61,12 +66,17 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
 
   async load() {
     try {
-      const raw = await storage.get(STORAGE_KEYS.history);
-      if (!raw) {
+      const versioned = await readVersioned<unknown>(
+        storage,
+        STORAGE_KEYS.history,
+        STORAGE_VERSION,
+        (legacy) => legacy
+      );
+      if (!versioned) {
         set({loaded: true});
         return;
       }
-      const parsed = JSON.parse(raw) as unknown;
+      const parsed = versioned.data;
       const list = Array.isArray(parsed) ? (parsed as HistoryEntry[]) : [];
       const entries: Record<string, HistoryEntry> = {};
       for (const entry of list) {

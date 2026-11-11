@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {useNavStore} from '../stores/nav';
+import {useNavStore} from '@/web/stores/nav';
 import {NAV_CLOSE_MS} from './useNavStack';
 
 const EDGE_WIDTH = 28;

@@ -1,15 +1,15 @@
 import {create} from 'zustand';
-import type {AlbumSummary} from '../../core/model';
-import {createApi} from '../api/createApi';
+import type {AlbumSummary} from '@/core/model';
+import {createApi} from '@/web/api/createApi';
 import {waitForSettingsLoaded, useSettingsStore} from './settings';
 import {waitForLibraryLoaded, useLibraryStore} from './library';
-import {topTags} from '../library/tags';
-import {filterBlockedAlbums} from '../../core/model/blocklist';
-import {todayKey, hasLocalCandidates} from '../library/daily';
-import {readDismissed, addDismissed, removeDismissed, clearDismissed} from '../library/dismissed';
-import {readCache, clearStaleCaches} from '../library/dailyCache';
-import {fetchAlbumTagsBatch} from '../library/albumTags';
-import {RECOMMEND_POOL_TARGET, expandPool, fetchDailyPool, type DailyFetchOptions} from '../library/dailyFetch';
+import {topTags} from '@/web/library/tags';
+import {filterBlockedAlbums} from '@/core/model/blocklist';
+import {todayKey, hasLocalCandidates} from '@/web/library/daily';
+import {readDismissed, addDismissed, removeDismissed, clearDismissed} from '@/web/library/dismissed';
+import {readCache, clearStaleCaches} from '@/web/library/dailyCache';
+import {fetchAlbumTagsBatch} from '@/web/library/albumTags';
+import {RECOMMEND_POOL_TARGET, expandPool, fetchDailyPool, type DailyFetchOptions} from '@/web/library/dailyFetch';
 
 interface DailyState {
   date: string;

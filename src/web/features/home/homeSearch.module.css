@@ -1,0 +1,212 @@
+/* Home search: sticky shell; brand/field/cancel stay mounted and morph. */
+.shell {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin: 0 0 var(--space-4);
+  min-width: 0;
+}
+
+.shellOpen,
+.shellLayer {
+  z-index: 50;
+}
+
+.topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--surface-canvas) 94%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-edge) 70%, transparent);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transition:
+    background-color var(--dur-base) var(--ease-out),
+    gap var(--dur-slow) var(--ease-emphasized);
+}
+
+.searching {
+  background: var(--surface-canvas);
+  gap: var(--space-2);
+}
+
+.brand {
+  flex-shrink: 0;
+  max-width: 4.5rem;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding-left: 2px;
+  padding-right: 0.14em;
+  color: var(--ink-primary);
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    max-width var(--dur-slow) var(--ease-emphasized),
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-slow) var(--ease-emphasized),
+    padding var(--dur-slow) var(--ease-emphasized),
+    letter-spacing var(--dur-slow) var(--ease-emphasized);
+}
+
+.shellOpen .brand {
+  max-width: 0;
+  opacity: 0;
+  padding-left: 0;
+  padding-right: 0;
+  letter-spacing: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+}
+
+.cancel {
+  flex-shrink: 0;
+  max-width: 0;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding: var(--space-2) 0;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent-primary);
+  white-space: nowrap;
+  text-align: center;
+  transform: translateX(8px);
+  pointer-events: none;
+  transition:
+    max-width var(--dur-slow) var(--ease-emphasized),
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-slow) var(--ease-emphasized),
+    padding var(--dur-slow) var(--ease-emphasized);
+}
+
+.shellOpen .cancel {
+  max-width: 3rem;
+  opacity: 1;
+  padding: var(--space-2) var(--space-1);
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  padding: 0;
+  background: var(--scrim-weak);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.shellOpen .scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 2;
+  max-height: min(62vh, 520px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  border: 1px solid var(--color-edge);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  opacity: 0;
+  transform: translateY(-12px) scale(0.985);
+  transform-origin: top center;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-slow) var(--ease-emphasized);
+}
+
+.shellOpen .panel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.idle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-top: var(--space-2);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-secondary);
+}
+
+.sectionAction {
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  padding: var(--space-1);
+}
+
+.summary {
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  padding: var(--space-2) 0 var(--space-1);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.retry {
+  margin-top: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand,
+  .cancel,
+  .scrim,
+  .panel,
+  .topbar {
+    transition: none;
+  }
+}

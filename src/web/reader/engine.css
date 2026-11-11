@@ -1,0 +1,103 @@
+/* Global class contract: image-reader builds these DOM nodes imperatively. */
+.reader-scroll-area {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  padding: var(--space-3) var(--space-3) calc(var(--space-4) + max(var(--safe-bottom), 20px));
+  min-height: 0;
+}
+
+.reader-scroll-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.reader-scroll-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.reader-scroll-spacer {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.reader-scroll-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0;
+  overflow: hidden;
+  contain: layout style paint;
+  flex-shrink: 0;
+  background: var(--surface-canvas);
+}
+
+.reader-img {
+  display: block;
+  box-shadow: var(--shadow-2);
+  background: var(--surface-canvas);
+  flex-shrink: 0;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.reader-img.is-loading,
+.reader-img.is-error {
+  opacity: 0.35;
+  background: var(--surface-sunken);
+}
+
+.reader-img.is-ready {
+  opacity: 1;
+}
+
+.reader-img-area {
+  touch-action: pan-y;
+}
+
+.reader-img-paged-area {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.reader-paged-track {
+  display: flex;
+  width: 300%;
+  height: 100%;
+  transform: translate3d(-33.3333%, 0, 0);
+  will-change: transform;
+}
+
+.reader-paged-slide {
+  flex: 0 0 33.3333%;
+  width: 33.3333%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  box-sizing: border-box;
+  contain: layout style paint;
+}
+
+.reader-img-paged {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: var(--shadow-2);
+  background: var(--surface-canvas);
+}

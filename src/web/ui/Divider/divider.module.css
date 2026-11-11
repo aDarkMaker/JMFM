@@ -1,0 +1,18 @@
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--color-edge);
+  flex-shrink: 0;
+}
+
+.none {
+  margin: 0;
+}
+
+.sm {
+  margin: var(--space-2) 0;
+}
+
+.md {
+  margin: var(--space-4) 0;
+}

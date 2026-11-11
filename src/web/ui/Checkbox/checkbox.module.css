@@ -1,0 +1,24 @@
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-edge);
+  color: var(--ink-inverse);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.box:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.checked {
+  background: var(--accent-primary);
+  box-shadow: none;
+  color: var(--c-ink-000);
+}

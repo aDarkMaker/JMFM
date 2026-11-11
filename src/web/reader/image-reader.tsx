@@ -1,17 +1,21 @@
+import {t} from '@/web/i18n';
 import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef} from 'react';
-import {clamp, OnlineReaderSource, SCALE_MAX, SCALE_MIN} from './types';
+import type { OnlineReaderSource} from './types';
+import {clamp, SCALE_MAX, SCALE_MIN} from './types';
+import type {
+  ImageDocMeta} from './image-doc';
 import {
   getImageDocMeta,
   loadImageDocMeta,
-  resolveImageSrcLazy,
-  ImageDocMeta,
+  resolveImageSrcLazy
 } from './image-doc';
+import type {
+  OnlineDocMeta} from './online-doc';
 import {
   getOnlineDocMeta,
   loadOnlineDocMeta,
   onlineDocKey,
-  resolveOnlineSrc,
-  OnlineDocMeta,
+  resolveOnlineSrc
 } from './online-doc';
 import {applyToImg} from './image-loader';
 
@@ -450,7 +454,7 @@ export const ImageReader = forwardRef<ImageReaderHandle, ImageReaderProps>(funct
               ? Promise.resolve(cached)
               : loadOnlineDocMeta(online.albumId, online.photoId, online.scrambleId);
           })()
-        : Promise.reject(new Error('缺少阅读源'));
+        : Promise.reject(new Error(t('reader.noSource')));
 
     load
       .then((m) => {

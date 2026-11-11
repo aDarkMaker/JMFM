@@ -1,4 +1,4 @@
-import type {AlbumSummary} from '../../core/model';
+import type {AlbumSummary} from '@/core/model';
 import {appendPage, reachedEnd} from './paging';
 
 /** Shared shape for every append-only feed (browse, search, hot). */

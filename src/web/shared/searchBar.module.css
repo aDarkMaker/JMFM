@@ -1,0 +1,41 @@
+/* Search field wrapper: geometry and colors come from ui/Input; this file only
+   adds the host layout plus the nav / home surface overrides. */
+
+.host {
+  width: 100%;
+  min-width: 0;
+}
+
+.host.home {
+  border: 1px solid transparent;
+  padding: 0 var(--space-3) 0 var(--space-4);
+}
+
+.host.home:focus-within {
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, transparent);
+}
+
+.host.home.homeExpanded {
+  background: var(--surface-raised);
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+.clear {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border-radius: var(--radius-pill);
+  color: var(--ink-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.clear:active {
+  background: var(--surface-sunken);
+  color: var(--ink-primary);
+}

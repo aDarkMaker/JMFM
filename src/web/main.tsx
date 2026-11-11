@@ -1,31 +1,21 @@
 import {createRoot} from 'react-dom/client';
-import {App} from './App';
-import './theme/index.css';
-import './styles/fonts.css';
-import './styles/app.css';
-import './styles/poster.css';
-import './styles/albumCard.css';
-import './styles/albumRow.css';
-import './styles/navScreen.css';
-import './styles/search.css';
-import './styles/albumDetail.css';
-import './styles/emptyState.css';
-import './styles/skeleton.css';
-import './styles/listTile.css';
-import './styles/progressBar.css';
-import './styles/searchBar.css';
-import './styles/sectionHeader.css';
-import './styles/home.css';
-import './styles/library.css';
-import './styles/tasks.css';
-import './styles/settings.css';
-import './styles/tagFilter.css';
-import './styles/reader.css';
-import './styles/confirmDialog.css';
-import './styles/toast.css';
+import {App} from '@/web/App';
+import {AppErrorBoundary} from '@/web/features/errors/AppErrorBoundary';
+import '@/web/theme/index.css';
+import '@/web/styles/fonts.css';
+import '@/web/styles/shell.css';
+import '@/web/reader/engine.css';
+
+if (import.meta.hot) {
+  void import('@/web/dev/error-overlay').then((mod) => mod.installErrorOverlay());
+}
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
   throw new Error('root element not found');
 }
-createRoot(rootEl).render(<App />);
+createRoot(rootEl).render(
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);

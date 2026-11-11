@@ -1,4 +1,4 @@
-import type {LibraryItem} from '../stores/library';
+import type {LibraryItem} from '@/web/stores/library';
 
 export const LANGUAGE_TAGS = [
   '中文',

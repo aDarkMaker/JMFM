@@ -1,8 +1,8 @@
-import {decodeAndSave} from '../../core/transcode/decode';
-import {base64ToBytes} from '../../core/util/base64';
-import type {DownloadRuntime} from '../../core/download';
-import type {FileSystem} from '../../core/fs/types';
-import {toSafRelativePath} from '../../core/fs/saf/safPaths';
+import {decodeAndSave} from '@/core/transcode/decode';
+import {base64ToBytes} from '@/core/util/base64';
+import type {DownloadRuntime} from '@/core/download';
+import type {FileSystem} from '@/core/fs/types';
+import {toSafRelativePath} from '@/core/fs/saf/safPaths';
 import {
   safDeleteDirectory,
   safEnsureDirectory,
@@ -11,7 +11,7 @@ import {
   safReadBinaryFile,
   safRename,
   safWriteFile,
-} from '../../core/fs/saf/safStorage';
+} from '@/core/fs/saf/safStorage';
 
 export function createSafRuntime(treeUri: string, downloadPath: string): DownloadRuntime {
   const toRel = (path: string) => toSafRelativePath(path, downloadPath);
