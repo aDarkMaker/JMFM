@@ -1,4 +1,4 @@
-import {FileSystem} from './types';
+import type {FileSystem} from './types';
 
 /** Lower bound for a valid page/cover/meta file; anything smaller is a half-written file. */
 export const MIN_FILE_BYTES = 64;

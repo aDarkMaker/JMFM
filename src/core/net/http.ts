@@ -1,5 +1,5 @@
-import {REQUEST} from '../constants';
-import {base64ToBytes} from '../util/base64';
+import {REQUEST} from '@/core/constants';
+import {base64ToBytes} from '@/core/util/base64';
 
 export interface HttpOptions {
   proxy?: string;

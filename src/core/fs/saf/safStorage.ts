@@ -1,5 +1,5 @@
 import {Capacitor, registerPlugin} from '@capacitor/core';
-import {base64ToBytes, bytesToBase64} from '../../util/base64';
+import {base64ToBytes, bytesToBase64} from '@/core/util/base64';
 
 export interface SafEntry {
   name: string;

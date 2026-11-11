@@ -13,7 +13,19 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "verify": "bun scripts/verify-download.ts"
+    "check": "bun run check:icons && bun run check:tokens && bun run check:ui && bun run check:i18n && bun run check:debug && bun scripts/check-release.ts",
+    "check:icons": "bun scripts/check-icons.ts",
+    "check:tokens": "bun scripts/check-tokens.ts",
+    "check:ui": "bun scripts/check-ui.ts",
+    "check:i18n": "bun scripts/check-i18n.ts",
+    "check:debug": "bun scripts/check-debug-code.ts",
+    "check:release": "bun scripts/check-release.ts",
+    "bump": "bun scripts/bump-version.ts",
+    "verify": "bun scripts/verify-download.ts",
+    "dev:web": "bun scripts/dev-web.ts",
+    "dev:android": "bash scripts/dev-android.sh live",
+    "dev:android:usb": "bash scripts/dev-android.sh usb",
+    "dev:apk": "bash scripts/dev-android.sh package"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

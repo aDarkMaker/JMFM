@@ -1,5 +1,5 @@
-import {REQUEST} from '../constants';
-import {FetchResult} from './http';
+import {REQUEST} from '@/core/constants';
+import type {FetchResult} from './http';
 
 export function isRetryableStatus(status: number): boolean {
   return status >= 500 || status === 429;

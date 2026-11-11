@@ -53,5 +53,16 @@
   },
   "pdf": {
     "maxWidth": 1190
+  },
+  "update": {
+    "owner": "aDarkMaker",
+    "repo": "JMFM",
+    "manifestPath": "latest/version.json",
+    "apiTtlMs": 900000,
+    "assetMirrors": [
+      "https://github.com/{owner}/{repo}/releases/download/{tag}/{asset}",
+      "https://ghfast.top/https://github.com/{owner}/{repo}/releases/download/{tag}/{asset}",
+      "https://gh-proxy.com/https://github.com/{owner}/{repo}/releases/download/{tag}/{asset}"
+    ]
   }
 }

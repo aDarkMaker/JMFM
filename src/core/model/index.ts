@@ -1,4 +1,4 @@
-import {FALLBACK_CDN} from '../constants';
+import {FALLBACK_CDN} from '@/core/constants';
 
 export interface Episode {
   photoId: number;

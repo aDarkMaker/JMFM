@@ -1,5 +1,5 @@
-import {REQUEST} from '../constants';
-import {FetchResult, HttpClient, HttpOptions} from './http';
+import {REQUEST} from '@/core/constants';
+import type {FetchResult, HttpClient, HttpOptions} from './http';
 import {requestWithRetry} from './retry';
 import {fetchOnce} from './fetch-once';
 

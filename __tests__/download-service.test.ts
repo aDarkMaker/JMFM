@@ -1,7 +1,9 @@
-import {HttpClient} from '@/core/net';
-import {DownloadService, DownloadEvent, ContentSource, isCanceledError} from '@/core/download';
-import {DownloadRuntime, FileSystem} from '@/core/download/types';
-import {AlbumDetail, PhotoDetail, createImageItem} from '@/core/model';
+import type {HttpClient} from '@/core/net';
+import type { DownloadEvent, ContentSource} from '@/core/download';
+import {DownloadService, isCanceledError} from '@/core/download';
+import type {DownloadRuntime, FileSystem} from '@/core/download/types';
+import type {AlbumDetail, PhotoDetail} from '@/core/model';
+import { createImageItem} from '@/core/model';
 import {base64ToBytes} from '@/core/util/base64';
 
 const album: AlbumDetail = {

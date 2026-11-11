@@ -1,5 +1,5 @@
-import {md5Hex} from '../crypto';
-import {SCRAMBLE} from '../constants';
+import {md5Hex} from '@/core/crypto';
+import {SCRAMBLE} from '@/core/constants';
 
 export function getNum(scrambleId: number, aid: number, fileName: string): number {
   if (aid < scrambleId) {

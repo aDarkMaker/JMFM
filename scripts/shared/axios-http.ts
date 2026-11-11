@@ -1,6 +1,8 @@
-import axios, {AxiosInstance} from 'axios';
-import {FetchResult, HttpClient, HttpOptions, sleep} from '../../src/core/net/http';
-import {REQUEST} from '../../src/core/constants';
+import type {AxiosInstance} from 'axios';
+import axios from 'axios';
+import type {FetchResult, HttpClient, HttpOptions} from '@/core/net/http';
+import { sleep} from '@/core/net/http';
+import {REQUEST} from '@/core/constants';
 
 function parseProxy(proxy: string): {host: string; port: number} | undefined {
   const [host, port] = proxy.split(':');

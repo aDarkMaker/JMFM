@@ -4,11 +4,14 @@
  */
 import {readdirSync, readFileSync, existsSync} from 'node:fs';
 import {join} from 'node:path';
-import {execSync} from 'node:child_process';
 
 const ROOT = join(__dirname, '..');
+const SRC_DIR = join(ROOT, 'src');
 const iconsDir = join(ROOT, 'src/web/assets/icons');
 const generatedFile = join(ROOT, 'src/web/generated/icons.ts');
+
+/** Source trees whose contents cannot reference an icon. */
+const SKIP_DIRS = new Set(['generated', 'assets']);
 
 /** Icons that may be unused until a follow-up wires them in. Keep this empty. */
 const UNUSED_ALLOWLIST = new Set<string>();
@@ -91,15 +94,21 @@ if (existsSync(generatedFile)) {
   fail(`missing generated file: ${generatedFile}`);
 }
 
-const sourceFiles = execSync(
-  "rg -l --glob '!src/web/generated/**' --glob '!src/web/assets/**' . src",
-  {cwd: ROOT, encoding: 'utf-8'}
-)
-  .trim()
-  .split('\n')
-  .filter(Boolean)
-  .map((f) => join(ROOT, f));
-const sources = sourceFiles.map((f) => [f, readFileSync(f, 'utf-8')] as const);
+/** Every text source under `src/`, minus the generated table and the raw SVGs. */
+function collectSources(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir, {withFileTypes: true})) {
+    if (entry.isDirectory()) {
+      if (!SKIP_DIRS.has(entry.name)) collectSources(join(dir, entry.name), out);
+      continue;
+    }
+    if (/\.(ts|tsx|css|html|json)$/.test(entry.name)) out.push(join(dir, entry.name));
+  }
+  return out;
+}
+
+const sources = collectSources(SRC_DIR).map(
+  (file) => [file, readFileSync(file, 'utf-8')] as const
+);
 
 for (const name of names) {
   const used = sources.some(([, text]) => text.includes(`'${name}'`) || text.includes(`"${name}"`));

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only network policy: the WebView must be able to reach an arbitrary LAN
+     address for the Bun dev server, and network-security-config has no CIDR support.
+     This file ships only in the debug source set; release builds keep cleartext off. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -5,8 +5,9 @@ import {filterBlockedAlbums} from '../src/core/model/blocklist';
 import {IMAGE_EXT_SET, extOf} from '../src/core/model';
 import type {AlbumSummary} from '../src/core/model';
 import {buildRecommendations} from '../src/web/library/daily';
+import type {
+  LibraryScanner} from '../src/web/library/discoverLibrary';
 import {
-  LibraryScanner,
   discoverLibraryFromDisk,
   mergeDiscovered,
 } from '../src/web/library/discoverLibrary';

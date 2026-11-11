@@ -12,7 +12,7 @@ import {
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {computeStrips} from '../src/core/transcode';
-import {DecodedImage, DownloadRuntime, FileSystem, DecodeFormat} from '../src/core/download/types';
+import type {DecodedImage, DownloadRuntime, FileSystem, DecodeFormat} from '../src/core/download/types';
 
 function runMagick(args: string[]): void {
   const r = spawnSync('magick', args, {encoding: 'utf8'});

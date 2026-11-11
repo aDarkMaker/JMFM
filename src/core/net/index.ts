@@ -3,7 +3,7 @@ export * from './native-http';
 export * from './fetch-http';
 
 import {Capacitor} from '@capacitor/core';
-import {HttpClient, HttpOptions} from './http';
+import type {HttpClient, HttpOptions} from './http';
 import {FetchHttpClient} from './fetch-http';
 import {NativeHttpClient} from './native-http';
 

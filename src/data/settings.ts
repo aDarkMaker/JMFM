@@ -1,6 +1,6 @@
-import {isHardBlockedKeyword} from '../core/model/blocklist';
-import {createUserStorage} from './user-storage';
-import {STORAGE_KEYS} from './storage-keys';
+import {isHardBlockedKeyword} from '@/core/model/blocklist';
+import {createUserStorage, readVersioned, writeVersioned} from './user-storage';
+import {STORAGE_KEYS, STORAGE_VERSION} from './storage-keys';
 
 export interface Settings {
   downloadPath: string;
@@ -119,20 +119,24 @@ class PersistentSettingsStorage implements SettingsStorage {
   private storage = createUserStorage();
 
   async load(): Promise<Settings> {
-    const value = await this.storage.get(STORAGE_KEYS.settings);
-    return value ? parseSettings(value) : DEFAULT_SETTINGS;
+    // Settings are sanitized field-by-field, so history shape changes never need a
+    // version bump; unversioned legacy payloads read the same either way.
+    const versioned = await readVersioned<Partial<Settings>>(
+      this.storage,
+      STORAGE_KEYS.settings,
+      STORAGE_VERSION,
+      (legacy) => (legacy && typeof legacy === 'object' ? (legacy as Partial<Settings>) : {})
+    );
+    return versioned ? sanitizeSettings(versioned.data) : DEFAULT_SETTINGS;
   }
 
   async save(settings: Settings): Promise<void> {
-    await this.storage.set(STORAGE_KEYS.settings, JSON.stringify(sanitizeSettings(settings)));
-  }
-}
-
-function parseSettings(raw: string): Settings {
-  try {
-    return sanitizeSettings(JSON.parse(raw) as Partial<Settings>);
-  } catch {
-    return DEFAULT_SETTINGS;
+    await writeVersioned(
+      this.storage,
+      STORAGE_KEYS.settings,
+      STORAGE_VERSION,
+      sanitizeSettings(settings)
+    );
   }
 }
 

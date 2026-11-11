@@ -1,7 +1,7 @@
 import {buildBaseUrls} from '@/core/net';
 import {isRetryableStatus} from '@/core/net/fetch-once';
 import {requestWithRetry} from '@/core/net/retry';
-import {FetchResult} from '@/core/net/http';
+import type {FetchResult} from '@/core/net/http';
 import {isValidBase64, base64ToBytes} from '@/core/util/base64';
 
 describe('net isValidBase64', () => {

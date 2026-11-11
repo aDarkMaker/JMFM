@@ -1,4 +1,9 @@
-import {suggestFilterTags, validateTagInput} from '@/web/library/filterTags';
+import {
+  removeFilterTag,
+  setFilterTag,
+  suggestFilterTags,
+  validateTagInput,
+} from '@/web/library/filterTags';
 
 describe('validateTagInput', () => {
   it('trims and accepts valid tags', () => {
@@ -18,6 +23,44 @@ describe('validateTagInput', () => {
   });
 });
 
+describe('setFilterTag', () => {
+  it('appends to the target list', () => {
+    expect(setFilterTag({blacklistTags: ['a'], whitelistTags: []}, 'b', 'blacklist')).toEqual({
+      blacklistTags: ['a', 'b'],
+      whitelistTags: [],
+    });
+  });
+
+  it('moves a tag out of the other list', () => {
+    expect(setFilterTag({blacklistTags: ['a'], whitelistTags: ['b']}, 'a', 'whitelist')).toEqual({
+      blacklistTags: [],
+      whitelistTags: ['b', 'a'],
+    });
+  });
+
+  it('keeps the stored spelling when re-adding in the same list', () => {
+    expect(setFilterTag({blacklistTags: ['校园'], whitelistTags: []}, '校园', 'blacklist')).toEqual({
+      blacklistTags: ['校园'],
+      whitelistTags: [],
+    });
+  });
+
+  it('moves case-insensitively without duplicating', () => {
+    expect(setFilterTag({blacklistTags: ['NTR'], whitelistTags: []}, 'ntr', 'whitelist')).toEqual({
+      blacklistTags: [],
+      whitelistTags: ['ntr'],
+    });
+  });
+});
+
+describe('removeFilterTag', () => {
+  it('only touches the given list', () => {
+    const lists = {blacklistTags: ['a'], whitelistTags: ['b']};
+    expect(removeFilterTag(lists, 'a', 'blacklist')).toEqual({blacklistTags: [], whitelistTags: ['b']});
+    expect(removeFilterTag(lists, 'b', 'whitelist')).toEqual({blacklistTags: ['a'], whitelistTags: []});
+  });
+});
+
 describe('suggestFilterTags', () => {
   const items = [
     {tags: ['校园', '纯爱', '中文']},
@@ -28,6 +71,10 @@ describe('suggestFilterTags', () => {
   it('excludes language tags and existing entries', () => {
     const suggestions = suggestFilterTags(items, ['纯爱'], 8);
     expect(suggestions).toEqual(['校园', '搞笑']);
+  });
+
+  it('excludes entries from either list', () => {
+    expect(suggestFilterTags(items, ['校园', '搞笑'], 8)).toEqual(['纯爱']);
   });
 
   it('respects the limit', () => {

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Usage: scripts/dev-android.sh [auto|device|emulator] [AVD_NAME]
-# Capacitor workflow: build web -> sync android -> run on physical device first.
+# Usage: scripts/dev-android.sh [live|usb|package|auto|device|emulator] [AVD_NAME]
+#   live     LAN dev server (cap run -l), no rebuild per change
+#   usb      adb reverse, for networks that block device<->host traffic
+#   package  build once into a debug app that points at the LAN dev server
+#   auto|device|emulator  legacy: build web -> sync -> run (no live reload)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -9,9 +12,20 @@ AVD="${2:-${JMFM_AVD:-Medium_Phone_API_36.1}}"
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 ADB="$SDK/platform-tools/adb"
 EMU="$SDK/emulator/emulator"
+DEV_PORT="${DEV_PORT:-3000}"
 
 log()  { printf '\033[36m[dev]\033[0m %s\n' "$*"; }
 fail() { printf '\033[31m[dev]\033[0m %s\n' "$*" >&2; exit 1; }
+
+lan_ip() {
+  local ip
+  ip="$(ipconfig getifaddr en0 2>/dev/null || true)"
+  [[ -z "$ip" ]] && ip="$(ipconfig getifaddr en1 2>/dev/null || true)"
+  if [[ -z "$ip" ]]; then
+    ip="$(ifconfig 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')"
+  fi
+  echo "$ip"
+}
 
 require_java21() {
   if ! command -v java >/dev/null; then
@@ -59,24 +73,52 @@ start_emulator() {
 require_java21
 $ADB start-server >/dev/null
 
-TARGET="$(pick_device "$MODE")"
+TARGET="$(pick_device auto)"
 if [[ -z "$TARGET" ]]; then
-  [[ "$MODE" == "device" ]] && fail "No physical device. Enable USB debugging and authorize this computer."
   start_emulator
   TARGET="$(pick_device emulator)"
 fi
 [[ -n "$TARGET" ]] || fail "No target device."
-
 log "Device: $TARGET"
 
 cd "$ROOT"
-log "Building web assets ..."
-bun run build
 
-log "Syncing Capacitor android ..."
-bunx cap sync android
-
-log "Building & running on $TARGET ..."
-bunx cap run android --target "$TARGET"
+case "$MODE" in
+  live)
+    HOST_IP="$(lan_ip)"
+    [[ -n "$HOST_IP" ]] || fail "No LAN IP. Use: bun run dev:android:usb"
+    log "Start the dev server in another terminal: bun run dev:web"
+    log "Live reload → http://$HOST_IP:$DEV_PORT/  (refresh to pick up edits)"
+    bunx cap run android --target "$TARGET" -l --host "$HOST_IP" --port "$DEV_PORT" --no-sync
+    ;;
+  usb)
+    log "adb reverse tcp:$DEV_PORT tcp:$DEV_PORT"
+    "$ADB" -s "$TARGET" reverse "tcp:$DEV_PORT" "tcp:$DEV_PORT"
+    log "Start the dev server in another terminal: bun run dev:web"
+    log "Live reload → http://localhost:$DEV_PORT/  (USB; refresh to pick up edits)"
+    bunx cap run android --target "$TARGET" -l --host localhost --port "$DEV_PORT" --no-sync
+    ;;
+  package)
+    HOST_IP="$(lan_ip)"
+    [[ -n "$HOST_IP" ]] || fail "No LAN IP. Use: bun run dev:android:usb"
+    log "Building web assets ..."
+    bun run build
+    log "Syncing Capacitor android ..."
+    bunx cap sync android
+    log "Baking dev server URL http://$HOST_IP:$DEV_PORT/ into the debug app ..."
+    bunx cap run android --target "$TARGET" -l --host "$HOST_IP" --port "$DEV_PORT" --no-sync
+    ;;
+  auto|device|emulator)
+    log "Building web assets ..."
+    bun run build
+    log "Syncing Capacitor android ..."
+    bunx cap sync android
+    log "Building & running on $TARGET ..."
+    bunx cap run android --target "$TARGET"
+    ;;
+  *)
+    fail "Usage: scripts/dev-android.sh [live|usb|package|auto|device|emulator] [AVD_NAME]"
+    ;;
+esac
 
 log "Done."

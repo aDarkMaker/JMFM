@@ -1,12 +1,13 @@
+import type {
+  PagesContext} from './pages';
 import {
   CanceledError,
-  PagesContext,
   collectAlbumPages,
   downloadPages,
   isCanceledError,
 } from './pages';
-import {DownloadController} from './types';
-import {sanitizeTitle} from '../util/filename';
+import type {DownloadController} from './types';
+import {sanitizeTitle} from '@/core/util/filename';
 
 export type {DownloadRuntime, FileSystem, DecodedImage} from './types';
 export type {ContentSource, DownloadController} from './types';

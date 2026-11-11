@@ -82,3 +82,78 @@ export async function migrateFromLocalStorage(
   }
   return null;
 }
+
+/** Versioned envelope written by `writeVersioned`. */
+export interface VersionedPayload<T> {
+  v: number;
+  data: T;
+}
+
+export interface ReadVersionedResult<T> {
+  data: T;
+  /** Version found on disk; equal to `target` for freshly written payloads. */
+  version: number;
+  /** True when the payload was migrated from an older envelope. */
+  migrated: boolean;
+}
+
+function isVersioned(raw: unknown): raw is VersionedPayload<unknown> {
+  return (
+    typeof raw === 'object' &&
+    raw !== null &&
+    !Array.isArray(raw) &&
+    typeof (raw as {v?: unknown}).v === 'number' &&
+    'data' in (raw as Record<string, unknown>)
+  );
+}
+
+/**
+ * Reads a `{v, data}` envelope. Legacy payloads (no envelope) are passed to
+ * `migrate` so old installs keep their data; unreadable payloads yield `null`.
+ */
+export async function readVersioned<T>(
+  storage: UserStorage,
+  key: string,
+  target: number,
+  migrate?: (legacy: unknown, fromVersion: number) => T
+): Promise<ReadVersionedResult<T> | null> {
+  const raw = await storage.get(key);
+  if (raw == null || raw === '') {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (isVersioned(parsed)) {
+    const version = parsed.v;
+    try {
+      const data =
+        version === target || !migrate ? (parsed.data as T) : migrate(parsed.data, version);
+      return {data, version, migrated: version !== target};
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const data = migrate ? migrate(parsed, 0) : (parsed as T);
+    return {data, version: 0, migrated: true};
+  } catch {
+    return null;
+  }
+}
+
+export async function writeVersioned<T>(
+  storage: UserStorage,
+  key: string,
+  target: number,
+  data: T
+): Promise<void> {
+  const payload: VersionedPayload<T> = {v: target, data};
+  await storage.set(key, JSON.stringify(payload));
+}
+

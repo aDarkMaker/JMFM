@@ -1,6 +1,6 @@
 import {computeStrips} from './index';
-import {PDF} from '../constants';
-import {DecodedImage, DecodeFormat} from '../model';
+import {PDF} from '@/core/constants';
+import type {DecodedImage, DecodeFormat} from '@/core/model';
 
 const JPEG_QUALITY = 0.85;
 const WEBP_QUALITY = 0.82;

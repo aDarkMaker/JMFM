@@ -1,6 +1,6 @@
-import {config} from '../../config';
-import {SCRAMBLE} from '../constants';
-import {
+import {config} from '@/config';
+import {SCRAMBLE} from '@/core/constants';
+import type {
   AlbumDetail,
   AlbumSummary,
   Category,
@@ -8,7 +8,7 @@ import {
   Episode,
   PhotoDetail,
   TagGroup,
-} from '../model';
+} from '@/core/model';
 
 export type ListItem = {
   id?: unknown;

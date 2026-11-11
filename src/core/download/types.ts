@@ -1,9 +1,9 @@
-import type {AlbumDetail, DecodeFormat, DecodedImage, PhotoDetail} from '../model';
-import type {FileSystem} from '../fs/types';
-import {ImageItem} from '../model';
+import type {AlbumDetail, DecodeFormat, DecodedImage, PhotoDetail} from '@/core/model';
+import type {FileSystem} from '@/core/fs/types';
+import type {ImageItem} from '@/core/model';
 
-export type {DecodeFormat, DecodedImage} from '../model';
-export type {FileSystem} from '../fs/types';
+export type {DecodeFormat, DecodedImage} from '@/core/model';
+export type {FileSystem} from '@/core/fs/types';
 
 export interface DownloadRuntime {
   fs: FileSystem;

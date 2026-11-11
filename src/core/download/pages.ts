@@ -1,10 +1,11 @@
-import {AlbumDetail, ImageItem, IMAGE_EXTS} from '../model';
-import {REQUEST} from '../constants';
-import {HttpClient} from '../net';
-import {retry} from '../net/retry';
-import {getNum} from '../transcode';
-import {base64ToBytes} from '../util/base64';
-import {DownloadRuntime, DecodeFormat} from './types';
+import type {AlbumDetail, ImageItem} from '@/core/model';
+import { IMAGE_EXTS} from '@/core/model';
+import {REQUEST} from '@/core/constants';
+import type {HttpClient} from '@/core/net';
+import {retry} from '@/core/net/retry';
+import {getNum} from '@/core/transcode';
+import {base64ToBytes} from '@/core/util/base64';
+import type {DownloadRuntime, DecodeFormat} from './types';
 import {
   MEMORY_WATERMARK_BYTES,
   MemoryGate,
@@ -14,8 +15,8 @@ import {
   decideImageStrategy,
   mapWithConcurrency,
 } from './scheduler';
-import {ContentSource, DownloadController} from './types';
-import {MIN_FILE_BYTES} from '../fs/write';
+import type {ContentSource, DownloadController} from './types';
+import {MIN_FILE_BYTES} from '@/core/fs/write';
 
 export interface PagesContext {
   http: HttpClient;

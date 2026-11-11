@@ -1,5 +1,5 @@
-import {REQUEST} from '../constants';
-import {FetchResult} from './http';
+import {REQUEST} from '@/core/constants';
+import type {FetchResult} from './http';
 import {sleep} from './http';
 
 export async function requestWithRetry(

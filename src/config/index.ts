@@ -35,6 +35,13 @@ export interface AppConfig {
   pdf: {
     maxWidth: number;
   };
+  update: {
+    owner: string;
+    repo: string;
+    manifestPath: string;
+    apiTtlMs: number;
+    assetMirrors: string[];
+  };
 }
 
 export const config: AppConfig = appConfig;

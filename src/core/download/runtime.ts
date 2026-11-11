@@ -1,9 +1,9 @@
 /* eslint-disable no-bitwise */
 import {Capacitor} from '@capacitor/core';
 import {Directory, Filesystem} from '@capacitor/filesystem';
-import {decodeAndSave} from '../transcode/decode';
-import {base64ToBytes, bytesToBase64} from '../util/base64';
-import {DownloadRuntime, FileSystem} from './types';
+import {decodeAndSave} from '@/core/transcode/decode';
+import {base64ToBytes, bytesToBase64} from '@/core/util/base64';
+import type {DownloadRuntime, FileSystem} from './types';
 
 export type {DecodedImage, DownloadRuntime, FileSystem} from './types';
 

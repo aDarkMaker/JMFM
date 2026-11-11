@@ -17,7 +17,44 @@
       "error",
       {"argsIgnorePattern": "^_", "varsIgnorePattern": "^_"}
     ],
-    "@typescript-eslint/no-explicit-any": "off"
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/consistent-type-imports": ["error", {"prefer": "type-imports"}],
+    "no-console": ["error", {"allow": ["warn", "error"]}],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../../*"],
+            "message": "跨目录用 @/ 别名，不要用深度 >=2 的相对导入"
+          }
+        ]
+      }
+    ]
   },
-  "ignorePatterns": ["dist", "android", "node_modules", "temp"]
+  "overrides": [
+    {
+      "files": ["scripts/**", "__tests__/**", "src/web/dev/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/core/**", "src/data/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/web/**", "../../*"],
+                "message": "core/data 不得依赖 src/web；跨目录用 @/ 别名"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": ["dist", "dist-apk", "android", "node_modules", "temp", "docs", "src/web/generated"]
 }

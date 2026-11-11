@@ -1,18 +1,20 @@
-import {config} from '../../config';
-import {HttpClient, bytesOf} from '../net';
-import {retry} from '../net/retry';
-import {
+import {config} from '@/config';
+import type {HttpClient} from '@/core/net';
+import { bytesOf} from '@/core/net';
+import {retry} from '@/core/net/retry';
+import type {
   AlbumDetail,
   AlbumSummary,
   Category,
   ImageItem,
   PhotoDetail,
-  TagGroup,
+  TagGroup} from '@/core/model';
+import {
   createImageItem,
-} from '../model';
-import {aesEcbDecrypt, md5Hex} from '../crypto';
-import {utf8Decode} from '../util/utf8';
-import {SORT} from '../constants/sort';
+} from '@/core/model';
+import {aesEcbDecrypt, md5Hex} from '@/core/crypto';
+import {utf8Decode} from '@/core/util/utf8';
+import {SORT} from '@/core/constants/sort';
 import {parseAlbumDetail, parseAlbumList, parseCategories, parsePhotoDetail} from './parse';
 
 function stripNonAsciiPrefix(text: string): string {

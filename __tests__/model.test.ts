@@ -1,4 +1,5 @@
-import {PhotoDetail, buildFallbackImageUrl, buildImageUrl, createImageItem} from '@/core/model';
+import type {PhotoDetail} from '@/core/model';
+import { buildFallbackImageUrl, buildImageUrl, createImageItem} from '@/core/model';
 
 const photo: PhotoDetail = {
   photoId: 100200300,

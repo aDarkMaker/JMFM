@@ -19,35 +19,36 @@ export type SortCode = (typeof SORT)[keyof typeof SORT];
 
 export interface SortOption {
   code: SortCode;
-  label: string;
+  /** Message key resolved by `t()` in the UI layer. */
+  labelKey: string;
   /** Pages are capped server side; shorter feeds mark the end earlier. */
   shortFeed?: boolean;
 }
 
 /** Discover / browse chips: time-scoped popularity. */
 export const SORT_OPTIONS: readonly SortOption[] = [
-  {code: SORT.DEFAULT, label: '最新'},
-  {code: SORT.TODAY_HOT, label: '今日最热', shortFeed: true},
-  {code: SORT.WEEK_HOT, label: '本周最热'},
-  {code: SORT.MONTH_HOT, label: '本月最热'},
+  {code: SORT.DEFAULT, labelKey: 'sort.latest'},
+  {code: SORT.TODAY_HOT, labelKey: 'sort.todayHot', shortFeed: true},
+  {code: SORT.WEEK_HOT, labelKey: 'sort.weekHot'},
+  {code: SORT.MONTH_HOT, labelKey: 'sort.monthHot'},
 ];
 
 /** Search chips: time / views / likes / pages (all-time). */
 export const SEARCH_SORT_OPTIONS: readonly SortOption[] = [
-  {code: SORT.LATEST, label: '最新'},
-  {code: SORT.BY_VIEWS, label: '观看'},
-  {code: SORT.BY_LIKES, label: '喜欢'},
-  {code: SORT.BY_PAGES, label: '页数'},
+  {code: SORT.LATEST, labelKey: 'sort.latest'},
+  {code: SORT.BY_VIEWS, labelKey: 'sort.views'},
+  {code: SORT.BY_LIKES, labelKey: 'sort.likes'},
+  {code: SORT.BY_PAGES, labelKey: 'sort.pages'},
 ];
 
 /** Fallback categories when /categories fails, matched by verified slug. */
-export const CATEGORY_FALLBACK: readonly {slug: string; name: string}[] = [
-  {slug: 'doujin', name: '同人'},
-  {slug: 'hanman', name: '韩漫'},
-  {slug: 'meiman', name: 'English'},
-  {slug: 'short', name: '短篇'},
-  {slug: 'single', name: '单本'},
-  {slug: 'another', name: '其他'},
+export const CATEGORY_FALLBACK: readonly {slug: string; nameKey: string}[] = [
+  {slug: 'doujin', nameKey: 'cat.doujin'},
+  {slug: 'hanman', nameKey: 'cat.hanman'},
+  {slug: 'meiman', nameKey: 'cat.meiman'},
+  {slug: 'short', nameKey: 'cat.short'},
+  {slug: 'single', nameKey: 'cat.single'},
+  {slug: 'another', nameKey: 'cat.other'},
 ];
 
 /** /categories/filter: "0" is the unfiltered newest feed. */

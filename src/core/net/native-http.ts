@@ -1,9 +1,9 @@
 import {CapacitorHttp} from '@capacitor/core';
-import {REQUEST} from '../constants';
-import {FetchResult, HttpClient, HttpOptions} from './http';
+import {REQUEST} from '@/core/constants';
+import type {FetchResult, HttpClient, HttpOptions} from './http';
 import {requestWithRetry} from './retry';
 import {fetchOnce, isRetryableStatus} from './fetch-once';
-import {isValidBase64, bytesToBase64} from '../util/base64';
+import {isValidBase64, bytesToBase64} from '@/core/util/base64';
 
 export class NativeHttpClient implements HttpClient {
   private opts: HttpOptions;

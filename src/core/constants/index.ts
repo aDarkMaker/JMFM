@@ -1,4 +1,4 @@
-import {config} from '../../config';
+import {config} from '@/config';
 
 export const SCRAMBLE = {
   SCRAMBLE_220980: 220980,
