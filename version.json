@@ -1,4 +1,5 @@
 {
-  "version": "3.6.0",
-  "versionCode": 30600
+  "version": "3.7.0",
+  "versionCode": 30700,
+  "notes": "## JMFM 3.7.0\n\n- 包体 7.15MB → 2.40MB（R8 + 字体子集 + 移除 pdf.js 回退）\n- 首屏 JS 594KB → 216KB\n- 修复：下拉刷新遮挡搜索栏、下拉卡顿\n- 性能：导航页按需加载、列表离屏跳过渲染\n- 注意：旧 PDF 文件不再支持阅读，已下载的 pages/ 不受影响\n\n下载 **JMFM.apk** 安装。"
 }
