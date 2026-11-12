@@ -2,6 +2,15 @@
 
 ## 2026-11-11 (Wed)
 
+### Bundle diet and runtime performance
+
+- **Build chain fix**: `--define:KEY=VAL` (colon form) is silently ignored by bun 1.3.14, so every release shipped the React development build (515 `jsxDEV` sites). Switched to the space form and added `--define require=undefined` so `crypto-js`'s `require('crypto')` branch is DCE'd (crypto chunk 683KB → 58KB); removed the stale `[define]` in `bunfig.toml` that overrode the version, and updated `scripts/version-define.sh`. Entry 594KB → 216KB.
+- **pdf.js fallback removed**: downloads always write `pagesDir`, so `isImageMode` is always true and the PDF path was dead code. Deleted `reader/pdf-doc.ts`, `paged-viewer.ts`, `scroll-viewer.ts`, `useTouchGestures.ts`, the `pdfjs-dist` dependency, the worker copy step and the bench `benchPdf`; `ReaderScreen` now only renders `ImageReader` + toolbar/status, and `reader.pdfError` became `reader.openError`. Saves ~540KB.
+- **Font subsetting**: added `scripts/subset-fonts.ts` (`bun run fonts:subset`, needs the system `pyftsubset`, not part of the gates): `nagino` is trimmed to ASCII + punctuation + kana + JIS X 0208 level 1 (1.65MB → 0.70MB) and `Alimama` to ASCII + punctuation + GB2312 level 1 (580KB → 307KB); untouched originals stay in `fonts/source/` and missing glyphs fall back to `--font-body`.
+- **Android R8**: release now uses `minifyEnabled` + `shrinkResources` + `proguard-android-optimize.txt`, and `proguard-rules.pro` keeps `SafStoragePlugin`, `Plugin` subclasses, `@PluginMethod` / permission callbacks and Cordova plugins. `classes.dex` 2.5MB → 0.98MB, APK 7.15MB → 2.40MB.
+- **Pull-to-refresh**: the whole `.app-screen` is no longer translated (a `transform` creates a containing block and breaks `position: sticky` on the search bar); only `.app-screen.is-pulling > :not(.sticky-chrome)` moves. `touchmove` writes are rAF-coalesced, the listener goes non-passive only while a pull is tracked and calls `preventDefault`, and the full-screen `will-change` is gone.
+- **Runtime performance**: dropped `gsap` (tab bounce → Web Animations, discover fade-in → CSS keyframes + `nth-child` delays, task collapse → `el.animate()`); `Discover` / `Search` / `AlbumDetail` are now `React.lazy`; home card callbacks are stable `useCallback`s and `AlbumListSection` forwards `onPress` / `onDownload` directly, so `AlbumRow` memo survives; `albumCard` gained `content-visibility: auto`, `Poster`'s `<img>` gained `loading="lazy"`, and the `hasJapanese` cache is capped at 1000 entries.
+
 ### Release-notes rendering and a reworked content filter
 
 - **Release notes**: added `features/update/notes.ts` (`parseNotes` flattens Markdown into heading / bullet / text blocks) and `ReleaseNotes.tsx` (a `--surface-sunken` panel with an "update notes" caption and dotted bullets, capped at `32vh` with its own scroll). `UpdatePrompt` and the settings "check for updates" dialog share it, and the dialog splits into a version line, a metadata row (size / cache / mirror switch) and the notes panel. `ConfirmDialog.message` is now a `ReactNode` and no longer forces `white-space: pre-wrap`.

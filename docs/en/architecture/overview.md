@@ -30,13 +30,13 @@ src/
     hooks/                # download / cover / keyboard / gesture / repair / update hooks
     i18n/                 # Single dictionary zh-CN.ts + t(key, params)
     library/              # insert / cover / cover cache / path resolve / repair / daily / cache / dismissed
-    reader/               # direct image reading (image-doc / image-loader / image-reader / pdf-doc)
+    reader/               # direct image reading (image-doc / image-loader / image-reader)
     stores/               # zustand stores
     styles/               # fonts.css + shell.css only (25 contract classes + tabbar)
     theme/                # Cirrus design tokens (CSS variables)
     generated/            # icons.ts (generated from SVG)
     App.tsx / main.tsx / index.html
-__tests__/                # unit tests (28 files / 235 cases); helpers/ holds test-only code
+__tests__/                # unit tests (29 files / 244 cases); helpers/ holds test-only code
 scripts/
   check-icons.ts          # icon uniqueness / generated drift / unused references
   check-tokens.ts         # raw colors, raw px spacing, calc(var(--z-*)+N)
@@ -104,7 +104,7 @@ flowchart LR
 - **Pluggable HttpClient**: Web uses `FetchHttpClient`; device uses `NativeHttpClient` (bypasses CORS, with fetch fallback), selected via `Capacitor.isNativePlatform()`; axios only for Node scripts (`scripts/shared/axios-http.ts`).
 - **Unified retry**: `requestWithRetry` in `core/net/retry.ts` centralizes the domain-rotation × retry loop; `retryable` distinguishes 4xx/5xx; `fetchOnce` uses `AbortSignal.timeout`.
 - **Domain protocol**: each domain tries `https://` first, then `http://` as fallback; `refreshDomains` is shared globally and probed at most once.
-- **pages primary path**: downloads write `pages/` only (default webp) with atomic writes (`.tmp` + rename) against half-written files; reader renders local images; legacy PDFs via pdf.js.
+- **pages primary path**: downloads write `pages/` only (default webp) with atomic writes (`.tmp` + rename) against half-written files; the reader renders those local images directly.
 - **Serial queue**: `src/web/download/queue.ts`, `MAX_CONCURRENT = 1`; pause/fail advances to next.
 - **Download memory control**: `download/scheduler.ts` provides `MemoryGate` byte watermark and `Semaphore` decode throttling.
 - **Cover preload**: `coverCache` pre-decodes cover URIs on start / library change; first 8 covers eagerly, the rest lazy.

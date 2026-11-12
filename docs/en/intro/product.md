@@ -23,7 +23,6 @@ Source images are sliced into scrambled strips and web endpoints get DNS-blocked
 | Crypto | crypto-js | MD5, AES-256-ECB |
 | Image decode (device/Web) | Web Canvas | Strip reassembly |
 | Image decode (Node) | ImageMagick | verify script pipeline check |
-| PDF reading (legacy) | pdf.js | fallback rendering for old PDFs |
 | Storage | Capacitor Filesystem / Preferences / SAF | |
 | Testing | bun test | Core algorithm unit tests |
 

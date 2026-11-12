@@ -2,6 +2,15 @@
 
 ## 2026-11-11（三）
 
+### 包体压缩与运行期性能
+
+- **构建链修正**：`package.json` 的 `--define:KEY=VAL` 冒号写法在 bun 1.3.14 被静默忽略，发行包一直是 React development（`jsxDEV` 515 处）。改为空格写法并补 `--define require=undefined`（让 `crypto-js` 的 `require('crypto')` 分支被 DCE，crypto chunk 683KB → 58KB）；`bunfig.toml` 清掉覆盖版本号的 `[define]`，`scripts/version-define.sh` 同步换写法。入口 594KB → 216KB。
+- **移除 pdf.js 回退**：下载恒写 `pagesDir`，`isImageMode` 恒真，PDF 分支是死代码。删 `reader/pdf-doc.ts`、`paged-viewer.ts`、`scroll-viewer.ts`、`useTouchGestures.ts` 与 `pdfjs-dist` 依赖、worker 拷贝、bench 的 `benchPdf`；`ReaderScreen` 只保留 `ImageReader` + toolbar/status，`reader.pdfError` 改 `reader.openError`。省约 540KB。
+- **字体子集化**：新增 `scripts/subset-fonts.ts`（`bun run fonts:subset`，依赖系统 `pyftsubset`，不进门禁）：`nagino` 裁到 ASCII + 标点 + 假名 + JIS X 0208 第 1 水准（1.65MB → 0.70MB），`Alimama` 裁到 ASCII + 标点 + GB2312 一级（580KB → 307KB）；完整原件留在 `fonts/source/`，缺字回退 `--font-body`。
+- **Android R8**：release 开 `minifyEnabled` + `shrinkResources` + `proguard-android-optimize.txt`；`proguard-rules.pro` keep `SafStoragePlugin`、`Plugin` 子类、`@PluginMethod` / 权限回调与 Cordova 插件。`classes.dex` 2.5MB → 0.98MB，APK 7.15MB → 2.40MB。
+- **下拉刷新**：位移不再加在整屏 `.app-screen` 上（`transform` 会新建包含块，破坏搜索栏 `position: sticky`），改为只位移 `.app-screen.is-pulling > :not(.sticky-chrome)`；`touchmove` 用 `requestAnimationFrame` 合帧、仅在下拉跟踪中非 passive 并 `preventDefault`，去掉整屏 `will-change`。
+- **运行期性能**：删 `gsap`（tab 回弹改 Web Animations、discover 渐入改 CSS keyframes + `nth-child` 延迟、tasks 塌缩改 `el.animate()`）；`Discover` / `Search` / `AlbumDetail` 改 `React.lazy`；首页卡片回调改稳定 `useCallback`、`AlbumListSection` 的 `onPress` / `onDownload` 直接透传，保住 `AlbumRow` memo；`albumCard` 加 `content-visibility: auto`，`Poster` 的 `<img>` 加 `loading="lazy"`；`hasJapanese` 缓存加 1000 条上限。
+
 ### 更新说明渲染 + 内容过滤重排
 
 - **更新说明**：新增 `features/update/notes.ts`（`parseNotes` 拍平 Markdown 为 heading / bullet / text）与 `ReleaseNotes.tsx`（`--surface-sunken` 面板 + 「更新内容」标题 + 圆点列表，最高 `32vh` 内部滚动）；`UpdatePrompt` 与设置页「检查更新」弹窗共用该组件，版本行、metadata 行（大小 / 缓存 / 镜像切换）、说明面板分层。`ConfirmDialog.message` 改为 `ReactNode` 并移除 `white-space: pre-wrap`。

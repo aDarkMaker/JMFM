@@ -61,14 +61,14 @@ flowchart LR
 | `Library` | `LibraryScreen` | 本地漫画库 + 搜索 + 分类筛选（全部/收藏/已下载/常看） |
 | `Tasks` | `TasksScreen` | 下载任务与进度（串行排队） |
 | `Settings` | `SettingsScreen` | 应用设置 |
-| `Reader` | `ReaderScreen` | 阅读器：图片直读（新下载）或 pdf.js 回退（旧 PDF） |
+| `Reader` | `ReaderScreen` | 阅读器：图片直读 |
 
 ## 页面职责
 
 - **Home**：分区自上而下为 顶栏（品牌 + 搜索）→ Hero（本周焦点）→ 继续阅读 → 今日推荐网格 → 人气榜 Top8 → 最近更新（相对时间）→ 分类 chips。全部数据派生自现有 store，无新增接口：Hero 取推荐池 `likesCount` 最高者；人气榜用 `useBrowseStore.hot`；最近更新由 `useDailyStore.albums` 按 `updateAt` 倒序。推荐本身仍走 `buildRecommendations`（白名单 → 偏爱标签 → 时间梯度补齐 6 本），按日缓存，支持 dismiss / 刷新。
 - **Library**：展示已下载漫画，支持搜索与四分类筛选（全部/收藏/已下载/常看），支持收藏、删除、打开阅读；删除使用 `ConfirmDialog`。搜索框为 `shared/SearchBar`（capsule），与下载页 ID 输入框同构，顶部间距 `--space-3`。
-- **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本经 `queue.ts` 串行；完成 3s 后 GSAP 高度折叠离场；卡片为标题左对齐 + 状态徽章（无对号图标）。顶部 ID 输入框为 `ui/Input` capsule 变体，与资源页搜索框共享同一度量。
-- **Reader**：`ReaderTarget.pagesDir` 存在时走图片直读（`image-reader.tsx` + `image-loader.ts`）：纵向窗口 ±1/+3，横向三页轨道；否则回退 pdf.js。`ReaderScreen` 由 `App` 用 `React.lazy` 懒加载，pdf.js 仅 PDF 模式动态 import。
+- **Tasks**：展示下载队列与实时进度，支持暂停/继续/删除；多本经 `queue.ts` 串行；完成 3s 后 Web Animations 高度折叠离场；卡片为标题左对齐 + 状态徽章（无对号图标）。顶部 ID 输入框为 `ui/Input` capsule 变体，与资源页搜索框共享同一度量。
+- **Reader**：图片直读（`image-reader.tsx` + `image-loader.ts`）：纵向窗口 ±1/+3，横向三页轨道。`ReaderScreen` 由 `App` 用 `React.lazy` 懒加载。
 - **Settings**：主题、阅读方式、下载路径（支持 SAF 目录授权）、启用代理；分组为显示 / 下载 / 网络 / 内容过滤 / 通用，全部用 `ui/ListGroup` 卡片承载；「通用 → 修复文件」扫描并补齐缺失页面与封面，扫描进度条与入队提示常驻（跨 Tab 不中断）；「检查更新」下载进度由 `useUpdateStore` 承载，切页后回设置页仍可见。
 
 ## 封面预加载
@@ -127,7 +127,7 @@ flowchart TD
 - **Tab keep-alive**：`useTabKeepAlive` 让 tab 首次访问后常驻挂载，未激活容器 `hidden`，切换时恢复 `.app-screen` 的 `scrollTop`。Library 仍首次访问才挂载，避免启动即扫盘。
 - **左缘返回**：`useEdgeSwipeBack` 只在导航层存在时生效，起手 28px 内、水平位移 >64px 才 `back()`；拖拽直接写在 `.nav-layer` 的 transform 上，松手复位或交给 `is-closing` 动画。
 - **折叠头部**：`useHideOnScroll` 在捕获阶段监听 `.app-screen` 滚动，下滑 24px 隐藏 tabbar 与首页顶栏（`.chrome-hidden`），上滑或回到顶部即恢复。
-- **下拉刷新**：`usePullToRefresh` 仅指针为 coarse 时启用，`.app-screen` 处于顶部且下拉 80px 触发；Home 刷新推荐 + 热门，外层 `is-pulling` / `is-refreshing` 提供指示器。
+- **下拉刷新**：`usePullToRefresh` 仅指针为 coarse 时启用，`.app-screen` 处于顶部且下拉 80px 触发；Home 刷新推荐 + 热门。位移只加在 `.app-screen` 的非 `.sticky-chrome` 子节点上（`--pull-y`），搜索栏因此保持 sticky 钉在顶部；`touchmove` 用 `requestAnimationFrame` 合帧且仅在下拉进行中非 passive 拦截原生 overscroll。
 
 ## 样式体系
 
@@ -206,6 +206,7 @@ flowchart TD
 | `BebasNeue.woff2` | `Bebas Neue` | 英文与数字、装饰字 |
 
 - 字体源文件存放 `src/web/assets/fonts/`（均为 woff2，由 otf/ttf 转换瘦身）。
+- 展示字体按字集子集化：`bun run fonts:subset`（需 `pyftsubset`）把 `nagino` 裁到 ASCII + 标点 + 假名 + JIS X 0208 第 1 水准，`Alimama` 裁到 ASCII + 标点 + GB2312 一级；完整原件留在 `fonts/source/`（不被引用），缺字回退 `--font-body`。
 - `src/web/styles/fonts.css` 通过 `@font-face` 注册，Bun build 自动打包。
 
 ## 目录结构
@@ -233,7 +234,7 @@ src/web/
   hooks/                  # useAppUpdate / useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
   i18n/                   # zh-CN.ts 字典 + t(key, params)
   library/                # saveToLibrary / coverCache / repairLibrary / discoverLibrary / daily / tags / uid
-  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer（+ engine.css）
+  reader/                 # image-doc / image-loader / image-reader（+ engine.css）
   stores/                 # zustand stores（含 storage-version.ts）
   styles/                 # fonts.css / shell.css
   theme/                  # Cirrus tokens（CSS 变量）

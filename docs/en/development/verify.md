@@ -2,7 +2,7 @@
 
 ## Unit tests
 
-`bun test` covers the core modules (currently 28 test files, 235 cases):
+`bun test` covers the core modules (currently 29 test files, 244 cases):
 
 | Module | Coverage |
 |---|---|

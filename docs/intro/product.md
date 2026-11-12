@@ -23,7 +23,6 @@ JMFM 是禁漫天堂的漫画下载器。Capacitor + React Web + TypeScript，�
 | 加解密 | crypto-js | MD5、AES-256-ECB |
 | 图片解码（真机/Web） | Web Canvas | 条带重组 |
 | 图片解码（Node） | ImageMagick | verify 脚本验证链路 |
-| PDF 阅读（旧文件） | pdf.js | 遗留 PDF 回退渲染 |
 | 存储 | Capacitor Filesystem / Preferences / SAF | |
 | 测试 | bun test | 核心算法单测 |
 

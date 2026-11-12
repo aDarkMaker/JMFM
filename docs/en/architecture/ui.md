@@ -61,14 +61,14 @@ flowchart LR
 | `Library` | `LibraryScreen` | local library + search + category filters (all / favorite / downloaded / recent) |
 | `Tasks` | `TasksScreen` | download queue and progress (serialized) |
 | `Settings` | `SettingsScreen` | app settings |
-| `Reader` | `ReaderScreen` | reader: direct image reading (new downloads) or pdf.js fallback (legacy PDFs) |
+| `Reader` | `ReaderScreen` | reader: direct image reading |
 
 ## Screen responsibilities
 
 - **Home**: sections top to bottom are topbar (brand + search) → hero (weekly spotlight) → continue reading → daily grid → popularity Top 8 → recent updates (relative time) → category chips. Everything derives from existing stores, no new endpoints: the hero is the highest `likesCount` pick, the ranking reuses `useBrowseStore.hot`, and updates are `useDailyStore.albums` sorted by `updateAt`. Picks still come from `buildRecommendations` (whitelist → favorite tags → time-tiered fill) and stay cached per day with dismiss / refresh.
 - **Library**: lists downloaded albums with search and four category filters (all / favorite / downloaded / recent); supports favorite, delete and open. Delete uses `ConfirmDialog`. Search uses `shared/SearchBar` (capsule) and is geometry-identical to the tasks ID field, sitting `--space-3` below the header.
-- **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a GSAP height collapse; card is left-aligned title + status badge (no check icon). The ID field at the top is the `ui/Input` capsule variant, sharing the library search metrics.
-- **Reader**: when `ReaderTarget.pagesDir` exists, uses direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+3, horizontal three-slide track; otherwise pdf.js fallback. `ReaderScreen` is lazy-loaded via `React.lazy`; pdf.js is imported dynamically only in PDF mode.
+- **Tasks**: download queue with live progress, pause / resume / delete; albums serialized via `queue.ts`; done tasks leave after 3s with a Web Animations height collapse; card is left-aligned title + status badge (no check icon). The ID field at the top is the `ui/Input` capsule variant, sharing the library search metrics.
+- **Reader**: direct image reading (`image-reader.tsx` + `image-loader.ts`): scroll window ±1/+3, horizontal three-slide track. `ReaderScreen` is lazy-loaded via `React.lazy`.
 - **Settings**: theme, reading mode, download path (with SAF directory grant), proxy toggle; grouped as display / download / network / content filter / general, all rendered with `ui/ListGroup` cards; **General → Repair files** scans and backfills missing pages and covers with an always-visible progress bar and queue hint (survives tab switches); **Check for updates** download progress lives in `useUpdateStore`, so it stays visible after leaving and returning.
 
 ## Cover preload
@@ -127,7 +127,7 @@ flowchart TD
 - **Tab keep-alive**: `useTabKeepAlive` mounts a tab on first visit and keeps it; inactive panes are `hidden` and restore their `.app-screen` `scrollTop` on return. Library still mounts lazily to avoid an eager disk scan.
 - **Edge swipe back**: `useEdgeSwipeBack` arms only while an overlay exists; a touch starting within 28px of the left edge that travels past 64px horizontally pops the stack. Drag writes `.nav-layer` transform directly and releases into `is-closing`.
 - **Hide-on-scroll**: `useHideOnScroll` listens in the capture phase for `.app-screen` scrolls and hides the tabbar plus home topbar after 24px downward (`.chrome-hidden`), restoring on upward scroll or when back at the top.
-- **Pull-to-refresh**: `usePullToRefresh` runs only for coarse pointers, requires the scroller at the top and an 80px pull; Home refreshes picks plus the hot rail while `is-pulling` / `is-refreshing` drive the indicator.
+- **Pull-to-refresh**: `usePullToRefresh` runs only for coarse pointers, requires the scroller at the top and an 80px pull; Home refreshes picks plus the hot rail. Only non-`.sticky-chrome` children of `.app-screen` are translated (`--pull-y`), so the search bar stays sticky; `touchmove` writes are rAF-coalesced and go non-passive only while a pull is tracked to suppress native overscroll.
 
 ## Style system
 
@@ -204,6 +204,7 @@ Both the `version.json` `notes` field and the GitHub release body are author-wri
 | `BebasNeue.woff2` | `Bebas Neue` | Latin and numerals, display type |
 
 - Source fonts live in `src/web/assets/fonts/` (all woff2, converted/slimmed from otf/ttf).
+- Display faces are subsetted: `bun run fonts:subset` (needs `pyftsubset`) trims `nagino` to ASCII + punctuation + kana + JIS X 0208 level 1 and `Alimama` to ASCII + punctuation + GB2312 level 1; the untouched originals stay in `fonts/source/` (unreferenced) and missing glyphs fall back to `--font-body`.
 - `src/web/styles/fonts.css` registers them via `@font-face`; Bun build bundles them automatically.
 
 ## Directory layout
@@ -231,7 +232,7 @@ src/web/
   hooks/                  # useAppUpdate / useDownloadTask / useCoverSrc / useKeyboardVisibility / ...
   i18n/                   # zh-CN.ts dictionary + t(key, params)
   library/                # saveToLibrary / coverCache / repairLibrary / discoverLibrary / daily / tags / uid
-  reader/                 # image-doc / image-loader / image-reader / pdf-doc / paged-viewer / scroll-viewer (+ engine.css)
+  reader/                 # image-doc / image-loader / image-reader (+ engine.css)
   stores/                 # zustand stores (incl. storage-version.ts)
   styles/                 # fonts.css / shell.css
   theme/                  # Cirrus tokens (CSS variables)

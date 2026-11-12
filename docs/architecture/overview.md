@@ -30,13 +30,13 @@ src/
     hooks/                # 下载 / 封面 / 键盘 / 手势 / 修复 / 更新等 hooks
     i18n/                 # 单字典 zh-CN.ts + t(key, params)
     library/              # 入库 / 封面 / 封面缓存 / 路径解析 / 增量修复 / 每日推荐 / 缓存 / dismissed
-    reader/               # 图片直读（image-doc / image-loader / image-reader / pdf-doc）
+    reader/               # 图片直读（image-doc / image-loader / image-reader）
     stores/               # zustand 状态库
     styles/               # 仅 fonts.css + shell.css（25 个契约类 + tabbar）
     theme/                # Cirrus 设计 token（CSS 变量）
     generated/            # icons.ts（由 SVG 生成）
     App.tsx / main.tsx / index.html
-__tests__/                # 单元测试（28 文件 / 235 用例）；helpers/ 存放测试专用代码
+__tests__/                # 单元测试（29 文件 / 244 用例）；helpers/ 存放测试专用代码
 scripts/
   check-icons.ts          # 图标唯一性 / 生成物漂移 / 零引用
   check-tokens.ts         # 裸颜色、裸 px 间距、calc(var(--z-*)+N)
@@ -104,7 +104,7 @@ flowchart LR
 - **HttpClient 可插拔**：Web 用 `FetchHttpClient`；真机用 `NativeHttpClient`（绕过 CORS，含 fetch 回退），按 `Capacitor.isNativePlatform()` 选择；axios 仅 Node 脚本（`scripts/shared/axios-http.ts`）。
 - **重试收敛**：`core/net/retry.ts` 的 `requestWithRetry` 统一域名轮换 × 重试双循环，`retryable` 区分 4xx/5xx；`fetchOnce` 内置 `AbortSignal.timeout` 超时。
 - **域名协议**：每个域名先 `https://`，再回退 `http://`；`refreshDomains` 结果全局共享，最多探测一次。
-- **pages 主路径**：下载只写 `pages/`（默认 webp），原子写入（`.tmp` + rename）防半文件；阅读器渲染本地图片；旧 PDF 走 pdf.js 回退。
+- **pages 主路径**：下载只写 `pages/`（默认 webp），原子写入（`.tmp` + rename）防半文件；阅读器渲染本地图片。
 - **串行队列**：`src/web/download/queue.ts`，`MAX_CONCURRENT = 1`；暂停/失败切下一本。
 - **下载内存控制**：`download/scheduler.ts` 提供 `MemoryGate` 字节水位与 `Semaphore` 解码限流。
 - **封面预加载**：`coverCache` 在启动与库变更时预解码封面 URI，减少 Tab 切换布局跳动；首屏仅前 8 张，其余懒加载。

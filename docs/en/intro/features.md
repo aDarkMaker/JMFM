@@ -15,7 +15,7 @@
 ## Local storage and reading
 
 - **pages as primary output**: downloads write `albumDir/pages/` only (default webp), with atomic writes against half-written files.
-- **Image reader**: renders local pages/ directly; legacy PDFs via pdf.js.
+- **Image reader**: renders local pages/ directly.
 - **Library repair**: Settings checks metadata, format+count, and covers; missing items are backfilled on demand, full re-download only when an album is entirely gone.
 
 ## Configuration
