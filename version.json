@@ -1,5 +1,5 @@
 {
-  "version": "3.7.0",
-  "versionCode": 30700,
-  "notes": "## JMFM 3.7.0\n\n- 包体 7.15MB → 2.40MB（R8 + 字体子集 + 移除 pdf.js 回退）\n- 首屏 JS 594KB → 216KB\n- 修复：下拉刷新遮挡搜索栏、下拉卡顿\n- 性能：导航页按需加载、列表离屏跳过渲染\n- 注意：旧 PDF 文件不再支持阅读，已下载的 pages/ 不受影响\n\n下载 **JMFM.apk** 安装。"
+  "version": "3.8.0",
+  "versionCode": 30800,
+  "notes": "## JMFM 3.8.0\n\n- **修复 3.7.0 真机无法启动**：`--define require=undefined` 是全局文本替换，把 React CJS 入口（`require('./cjs/react.production.js')`）也替换成 `(void 0)(...)`，WebView 首屏即抛 `TypeError` 白屏。改由 `scripts/build-web.ts` 用 Bun 插件把 `crypto` 解析为 `globalThis.crypto`，既去掉 660KB 的 Node crypto polyfill，又不破坏任何 `require`。\n- 首屏 JS 216KB → 130KB（crypto chunk 降为 0）\n- APK 2.40MB → 2.37MB\n\n下载 **JMFM.apk** 安装。"
 }

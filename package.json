@@ -1,10 +1,10 @@
 {
   "name": "JMFMobile",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && bun build ./src/web/index.html --outdir=dist --target=browser --minify --splitting $(bash scripts/version-define.sh) --define process.env.NODE_ENV='\"production\"' --define require=undefined",
-    "build:dev": "rm -rf dist && bun build ./src/web/index.html --outdir=dist --target=browser --splitting $(bash scripts/version-define.sh) --define require=undefined",
+    "build": "bun scripts/build-web.ts --minify",
+    "build:dev": "bun scripts/build-web.ts",
     "cap:sync": "cap sync android",
     "cap:run": "cap run android",
     "dev": "bash scripts/dev-android.sh",

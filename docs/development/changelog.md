@@ -1,5 +1,14 @@
 # 开发日志
 
+## 2026-11-12（四）
+
+### 3.7.0 真机白屏修复
+
+- **根因**：3.7.0 的 `--define require=undefined` 是全局文本替换，连 React 的 CJS 入口 `require("./cjs/react.production.js")` 都被换成 `(void 0)("./cjs/react.production.js")`，WebView 首屏 import 即抛 `TypeError: (void 0) is not a function`，页面卡在空白首帧。
+- **修复**：`package.json` 的 `build` / `build:dev` 改为 `scripts/build-web.ts`（`Bun.build`）。用 `onResolve` + `onLoad` 把 `crypto` 解析成 `globalThis.crypto`，`crypto-js` 的 `require('crypto')` 分支拿到 Web Crypto 不再走 Node polyfill；`--define` 只保留 `__APP_VERSION__` 与 `process.env.NODE_ENV`，不再触碰 `require`。删掉 `scripts/version-define.sh`。
+- **体积**：首屏 JS 216KB → 130KB（Node crypto polyfill 660KB 归零，剩余 chunk 只含 MD5/AES-ECB 所需模块），APK 2.40MB → 2.37MB。模拟器实测 release 包可正常启动、四个 Tab 与 lazy chunk 均正常。
+- 教训：`--define` 是文本级替换，任何跨模块通用名（`require`、`global`、`process` 之外的）都不要拿它做 DCE；用插件改写模块解析才是安全的。
+
 ## 2026-11-11（三）
 
 ### 包体压缩与运行期性能

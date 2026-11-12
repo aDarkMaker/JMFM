@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-12 (Thu)
+
+### 3.7.0 blank-screen fix on device
+
+- **Root cause**: 3.7.0's `--define require=undefined` is a global text substitution, so React's CJS entry `require("./cjs/react.production.js")` also became `(void 0)("./cjs/react.production.js")`. The WebView threw `TypeError: (void 0) is not a function` during the first import and stayed on a blank frame.
+- **Fix**: `build` / `build:dev` in `package.json` now call `scripts/build-web.ts` (`Bun.build`). A `crypto` `onResolve` + `onLoad` pair answers with `globalThis.crypto`, so `crypto-js`'s `require('crypto')` branch gets Web Crypto instead of the Node polyfill; `--define` is limited to `__APP_VERSION__` and `process.env.NODE_ENV` and no longer touches `require`. `scripts/version-define.sh` deleted.
+- **Size**: entry JS 216KB → 130KB (the 660KB Node crypto polyfill is gone; remaining chunks only carry MD5/AES-ECB), APK 2.40MB → 2.37MB. Verified on an emulator: the release build boots and all four tabs plus lazy chunks work.
+- Lesson: `--define` is textual, so never use it to DCE cross-module names like `require`; rewrite module resolution with a plugin instead.
+
 ## 2026-11-11 (Wed)
 
 ### Bundle diet and runtime performance
