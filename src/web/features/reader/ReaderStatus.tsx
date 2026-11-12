@@ -13,7 +13,7 @@ export function ReaderStatus({error, pages, onRetry}: ReaderStatusProps) {
   if (error) {
     return (
       <div className={styles.error}>
-        <span>{t('reader.pdfError', {error})}</span>
+        <span>{t('reader.openError', {error})}</span>
         <div className={styles.errorActions}>
           <Button variant="secondary" size="sm" onClick={onRetry}>
             {t('common.retry')}

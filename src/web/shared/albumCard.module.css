@@ -10,6 +10,10 @@
     transform var(--dur-base) var(--ease-emphasized),
     box-shadow var(--dur-base) var(--ease-out);
   cursor: pointer;
+  /* Grid is only ever visible a screenful at a time; skip layout/paint for
+     offscreen cards so long home feeds stay scrollable. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
 }
 
 .root:active {

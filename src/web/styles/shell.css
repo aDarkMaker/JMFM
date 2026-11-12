@@ -58,14 +58,12 @@
   width: 100%;
 }
 
-/* Pull-to-refresh: rubber-band only — no spinner (sticky chrome would hide it). */
-.app-screen.is-pulling {
-  will-change: transform;
-}
-
-/* Keep sticky chrome pinned in screen space while the scroller rubber-bands. */
-.app-screen.is-pulling .sticky-chrome {
-  transform: translate3d(0, calc(-1 * var(--pull-y, 0px)), 0);
+/* Pull-to-refresh: rubber-band only — no spinner (sticky chrome would hide it).
+   The scroller itself is never transformed: that would create a containing block
+   and break `position: sticky` for the search chrome. Only its non-sticky
+   children move. */
+.app-screen.is-pulling > :not(.sticky-chrome) {
+  transform: translate3d(0, var(--pull-y, 0px), 0);
 }
 
 .app-screen {

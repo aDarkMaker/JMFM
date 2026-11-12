@@ -66,6 +66,7 @@ export function Poster({
           src={src ?? undefined}
           alt=""
           decoding="async"
+          loading="lazy"
           ref={(el) => {
             // Preload can finish before mount; cached imgs skip onLoad and stay at opacity 0.
             if (!el || loaded || failed) return;

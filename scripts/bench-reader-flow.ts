@@ -1,7 +1,6 @@
 import {readdirSync, readFileSync, statSync, existsSync, writeFileSync} from 'node:fs';
 import {join, dirname} from 'node:path';
 import {spawnSync} from 'node:child_process';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 interface Strategy {
   name: string;
@@ -74,34 +73,31 @@ function perc(values: number[]): Perc {
   };
 }
 
-function findAlbumRoot(albumId: string): {albumDir: string; pagesDir: string; pdfPath: string} {
+function findAlbumRoot(albumId: string): {albumDir: string; pagesDir: string} {
   const temp = join(process.cwd(), 'temp');
   const argPath = process.argv[3];
   if (argPath && existsSync(argPath)) {
     const pagesDir = argPath.endsWith('pages') ? argPath : join(argPath, 'pages');
     const albumDir = dirname(pagesDir);
-    const pdf = readdirSync(albumDir).find((n) => n.endsWith('.pdf'));
-    return {albumDir, pagesDir, pdfPath: pdf ? join(albumDir, pdf) : ''};
+    return {albumDir, pagesDir};
   }
   const dirs = readdirSync(temp, {withFileTypes: true}).filter((d) => d.isDirectory());
   for (const d of dirs) {
     const albumDir = join(temp, d.name);
     const pagesDir = join(albumDir, 'pages');
     if (!existsSync(pagesDir)) continue;
-    const pdf = readdirSync(albumDir).find((n) => n.endsWith('.pdf'));
     if (
       albumId === 'auto' ||
       d.name.includes(albumId) ||
       existsSync(join(temp, `${albumId}_cover.jpg`))
     ) {
-      return {albumDir, pagesDir, pdfPath: pdf ? join(albumDir, pdf) : ''};
+      return {albumDir, pagesDir};
     }
   }
   if (dirs.length === 1) {
     const albumDir = join(temp, dirs[0].name);
     const pagesDir = join(albumDir, 'pages');
-    const pdf = readdirSync(albumDir).find((n) => n.endsWith('.pdf'));
-    return {albumDir, pagesDir, pdfPath: pdf ? join(albumDir, pdf) : ''};
+    return {albumDir, pagesDir};
   }
   throw new Error(`pages dir not found in temp/ (album=${albumId})`);
 }
@@ -231,27 +227,11 @@ async function runStrategy(paths: string[], strategy: Strategy): Promise<Strateg
   };
 }
 
-async function benchPdf(pdfPath: string): Promise<number> {
-  if (!pdfPath || !existsSync(pdfPath)) return -1;
-  const t0 = performance.now();
-  const data = new Uint8Array(readFileSync(pdfPath));
-  const doc = await pdfjs.getDocument({data, useSystemFonts: true}).promise;
-  await doc.getPage(1);
-  const anyDoc = doc as unknown as {destroy?: () => Promise<void>; cleanup?: () => void};
-  if (typeof anyDoc.destroy === 'function') {
-    await anyDoc.destroy();
-  } else if (typeof anyDoc.cleanup === 'function') {
-    anyDoc.cleanup();
-  }
-  return Math.round(performance.now() - t0);
-}
-
 async function main(): Promise<void> {
   const albumId = process.argv[2] ?? '1214052';
-  const {albumDir, pagesDir, pdfPath} = findAlbumRoot(albumId);
+  const {albumDir, pagesDir} = findAlbumRoot(albumId);
   console.log(`[bench] albumDir=${albumDir}`);
   console.log(`[bench] pagesDir=${pagesDir}`);
-  console.log(`[bench] pdfPath=${pdfPath || '(none)'}`);
 
   const tList0 = performance.now();
   const paths = listPages(pagesDir);
@@ -261,9 +241,6 @@ async function main(): Promise<void> {
   console.log(
     `[bench] pages=${paths.length} totalBytes=${totalBytes} avgBytes=${Math.round(totalBytes / Math.max(1, paths.length))} listMs=${listMs.toFixed(1)}`
   );
-
-  const pdfOpenMs = await benchPdf(pdfPath);
-  console.log(`[bench] pdfOpenMs=${pdfOpenMs}`);
 
   const results: StrategyResult[] = [];
   for (const s of STRATEGIES) {
@@ -289,7 +266,6 @@ async function main(): Promise<void> {
     pagesTotalBytes: totalBytes,
     pagesAvgBytes: Math.round(totalBytes / Math.max(1, paths.length)),
     listMs: Math.round(listMs),
-    pdfOpenMs,
     strategies: results,
     winner: winner.name,
     recommendation: {

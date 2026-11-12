@@ -234,6 +234,16 @@ export function HomeScreen({onOpenReader}: {onOpenReader: (target: ReaderTarget)
     [pushDetail]
   );
 
+  const openCard = useCallback(
+    (card: AlbumCardData) => pushDetail(card.albumId, card.title),
+    [pushDetail]
+  );
+
+  const openSearchAlbum = useCallback(
+    (id: number, title: string) => pushDetail(id, title),
+    [pushDetail]
+  );
+
   const subtitle =
     favTags.length > 0
       ? t('home.favSubtitle', {tags: favTags.join(' / ')})
@@ -241,7 +251,7 @@ export function HomeScreen({onOpenReader}: {onOpenReader: (target: ReaderTarget)
 
   return (
     <div className="app-screen">
-      <HomeSearch onOpenAlbum={(id, title) => pushDetail(id, title)} />
+      <HomeSearch onOpenAlbum={openSearchAlbum} />
 
       {hero ? <HomeHero album={hero} onPress={openAlbum} /> : null}
 
@@ -285,7 +295,7 @@ export function HomeScreen({onOpenReader}: {onOpenReader: (target: ReaderTarget)
             <AlbumCard
               key={album.albumId}
               album={cardAlbums.get(album.albumId)!}
-              onPress={(card) => pushDetail(card.albumId, card.title)}
+              onPress={openCard}
               onDownload={handleDownload}
               onDismiss={handleDismiss}
               downloading={queuedIds.has(album.albumId)}

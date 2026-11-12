@@ -1,7 +1,4 @@
-import type {
-  PDFDocumentProxy,
-  PDFDocumentLoadingTask,
-} from 'pdfjs-dist/legacy/build/pdf.mjs';
+/** Reader domain types shared by the image reader, toolbar and history. */
 
 export interface OnlineReaderSource {
   albumId: number;
@@ -24,19 +21,6 @@ export interface ReaderTarget {
   startPage?: number;
 }
 
-export interface DocCacheEntry {
-  doc: PDFDocumentProxy;
-  task: PDFDocumentLoadingTask;
-  numPages: number;
-  page: number;
-  scale: number;
-}
-
-export interface BackPageCache {
-  page: number;
-  scale: number;
-}
-
 export type TouchState =
   | {type: 'pan'; x: number; y: number}
   | {type: 'pinch'; dist: number; scale: number; focalY: number; baseScrollTop: number}
@@ -44,7 +28,6 @@ export type TouchState =
 
 export const SCALE_MIN = 0.3;
 export const SCALE_MAX = 4;
-export const FLIP_DURATION_MS = 250;
 
 export function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));

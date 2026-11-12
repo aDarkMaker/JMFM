@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
-import {gsap} from 'gsap';
 import type {TaskStatus} from '@/web/stores/download';
 import {useDownloadStore} from '@/web/stores/download';
 import {ProgressBar} from '@/web/ui/ProgressBar';
@@ -86,23 +85,19 @@ export function TasksScreen() {
     }
 
     const h = el.offsetHeight;
-    gsap.killTweensOf(el);
-    gsap.set(el, {
-      height: h,
-      overflow: 'hidden',
-      marginBottom: 0,
-    });
-    gsap.to(el, {
-      height: 0,
-      opacity: 0,
-      paddingTop: 0,
-      paddingBottom: 0,
-      marginBottom: -STACK_GAP_PX,
-      duration: 0.28,
-      ease: 'power2.inOut',
-      overwrite: true,
-      onComplete: finish,
-    });
+    const cs = getComputedStyle(el);
+    const padTop = cs.paddingTop;
+    const padBottom = cs.paddingBottom;
+    el.style.height = `${h}px`;
+    el.style.overflow = 'hidden';
+    el.style.marginBottom = '0px';
+    el.animate(
+      [
+        {height: `${h}px`, opacity: 1, paddingTop: padTop, paddingBottom: padBottom},
+        {height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px', marginBottom: `-${STACK_GAP_PX}px`},
+      ],
+      {duration: 280, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards'}
+    ).onfinish = finish;
   }, []);
 
   useEffect(() => {
@@ -113,7 +108,9 @@ export function TasksScreen() {
       autoMap.forEach((timer) => clearTimeout(timer));
       autoMap.clear();
       scheduledRemoveRef.current.clear();
-      tiles.forEach((el) => gsap.killTweensOf(el));
+      tiles.forEach((el) => {
+        el.getAnimations().forEach((a) => a.cancel());
+      });
       tiles.clear();
       leavingRef.current.clear();
       notifiedDoneRef.current.clear();

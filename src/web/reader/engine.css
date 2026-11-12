@@ -69,6 +69,7 @@
 
 .reader-img-paged-area {
   display: block;
+  flex: 1;
   height: 100%;
   overflow: hidden;
   touch-action: pan-y;

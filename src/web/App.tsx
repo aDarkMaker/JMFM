@@ -1,14 +1,11 @@
+/** Root shell: tab switching, keep-alive panes, nav overlay and reader mounting. */
 import {lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {gsap} from 'gsap';
 import {Capacitor} from '@capacitor/core';
 import {Icon} from '@/web/shared/Icon';
 import {HomeScreen} from '@/web/features/home';
 import {LibraryScreen} from '@/web/features/library';
 import {TasksScreen} from '@/web/features/tasks';
 import {SettingsScreen} from '@/web/features/settings';
-import {DiscoverScreen} from '@/web/features/discover';
-import {SearchScreen} from '@/web/features/search';
-import {AlbumDetailScreen} from '@/web/features/detail';
 import {ToastHost} from '@/web/ui/Toast';
 import {UpdatePrompt} from '@/web/features/update/UpdatePrompt';
 import {useAppUpdate} from '@/web/hooks/useAppUpdate';
@@ -31,11 +28,28 @@ import {t, type MessageKey} from '@/web/i18n';
 const ReaderScreen = lazy(() =>
   import('@/web/features/reader').then((m) => ({default: m.ReaderScreen}))
 );
+const DiscoverScreen = lazy(() =>
+  import('@/web/features/discover').then((m) => ({default: m.DiscoverScreen}))
+);
+const SearchScreen = lazy(() =>
+  import('@/web/features/search').then((m) => ({default: m.SearchScreen}))
+);
+const AlbumDetailScreen = lazy(() =>
+  import('@/web/features/detail').then((m) => ({default: m.AlbumDetailScreen}))
+);
 
 type TabId = 'home' | 'library' | 'tasks' | 'settings';
 
 /** Only eagerly preload the first N covers; the rest are lazy-loaded on scroll. */
 const COVER_PRELOAD_COUNT = 8;
+
+/** Spring-back press feedback for the tab that just became active. */
+function popTab(el: HTMLElement) {
+  el.animate([{transform: 'scale(0.9)'}, {transform: 'scale(1)'}], {
+    duration: 250,
+    easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  });
+}
 
 const TABS: {
   id: TabId;
@@ -54,9 +68,6 @@ export function App() {
   const [tab, setTab] = useState<TabId>('home');
   const update = useAppUpdate();
   const updateOpen = useUpdateStore((s) => s.promptOpen);
-  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>(
-    {} as Record<TabId, HTMLButtonElement | null>
-  );
   const contentRef = useRef<HTMLDivElement>(null);
   const theme = useSettingsStore((s) => s.settings.theme);
   const loaded = useSettingsStore((s) => s.loaded);
@@ -130,18 +141,15 @@ export function App() {
     if (meta) meta.setAttribute('content', THEME_COLORS[theme]);
   }, [theme]);
 
-  useEffect(() => {
-    const activeEl = tabRefs.current[tab];
-    if (!activeEl) return;
-
-    gsap.fromTo(activeEl, {scale: 0.9}, {scale: 1, duration: 0.25, ease: 'back.out(1.5)'});
-  }, [tab]);
-
-  const handleTabChange = (newTab: TabId) => {
-    if (newTab === tab) return;
-    if (stack.length > 0) navBack();
-    setTab(newTab);
-  };
+  const handleTabChange = useCallback(
+    (newTab: TabId, el: HTMLButtonElement | null) => {
+      if (newTab === tab) return;
+      if (stack.length > 0) navBack();
+      setTab(newTab);
+      if (el) popTab(el);
+    },
+    [tab, stack.length, navBack]
+  );
 
   const navTarget = useMemo(() => {
     if (!navEntry) return null;
@@ -217,11 +225,8 @@ export function App() {
         {TABS.map((item) => (
           <button
             key={item.id}
-            ref={(el) => {
-              tabRefs.current[item.id] = el;
-            }}
             className={`tab-item${tab === item.id ? ' is-active' : ''}`}
-            onClick={() => handleTabChange(item.id)}
+            onClick={(e) => handleTabChange(item.id, e.currentTarget)}
           >
             <span className="tab-icon">
               <Icon name={item.icon} size={24} />
@@ -235,7 +240,7 @@ export function App() {
           ref={navLayerRef}
           className={`nav-layer${navEntry?.type === 'search' ? ' is-search' : ''}${navClosing ? ' is-closing' : ''}`}
         >
-          {navTarget}
+          <Suspense fallback={null}>{navTarget}</Suspense>
         </div>
       ) : null}
       {reader ? (

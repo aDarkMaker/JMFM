@@ -41,6 +41,16 @@
   min-width: 0;
 }
 
+/* Reader viewport: owns the error/loading overlays so they sit below the bar. */
+.body {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .title {
   flex: 1;
   min-width: 0;
@@ -71,65 +81,6 @@
 .total {
   font-size: var(--text-xs);
   color: var(--ink-tertiary);
-}
-
-.scrollArea {
-  flex: 1;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow-y: auto;
-  overflow-x: hidden;
-  touch-action: pan-y;
-  padding: var(--space-3) var(--space-3) calc(var(--space-4) + max(var(--safe-bottom), 20px));
-  min-height: 0;
-}
-
-.scrollContent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.scrollPage {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  overflow: hidden;
-  contain: layout style paint;
-  flex-shrink: 0;
-  background: var(--surface-canvas);
-}
-
-.pagedArea {
-  flex: 1;
-  position: relative;
-  display: flex;
-  overflow: hidden;
-  touch-action: pan-y;
-  min-height: 0;
-}
-
-.canvas {
-  margin: auto;
-  background: var(--surface-canvas);
-  box-shadow: var(--shadow-2);
-  flex-shrink: 0;
-}
-
-.canvasPaged {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin: 0;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  touch-action: pan-y;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 .error {

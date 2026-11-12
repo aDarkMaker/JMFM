@@ -41,8 +41,12 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8 + resource shrinking: the web assets dominate but the dex still
+            // carries unused Capacitor/AndroidX code. Keep rules live in
+            // proguard-rules.pro; plugins are resolved by reflection.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig hasKeystore ? signingConfigs.release : null
         }
     }

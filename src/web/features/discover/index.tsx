@@ -1,6 +1,5 @@
 import {t, type MessageKey} from '@/web/i18n';
 import {useEffect, useMemo, useRef} from 'react';
-import {gsap} from 'gsap';
 import {useShallow} from 'zustand/react/shallow';
 import styles from './discover.module.css';
 import {SORT_OPTIONS} from '@/core/constants/sort';
@@ -47,23 +46,6 @@ export function DiscoverScreen({
   });
 
   const firstLoadRef = useRef(true);
-  const listRef = useRef<HTMLDivElement>(null);
-  const staggerKeyRef = useRef('');
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list || feed.items.length === 0) return;
-    const key = `${category}|${order}`;
-    if (staggerKeyRef.current === key) return;
-    staggerKeyRef.current = key;
-    const rows = list.children;
-    if (rows.length === 0) return;
-    gsap.fromTo(
-      rows,
-      {opacity: 0, y: 10},
-      {opacity: 1, y: 0, duration: 0.26, ease: 'power2.out', stagger: 0.03, overwrite: 'auto'}
-    );
-  }, [category, order, feed.items.length]);
 
   useEffect(() => {
     void loadCategories();
@@ -140,7 +122,6 @@ export function DiscoverScreen({
         ) : (
           <AlbumListSection
             albums={feed.items}
-            listRef={listRef}
             onPress={(album) => pushDetail(album.albumId, album.name)}
           />
         )}

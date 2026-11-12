@@ -227,8 +227,8 @@ export const zhCN = {
   'reader.zoomOut': '缩小',
   'reader.zoomIn': '放大',
   'reader.fit': '适应宽度',
-  'reader.pdfError': '无法打开 PDF：{error}',
-  'reader.loading': '正在加载 PDF…',
+  'reader.openError': '无法打开：{error}',
+  'reader.loading': '正在加载…',
   'reader.noSource': '缺少阅读源',
 
   'update.checking': '正在检查…',
